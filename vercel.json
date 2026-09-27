@@ -2,25 +2,11 @@
   "version": 2,
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "pip install -r requirements.txt",
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 30
-    }
-  },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Authorization,Content-Type,Accept" }
-      ]
-    },
     {
       "source": "/(.*)",
       "headers": [
