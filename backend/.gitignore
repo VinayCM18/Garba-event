@@ -1,0 +1,31 @@
+# Backend-specific ignores
+.env
+.env.*
+!.env.example
+
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# Databases — never commit live data
+*.db
+*.sqlite3
+*.sqlite
+
+# Customer uploads & payment proof screenshots — NEVER commit
+uploads/screenshots/
+uploads/qr/
+
+# Keys & credentials
+*.pem
+*.key
+*.crt
+service-account*.json
+credentials*.json
