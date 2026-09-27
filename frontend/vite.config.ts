@@ -16,17 +16,7 @@ export default defineConfig({
     },
   },
   build: {
-    // Ensure source maps are NOT generated in production
-    // (prevents secrets leaking through source maps)
+    // Never generate source maps in production (prevents secret leakage)
     sourcemap: false,
-    rollupOptions: {
-      output: {
-        // Split chunks for better caching
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          charts: ['recharts'],
-        },
-      },
-    },
   },
 });
