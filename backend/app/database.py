@@ -43,7 +43,7 @@ def sync_database_schema():
         if "event_settings" in table_names:
             cols = {col["name"] for col in inspector.get_columns("event_settings")}
             new_cols = [
-                ("owner_notification_email", "VARCHAR(255) DEFAULT 'vinay18744@gmail.com'"),
+                ("owner_notification_email", "VARCHAR(255) DEFAULT ''"),
                 ("owner_notification_phone", "VARCHAR(50) DEFAULT '+91 98765 43210'"),
                 ("owner_notification_enabled", "BOOLEAN DEFAULT 1"),
                 ("owner_webhook_url", "VARCHAR(500) DEFAULT NULL"),

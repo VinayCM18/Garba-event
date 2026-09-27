@@ -2,7 +2,9 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
+import os
 from contextlib import asynccontextmanager
+from sqlalchemy import func
 
 from app.config import settings
 from app.database import Base, engine, SessionLocal
@@ -50,48 +52,49 @@ def init_db_defaults():
             )
             db.add(setting)
 
-        from sqlalchemy import func
-        # Seed super admins (.in, .local and primary admin)
-        for admin_email, admin_pass, admin_name in [
-            ("vinay18744@gmail.com", "Vinay@1438", "Vinay (Admin)"),
-            ("admin@garbanight.in", "GarbaNight@2026", "Head Organizer (Super Admin)"),
-            ("admin@garbanight.local", "GarbaNight@2026", "Head Organizer (Super Admin)")
-        ]:
-            admin_user = db.query(User).filter(func.lower(User.email) == admin_email.lower()).first()
-            if not admin_user:
-                admin_user = User(
-                    email=admin_email.lower(),
-                    name=admin_name,
-                    password_hash=get_password_hash(admin_pass),
-                    role="SUPER_ADMIN",
-                    is_active=True
-                )
-                db.add(admin_user)
-            else:
-                admin_user.password_hash = get_password_hash(admin_pass)
-                admin_user.role = "SUPER_ADMIN"
-                admin_user.is_active = True
+        import warnings
 
-        # Seed staff users (.in, .local and primary staff)
-        for staff_email, staff_pass, staff_name in [
-            ("samaymadhyastha2005@gmail.com", "Samay@866033", "Samay Madhyastha (Staff)"),
-            ("staff@garbanight.in", "StaffEntry@2026", "Gate Security Staff"),
-            ("staff@garbanight.local", "StaffEntry@2026", "Gate Security Staff")
+        # Admin and staff seed credentials are read from environment variables.
+        # Set these in Vercel → Settings → Environment Variables.
+        # In local dev they fall back to insecure defaults — CHANGE in production.
+        admin_email  = os.environ.get("ADMIN_EMAIL",  "admin@garbanight.in")
+        admin_pass   = os.environ.get("ADMIN_PASSWORD","GarbaNight@2026")
+        admin_name   = os.environ.get("ADMIN_NAME",   "Head Organizer (Super Admin)")
+        staff_email  = os.environ.get("STAFF_EMAIL",  "staff@garbanight.in")
+        staff_pass   = os.environ.get("STAFF_PASSWORD","StaffEntry@2026")
+        staff_name   = os.environ.get("STAFF_NAME",   "Gate Security Staff")
+
+        if settings.ENVIRONMENT == "production":
+            missing = [k for k, v in {
+                "ADMIN_EMAIL": admin_email, "ADMIN_PASSWORD": admin_pass,
+                "STAFF_EMAIL": staff_email, "STAFF_PASSWORD": staff_pass,
+            }.items() if not v or v in {"GarbaNight@2026", "StaffEntry@2026",
+                                        "admin@garbanight.in", "staff@garbanight.in"}]
+            if missing:
+                warnings.warn(
+                    f"SECURITY: Using default seed credentials in production for: {missing}. "
+                    "Set these as Vercel environment variables immediately.",
+                    stacklevel=2
+                )
+
+        for seed_email, seed_pass, seed_name, seed_role in [
+            (admin_email,  admin_pass, admin_name,  "SUPER_ADMIN"),
+            (staff_email,  staff_pass, staff_name,  "CHECKIN_STAFF"),
         ]:
-            staff_user = db.query(User).filter(func.lower(User.email) == staff_email.lower()).first()
-            if not staff_user:
-                staff_user = User(
-                    email=staff_email,
-                    name=staff_name,
-                    password_hash=get_password_hash(staff_pass),
-                    role="CHECKIN_STAFF",
+            existing = db.query(User).filter(func.lower(User.email) == seed_email.lower()).first()
+            if not existing:
+                new_user = User(
+                    email=seed_email.lower(),
+                    name=seed_name,
+                    password_hash=get_password_hash(seed_pass),
+                    role=seed_role,
                     is_active=True
                 )
-                db.add(staff_user)
+                db.add(new_user)
             else:
-                staff_user.password_hash = get_password_hash(staff_pass)
-                staff_user.role = "CHECKIN_STAFF"
-                staff_user.is_active = True
+                existing.role = seed_role
+                existing.is_active = True
+
 
         db.commit()
     except Exception as e:
@@ -118,7 +121,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Configuration
+# CORS Configuration — includes Vercel preview/production URLs automatically
 origins = [
     settings.FRONTEND_URL,
     "http://localhost:5173",
@@ -126,6 +129,19 @@ origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+
+# Vercel injects VERCEL_URL (without https://) for every deployment
+_vercel_url = os.environ.get("VERCEL_URL", "")
+if _vercel_url:
+    origins.append(f"https://{_vercel_url}")
+
+# Allow custom extra origins (comma-separated) via env var
+_extra = os.environ.get("EXTRA_CORS_ORIGINS", "")
+if _extra:
+    origins.extend([u.strip() for u in _extra.split(",") if u.strip()])
+
+# De-duplicate and remove empty strings
+origins = list(dict.fromkeys(o for o in origins if o))
 
 app.add_middleware(
     CORSMiddleware,
