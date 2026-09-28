@@ -37,7 +37,18 @@ def calculate_fee(
     """Calculates server-side ticket pricing breakdown using the active payment provider."""
     return booking_service.calculate_pricing(db=db, ticket_count=ticket_count)
 
+@router.get("/create-order")
+@router.get("/create-order/")
+def get_create_order_info():
+    """Informational endpoint if visited directly via browser GET."""
+    return {
+        "status": "ready",
+        "service": "Create Payment Order API",
+        "note": "This endpoint requires an HTTP POST request with booking payload. Please complete bookings via the website."
+    }
+
 @router.post("/create-order", response_model=CreateOrderResponse)
+@router.post("/create-order/", response_model=CreateOrderResponse)
 def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_db)):
     """Initiates a booking and returns checkout parameters (UPI QR or Razorpay)."""
     if not validate_email_format(payload.email):
