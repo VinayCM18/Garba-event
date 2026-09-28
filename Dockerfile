@@ -5,7 +5,6 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app/backend
-ENV PORT=8000
 
 # Install system build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -25,6 +24,5 @@ RUN mkdir -p /app/backend/uploads/qr /app/backend/uploads/screenshots
 
 WORKDIR /app/backend
 
-EXPOSE 8000
-
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Shell form allows runtime expansion of Railway's $PORT
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
