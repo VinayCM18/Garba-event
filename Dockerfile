@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy backend requirements and install dependencies
 COPY backend/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir setuptools wheel && pip install --no-cache-dir -r requirements.txt
 
 # Copy backend application source
 COPY backend ./backend
@@ -24,5 +24,5 @@ RUN mkdir -p /app/backend/uploads/qr /app/backend/uploads/screenshots
 
 WORKDIR /app/backend
 
-# Shell form allows runtime expansion of Railway's $PORT
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Use shell form of CMD so $PORT is evaluated at container runtime
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

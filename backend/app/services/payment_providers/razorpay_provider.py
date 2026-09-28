@@ -1,6 +1,9 @@
 import uuid
 import json
-import razorpay
+try:
+    import razorpay
+except Exception:
+    razorpay = None
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
