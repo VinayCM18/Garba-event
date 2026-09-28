@@ -162,7 +162,7 @@ async def submit_manual_payment_proof(
 
 @router.get("/qr-image")
 def get_upi_qr_image(db: Session = Depends(get_db)):
-    """Serves the active UPI QR code image prominently."""
+    """Serves the active UPI QR code image or generates one dynamically."""
     setting = db.query(EventSetting).first()
     qr_file = getattr(setting, "upi_qr_image", None)
 
@@ -170,7 +170,6 @@ def get_upi_qr_image(db: Session = Depends(get_db)):
         qr_file,
         os.path.join(QR_DIR, "upi_qr.jpg"),
         os.path.join("uploads", "qr", "upi_qr.jpg"),
-        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend", "public", "upi_qr_code.jpg"))
     ]
 
     for cand in candidates:
@@ -182,7 +181,19 @@ def get_upi_qr_image(db: Session = Depends(get_db)):
                 media_type = "image/webp"
             return FileResponse(cand, media_type=media_type)
 
-    raise HTTPException(status_code=404, detail="UPI QR code image not found.")
+    # Dynamic UPI QR generation fallback
+    import qrcode
+    from fastapi.responses import Response
+
+    upi_id = (getattr(setting, "upi_id", None) or "").strip() or settings.UPI_ID or "samaymadhyastha2005@oksbi"
+    event_name = (getattr(setting, "event_name", None) or "").strip() or "GARBA NIGHT 2026"
+    upi_url = f"upi://pay?pa={upi_id}&pn={event_name}&cu=INR"
+
+    img = qrcode.make(upi_url)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return Response(content=buf.getvalue(), media_type="image/png")
 
 @router.post("/verify", response_model=VerifyPaymentResponse)
 def verify_payment(payload: VerifyPaymentRequest, db: Session = Depends(get_db)):
