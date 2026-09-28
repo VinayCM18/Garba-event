@@ -2,23 +2,29 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install build dependencies
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app/backend
+ENV PORT=8000
+
+# Install system build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install dependencies
+# Copy backend requirements and install dependencies
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend application
+# Copy backend application source
 COPY backend ./backend
+
+# Create required runtime upload directories
+RUN mkdir -p /app/backend/uploads/qr /app/backend/uploads/screenshots
 
 WORKDIR /app/backend
 
-# Railway injects $PORT at runtime
-ENV PORT=8000
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
