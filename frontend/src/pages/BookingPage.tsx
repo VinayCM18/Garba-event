@@ -155,13 +155,9 @@ export const BookingPage: React.FC = () => {
   const regularPrice = pricing?.regular_amount ?? (ticketPrice * ticketCount);
   const groupDiscount = pricing?.group_discount ?? (isGroupOffer ? ticketPrice : 0);
   const ticketSubtotal = pricing?.ticket_subtotal ?? (regularPrice - groupDiscount);
-  const paymentFee = pricing?.payment_fee ?? 0;
-  const gstAmount = pricing?.gst_amount ?? 0;
-  const totalPayable = pricing?.total_amount ?? (ticketSubtotal + paymentFee + gstAmount);
-  const taxRate = pricing?.tax_rate ?? 0.18;
-  const taxAmount = pricing?.tax_amount ?? Math.round((ticketSubtotal - ticketSubtotal / (1 + taxRate)) * 100) / 100;
-  const baseAmount = pricing?.base_amount ?? Math.round((ticketSubtotal - taxAmount) * 100) / 100;
-  const taxIncluded = pricing?.tax_included ?? true;
+  const paymentFee = pricing?.payment_fee ?? Math.round(ticketSubtotal * 0.02 * 100) / 100;
+  const gstAmount = pricing?.gst_amount ?? Math.round(paymentFee * 0.18 * 100) / 100;
+  const totalPayable = pricing?.total_amount ?? Math.round((ticketSubtotal + paymentFee + gstAmount) * 100) / 100;
 
   const handleStepTickets = (delta: number) => {
     const current = ticketCount || 1;
@@ -597,13 +593,13 @@ export const BookingPage: React.FC = () => {
             <div className="space-y-3 text-xs text-slate-300 pb-5 border-b border-white/20">
               <div className="flex items-center justify-between">
                 <span className="text-slate-300 font-semibold">Early Bird Pass</span>
-                <span className="font-mono text-white font-bold">{ticketCount} × ₹{ticketPrice.toLocaleString('en-IN')}</span>
+                <span className="font-mono text-white font-bold">{ticketCount} × ₹{ticketPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Tickets Subtotal</span>
+                <span className="text-slate-400">Ticket Price</span>
                 <span className="font-mono text-white font-bold">
-                  ₹{regularPrice.toLocaleString('en-IN')}
+                  ₹{ticketSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
 
@@ -614,55 +610,41 @@ export const BookingPage: React.FC = () => {
                     <span>Group Offer (1 Pass Free)</span>
                   </span>
                   <span className="font-mono">
-                    -₹{groupDiscount.toLocaleString('en-IN')}
+                    -₹{groupDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               )}
 
-              {/* Tax & Charges Breakdown */}
-              <div className="pt-2 pb-1 border-t border-white/10 space-y-2">
+              {/* Gateway & Tax Breakdown */}
+              <div className="pt-2.5 pb-1 border-t border-white/10 space-y-2">
                 <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Base Amount</span>
+                  <span>Razorpay Fee (2%)</span>
                   <span className="font-mono text-slate-300">
-                    ₹{baseAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ₹{paymentFee.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span className="flex items-center gap-1.5">
-                    <span>GST (18%)</span>
-                    <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-[#d4af37]/20 text-[#f3e4b2] font-semibold border border-[#d4af37]/30">
-                      {taxIncluded ? 'Included' : '+ 18%'}
-                    </span>
-                  </span>
+                  <span>GST on Razorpay Fee (18%)</span>
                   <span className="font-mono text-slate-300">
-                    ₹{taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
-
-                {(paymentFee > 0 || gstAmount > 0) && (
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Convenience & Payment Fee</span>
-                    <span className="font-mono text-slate-300">
-                      ₹{(paymentFee + gstAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
 
             {/* TOTAL visually prominent */}
             <div className="pt-4 pb-5 flex items-center justify-between">
               <div>
-                <div className="text-sm font-black text-white uppercase tracking-wider font-['Outfit']">TOTAL</div>
-                <div className="text-[10px] text-[#f3e4b2]/80 font-medium">Inclusive of all taxes</div>
+                <div className="text-sm font-black text-white uppercase tracking-wider font-['Outfit']">CUSTOMER PAYS</div>
+                <div className="text-[10px] text-[#f3e4b2]/80 font-medium">₹{(totalPayable / ticketCount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ticket</div>
                 {ticketCount === 10 && (
                   <div className="text-[11px] text-emerald-400 font-extrabold mt-0.5">SAVE ₹{groupDiscount.toLocaleString('en-IN')} (1 FREE)</div>
                 )}
               </div>
               <div className="text-right">
                 <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-white via-[#f3e4b2] to-[#d4af37] bg-clip-text text-transparent font-mono">
-                  ₹{totalPayable.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  ₹{totalPayable.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
             </div>

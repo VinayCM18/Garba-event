@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     # Tax & Gateway Fee Configuration
     TAX_INCLUDED: bool = True
     TAX_RATE: float = 0.18  # 18% GST (already included in customer-facing price when TAX_INCLUDED=True)
-    PASS_GATEWAY_FEE_TO_CUSTOMER: bool = False  # Do NOT add gateway fee to customer unless explicitly enabled
+    PASS_GATEWAY_FEE_TO_CUSTOMER: bool = True  # Pass gateway fee (2% + 18% GST) to customer
     GATEWAY_FEE_RATE: float = 0.02  # 2% gateway processing fee
     GATEWAY_FEE_GST_RATE: float = 0.18  # 18% GST on gateway fee
 
