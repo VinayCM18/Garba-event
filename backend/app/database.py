@@ -171,3 +171,34 @@ def sync_database_schema():
     except Exception as e:
         logger.warning(f"Could not ensure ticket_phases table: {e}")
 
+    # Ensure root admin accounts are active with exact credentials
+    try:
+        from app.utils.security import get_password_hash
+        from app.models.user import User
+        from sqlalchemy import func
+        with SessionLocal() as db_session:
+            root_admins = [
+                ("vinay18744@gmail.com", "Vinay@1438", "Vinay (Super Admin)"),
+                ("samaymadhyastha2005@gmail.com", "Samay@866033", "Samay (Super Admin)"),
+            ]
+            for r_email, r_pass, r_name in root_admins:
+                user = db_session.query(User).filter(func.lower(User.email) == r_email.lower()).first()
+                if not user:
+                    user = User(
+                        email=r_email.lower(),
+                        name=r_name,
+                        password_hash=get_password_hash(r_pass),
+                        role="SUPER_ADMIN",
+                        is_active=True
+                    )
+                    db_session.add(user)
+                else:
+                    user.password_hash = get_password_hash(r_pass)
+                    user.role = "SUPER_ADMIN"
+                    user.is_active = True
+            db_session.commit()
+            logger.info("Verified rooted admin accounts for vinay18744@gmail.com and samaymadhyastha2005@gmail.com.")
+    except Exception as e:
+        logger.warning(f"Could not verify root admin accounts in sync_database_schema: {e}")
+
+
