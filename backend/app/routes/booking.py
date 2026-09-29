@@ -29,15 +29,91 @@ def get_public_config(db: Session = Depends(get_db)):
 
     remaining = max(0, event_setting.total_capacity - sold_count)
 
+    from app.models.ticket_phase import TicketPhase
+    phases = db.query(TicketPhase).order_by(TicketPhase.display_order.asc()).all()
+    if not phases:
+        phases_data = [
+            {
+                "phase_code": "EARLY_BIRD",
+                "name": "Early Bird",
+                "price": 599.0,
+                "status": "ACTIVE",
+                "badge_text": "AVAILABLE NOW",
+                "description": "Best value early access ticket (Buy 10, Pay for 9 applied)",
+                "total_inventory": 500,
+                "sold_count": sold_count,
+                "remaining_tickets": max(0, 500 - sold_count),
+                "group_offer_eligible": True,
+                "tax_included": True
+            },
+            {
+                "phase_code": "PHASE_1",
+                "name": "Phase 1",
+                "price": 799.0,
+                "status": "LOCKED",
+                "badge_text": "COMING SOON",
+                "description": "Phase 1 tickets will unlock soon",
+                "total_inventory": 500,
+                "sold_count": 0,
+                "remaining_tickets": 500,
+                "group_offer_eligible": False,
+                "tax_included": True
+            },
+            {
+                "phase_code": "PHASE_2",
+                "name": "Phase 2",
+                "price": 899.0,
+                "status": "LOCKED",
+                "badge_text": "LOCKED",
+                "description": "Final release passes",
+                "total_inventory": 500,
+                "sold_count": 0,
+                "remaining_tickets": 500,
+                "group_offer_eligible": False,
+                "tax_included": True
+            }
+        ]
+    else:
+        phases_data = []
+        for p in phases:
+            p_sold = db.query(func.coalesce(func.sum(Booking.ticket_count), 0)).filter(
+                Booking.booking_status == "CONFIRMED",
+                Booking.payment_status == "PAID",
+                Booking.ticket_phase == p.phase_code
+            ).scalar() or 0
+            p_remaining = max(0, p.total_inventory - p_sold)
+            phases_data.append({
+                "phase_code": p.phase_code,
+                "name": p.name,
+                "price": float(p.price),
+                "status": p.status,
+                "badge_text": p.badge_text or ("AVAILABLE NOW" if p.status == "ACTIVE" else "COMING SOON"),
+                "description": p.description,
+                "total_inventory": p.total_inventory,
+                "sold_count": p_sold,
+                "remaining_tickets": p_remaining,
+                "group_offer_eligible": bool(p.group_offer_eligible),
+                "tax_included": bool(p.tax_included)
+            })
+
+    active_phase = next((p for p in phases_data if p["status"] == "ACTIVE"), phases_data[0] if phases_data else None)
+    active_phase_code = active_phase["phase_code"] if active_phase else "EARLY_BIRD"
+    active_price = active_phase["price"] if active_phase else event_setting.ticket_price
+
     return {
-        "event_name": event_setting.event_name,
-        "event_tagline": event_setting.event_tagline,
+        "event_name": event_setting.event_name or "NAVRANG 2026",
+        "event_tagline": event_setting.event_tagline or "A Premium Garba & Cultural Celebration Experience",
+        "collaboration_name": "THE HAPPY CIRCLE",
+        "collaboration_tagline": "In collaboration with The Happy Circle",
+        "collaboration_logo_url": "/images/happy-circle-logo.png",
         "event_date": event_setting.event_date,
         "event_time": event_setting.event_time,
         "venue_name": event_setting.venue_name,
         "venue_address": event_setting.venue_address,
         "venue_city": event_setting.venue_city,
-        "ticket_price": event_setting.ticket_price,
+        "ticket_price": active_price,
+        "active_phase_code": active_phase_code,
+        "ticket_phases": phases_data,
         "convenience_fee": event_setting.convenience_fee,
         "total_capacity": event_setting.total_capacity,
         "remaining_tickets": remaining,
@@ -50,11 +126,11 @@ def get_public_config(db: Session = Depends(get_db)):
         "group_offer_enabled": getattr(event_setting, "group_offer_enabled", True),
         "group_offer_size": getattr(event_setting, "group_offer_size", 10),
         "group_offer_free_tickets": getattr(event_setting, "group_offer_free_tickets", 1),
-        "group_offer_discount": round(float(event_setting.ticket_price) * getattr(event_setting, "group_offer_free_tickets", 1), 2),
-        "group_offer_regular_total": round(float(event_setting.ticket_price) * getattr(event_setting, "group_offer_size", 10), 2),
-        "group_offer_subtotal": round(float(event_setting.ticket_price) * (getattr(event_setting, "group_offer_size", 10) - getattr(event_setting, "group_offer_free_tickets", 1)), 2),
+        "group_offer_discount": round(float(active_price) * getattr(event_setting, "group_offer_free_tickets", 1), 2),
+        "group_offer_regular_total": round(float(active_price) * getattr(event_setting, "group_offer_size", 10), 2),
+        "group_offer_subtotal": round(float(active_price) * (getattr(event_setting, "group_offer_size", 10) - getattr(event_setting, "group_offer_free_tickets", 1)), 2),
         # Payment Provider Details
-        "payment_method": getattr(event_setting, "payment_method", None) or settings.PAYMENT_METHOD or "UPI_MANUAL",
+        "payment_method": getattr(event_setting, "payment_method", None) or settings.PAYMENT_METHOD or "RAZORPAY",
         "upi_id": getattr(event_setting, "upi_id", None) or settings.UPI_ID or "samaymadhyastha2005@oksbi",
         "upi_qr_image_url": "/api/payments/qr-image",
         "upi_payment_instructions": getattr(event_setting, "upi_payment_instructions", None) or settings.UPI_PAYMENT_INSTRUCTIONS

@@ -60,7 +60,7 @@ export const StaffSidebar: React.FC<StaffSidebarProps> = ({ onCloseMobile }) => 
       <div className="px-4 py-3 mx-3 my-3 rounded-xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-between">
         <div className="truncate">
           <div className="text-xs font-bold text-slate-200 truncate">{user?.name || 'Gate Staff'}</div>
-          <div className="text-[10px] text-slate-400 truncate">{user?.email || 'staff@garbanight.in'}</div>
+          <div className="text-[10px] text-slate-400 truncate">{user?.email || 'staff@navrang.in'}</div>
         </div>
         <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
           STAFF

@@ -1,3 +1,4 @@
+from typing import Optional, List, Dict, Any
 import csv
 import io
 import os
@@ -545,7 +546,7 @@ def get_settings(current_user: User = Depends(require_admin), db: Session = Depe
         smtp_username=getattr(event_setting, "smtp_username", None) or settings.SMTP_USERNAME or "",
         smtp_password_set=smtp_pwd_present,
         smtp_from_email=getattr(event_setting, "smtp_from_email", None) or settings.FROM_EMAIL or "tickets@garbanight.in",
-        smtp_from_name=getattr(event_setting, "smtp_from_name", None) or settings.FROM_NAME or "GARBA NIGHT 2026",
+        smtp_from_name=getattr(event_setting, "smtp_from_name", None) or settings.FROM_NAME or "NAVRANG 2026",
         smtp_use_tls=getattr(event_setting, "smtp_use_tls", True),
         # Payment Provider & Manual UPI Settings
         payment_method=getattr(event_setting, "payment_method", None) or settings.PAYMENT_METHOD or "UPI_MANUAL",
@@ -626,7 +627,7 @@ def update_settings(
         smtp_username=getattr(event_setting, "smtp_username", None) or settings.SMTP_USERNAME or "",
         smtp_password_set=smtp_pwd_present,
         smtp_from_email=getattr(event_setting, "smtp_from_email", None) or settings.FROM_EMAIL or "tickets@garbanight.in",
-        smtp_from_name=getattr(event_setting, "smtp_from_name", None) or settings.FROM_NAME or "GARBA NIGHT 2026",
+        smtp_from_name=getattr(event_setting, "smtp_from_name", None) or settings.FROM_NAME or "NAVRANG 2026",
         smtp_use_tls=getattr(event_setting, "smtp_use_tls", True),
         # Payment Provider & Manual UPI Settings
         payment_method=getattr(event_setting, "payment_method", None) or settings.PAYMENT_METHOD or "UPI_MANUAL",
@@ -891,5 +892,102 @@ async def upload_upi_qr_image(
     db.commit()
 
     return {"success": True, "message": "UPI QR image uploaded successfully!", "url": "/api/payments/qr-image"}
+
+from app.models.ticket_phase import TicketPhase
+from pydantic import BaseModel
+
+class TicketPhaseUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    price: Optional[float] = None
+    status: Optional[str] = None # ACTIVE, LOCKED, SOLD_OUT
+    total_inventory: Optional[int] = None
+    badge_text: Optional[str] = None
+    description: Optional[str] = None
+    group_offer_eligible: Optional[bool] = None
+
+@router.get("/ticket-phases")
+def get_admin_ticket_phases(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Lists all configured ticket phases with live sold and remaining counts."""
+    phases = db.query(TicketPhase).order_by(TicketPhase.display_order.asc()).all()
+    result = []
+    for p in phases:
+        sold = db.query(func.coalesce(func.sum(Booking.ticket_count), 0)).filter(
+            Booking.booking_status == "CONFIRMED",
+            Booking.payment_status == "PAID",
+            Booking.ticket_phase == p.phase_code
+        ).scalar() or 0
+        result.append({
+            "id": p.id,
+            "phase_code": p.phase_code,
+            "name": p.name,
+            "price": float(p.price),
+            "status": p.status,
+            "total_inventory": p.total_inventory,
+            "sold_count": sold,
+            "remaining_tickets": max(0, p.total_inventory - sold),
+            "display_order": p.display_order,
+            "badge_text": p.badge_text,
+            "description": p.description,
+            "group_offer_eligible": p.group_offer_eligible,
+            "tax_included": p.tax_included
+        })
+    return result
+
+@router.put("/ticket-phases/{phase_code}")
+def update_admin_ticket_phase(
+    phase_code: str,
+    payload: TicketPhaseUpdateRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Super Admin updates ticket phase status (ACTIVE/LOCKED), price, or inventory."""
+    phase = db.query(TicketPhase).filter(TicketPhase.phase_code == phase_code.strip().upper()).first()
+    if not phase:
+        raise HTTPException(status_code=404, detail="Ticket phase not found.")
+
+    if payload.name is not None:
+        phase.name = payload.name.strip()
+    if payload.price is not None:
+        phase.price = float(payload.price)
+    if payload.total_inventory is not None:
+        phase.total_inventory = int(payload.total_inventory)
+    if payload.badge_text is not None:
+        phase.badge_text = payload.badge_text.strip()
+    if payload.description is not None:
+        phase.description = payload.description.strip()
+    if payload.group_offer_eligible is not None:
+        phase.group_offer_eligible = payload.group_offer_eligible
+
+    if payload.status is not None:
+        new_status = payload.status.strip().upper()
+        if new_status not in ("ACTIVE", "LOCKED", "SOLD_OUT", "COMPLETED"):
+            raise HTTPException(status_code=400, detail="Invalid phase status.")
+        phase.status = new_status
+        if new_status == "ACTIVE":
+            event_setting = db.query(EventSetting).first()
+            if event_setting:
+                event_setting.ticket_price = phase.price
+
+    phase.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(phase)
+
+    return {
+        "success": True,
+        "message": f"Ticket phase {phase.name} updated successfully.",
+        "phase": {
+            "phase_code": phase.phase_code,
+            "name": phase.name,
+            "price": float(phase.price),
+            "status": phase.status,
+            "total_inventory": phase.total_inventory,
+            "badge_text": phase.badge_text,
+            "description": phase.description,
+            "group_offer_eligible": phase.group_offer_eligible
+        }
+    }
 
 

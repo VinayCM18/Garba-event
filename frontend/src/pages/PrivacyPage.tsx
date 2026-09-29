@@ -12,7 +12,7 @@ export const PrivacyPage: React.FC = () => {
 
       <div>
         <h1 className="text-3xl sm:text-4xl font-black text-white font-['Outfit']">Privacy Policy</h1>
-        <p className="text-xs text-slate-400 mt-1">Garba Night 2026 Ticketing Platform</p>
+        <p className="text-xs text-slate-400 mt-1">NAVRANG 2026 • Official Ticketing Platform</p>
       </div>
 
       <div className="glass-panel rounded-3xl p-6 sm:p-8 space-y-6 text-xs sm:text-sm leading-relaxed border border-white/10">

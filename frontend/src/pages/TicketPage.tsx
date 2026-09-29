@@ -104,15 +104,33 @@ export const TicketPage: React.FC = () => {
         <div className="bg-gradient-to-b from-[#1f1026] via-[#160a1c] to-[#0f0a14] border-b border-white/[0.08] p-6 sm:p-7 text-center relative">
           <div className="flex items-center justify-center gap-2 mb-2">
             <span className="text-[10px] font-black uppercase tracking-[0.25em] px-3 py-1 rounded-full bg-[#d4af37]/15 text-[#f7e8c3] border border-[#d4af37]/35 font-['Cinzel']">
-              Heritage Productions Presents
+              Official Concert Entry Pass
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-[0.06em] uppercase font-['Cinzel'] bg-gradient-to-r from-white via-[#f7e8c3] to-[#d4af37] bg-clip-text text-transparent">
-            GARBA NIGHT 2026
+          <h1 className="text-3xl sm:text-5xl font-black tracking-[0.06em] uppercase font-['Cinzel'] bg-gradient-to-r from-white via-[#f7e8c3] to-[#d4af37] bg-clip-text text-transparent">
+            NAVRANG 2026
           </h1>
-          <div className="mt-1 text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-[#d4af37] font-['Cinzel']">
-            MYSURU
+
+          {/* Collaboration Presentation with The Happy Circle */}
+          <div className="mt-3 inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-black/60 border border-[#d4af37]/40 shadow-md">
+            <span className="text-[10px] sm:text-[11px] uppercase tracking-widest text-[#f3e4b2]/90 font-bold">
+              In collaboration with
+            </span>
+            <div className="flex items-center gap-2">
+              <img
+                src="/images/happy-circle-logo.png"
+                alt="The Happy Circle"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-contain border border-[#d4af37]/50 p-0.5 bg-black"
+              />
+              <span className="text-xs font-black text-white tracking-wider uppercase font-['Outfit']">
+                THE HAPPY CIRCLE
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-2 text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-[#d4af37] font-['Cinzel']">
+            GREEN ACRES • MYSURU
           </div>
         </div>
 
@@ -164,7 +182,7 @@ export const TicketPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Pass Meta Grid (Customer Name, Booking ID, Ticket Number, Event Date, Venue) */}
+          {/* Pass Meta Grid (Customer Name, Booking ID, Ticket Type, Event Date, Venue) */}
           <div className="grid grid-cols-2 gap-3.5 text-xs">
             <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
               <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider font-['Cinzel']">Customer Name</div>
@@ -174,6 +192,19 @@ export const TicketPage: React.FC = () => {
             <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
               <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider font-['Cinzel']">Booking ID</div>
               <div className="text-sm font-bold text-[#f3e4b2] font-mono mt-0.5">{ticket.booking_id}</div>
+            </div>
+
+            <div className="col-span-2 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between">
+              <div>
+                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider font-['Cinzel']">Ticket Pass Type</div>
+                <div className="text-xs font-black text-[#d4af37] uppercase tracking-wide mt-0.5">
+                  {ticket.ticket_type || 'EARLY BIRD ENTRY PASS'}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider font-['Cinzel']">Pass #</div>
+                <div className="text-xs font-mono text-white font-bold">{ticket.ticket_id}</div>
+              </div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]">

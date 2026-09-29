@@ -59,7 +59,7 @@ class EventSettingResponse(BaseModel):
     smtp_username: Optional[str] = None
     smtp_password_set: bool = False
     smtp_from_email: str = "tickets@garbanight.in"
-    smtp_from_name: str = "GARBA NIGHT 2026"
+    smtp_from_name: str = "NAVRANG 2026"
     smtp_use_tls: bool = True
 
     # Payment Provider & Manual UPI Settings

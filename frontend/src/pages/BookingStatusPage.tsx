@@ -125,7 +125,7 @@ export const BookingStatusPage: React.FC = () => {
       key: order.key_id,
       amount: Math.round(order.amount * 100),
       currency: order.currency || 'INR',
-      name: 'GARBA NIGHT 2026',
+      name: 'NAVRANG 2026',
       description: `${order.ticket_count} Official Entry Pass${order.ticket_count > 1 ? 'es' : ''} • Taxes included`,
       order_id: order.razorpay_order_id,
       prefill: {

@@ -12,14 +12,14 @@ export const RefundPage: React.FC = () => {
 
       <div>
         <h1 className="text-3xl sm:text-4xl font-black text-white font-['Outfit']">Refund & Cancellation Policy</h1>
-        <p className="text-xs text-slate-400 mt-1">Official Event Guidelines • Garba Night 2026</p>
+        <p className="text-xs text-slate-400 mt-1">Official Event Guidelines • NAVRANG 2026</p>
       </div>
 
       <div className="glass-panel rounded-3xl p-6 sm:p-8 space-y-6 text-xs sm:text-sm leading-relaxed border border-white/10">
         <section className="space-y-2">
           <h2 className="text-base font-bold text-white font-['Outfit']">1. Non-Refundable Passes</h2>
           <p>
-            All ticket bookings made for Garba Night 2026 are final and strictly non-refundable. Once a booking order is confirmed and tickets are issued, cancellations or refunds cannot be processed under any circumstances, including personal scheduling conflicts or weather variations.
+            All ticket bookings made for NAVRANG 2026 are final and strictly non-refundable. Once a booking order is confirmed and tickets are issued, cancellations or refunds cannot be processed under any circumstances, including personal scheduling conflicts or weather variations.
           </p>
         </section>
 

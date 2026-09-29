@@ -144,7 +144,7 @@ export const ManualUpiPaymentModal: React.FC<ManualUpiPaymentModalProps> = ({
                   PAYMENT
                 </h3>
                 <div className="text-xs text-[#f3e4b2] font-semibold flex items-center gap-1.5 mt-0.5">
-                  <span>GARBA NIGHT 2026 • Mysuru</span>
+                  <span>NAVRANG 2026 • Mysuru</span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/40 font-mono">
                     #{bookingId}
                   </span>

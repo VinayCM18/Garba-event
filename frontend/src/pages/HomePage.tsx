@@ -23,7 +23,8 @@ import {
   ExternalLink,
   Share2,
   Copy,
-  Check
+  Check,
+  Lock
 } from 'lucide-react';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { fetchPublicConfig } from '../services/api';
@@ -51,7 +52,7 @@ export const HomePage: React.FC = () => {
     }
   };
 
-  const eventName = config?.event_name || 'GARBA NIGHT 2026';
+  const eventName = config?.event_name || 'NAVRANG 2026';
   const eventDate = config?.event_date || 'October 17, 2026';
   const eventTime = config?.event_time || '07:00 PM - 10:00 PM';
   const venueName = config?.venue_name || 'Green Acres';
@@ -129,7 +130,7 @@ export const HomePage: React.FC = () => {
   const faqs = [
     {
       q: 'What is the mandatory dress code for admission?',
-      a: 'To honor the rich cultural elegance of GARBA NIGHT 2026, traditional Indian festive attire is strictly encouraged. Women are requested to wear Chaniya Choli, and men in Kurta Pajama or Kediyu. Western casuals (jeans, t-shirts) are restricted.'
+      a: 'To honor the rich cultural elegance of NAVRANG 2026 in collaboration with The Happy Circle, traditional Indian festive attire is strictly encouraged. Women are requested to wear Chaniya Choli, and men in Kurta Pajama or Kediyu. Western casuals (jeans, t-shirts) are restricted.'
     },
     {
       q: 'Will physical tickets be sold at Green Acres gates?',
@@ -182,53 +183,61 @@ export const HomePage: React.FC = () => {
           </button>
         </div>
 
-        {/* Heritage Productions Presenter Crest */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.85, y: -10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="flex flex-col items-center justify-center mb-6"
-        >
-          <div className="relative group">
-            {/* Ambient radial gold glow behind the emblem */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#d4af37]/30 via-[#f3e4b2]/20 to-transparent blur-2xl scale-125 pointer-events-none group-hover:scale-150 transition-transform duration-700" />
-            <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-b from-[#f3e4b2] via-[#d4af37] to-[#806017] shadow-[0_0_35px_rgba(212,175,55,0.4)] transition-transform duration-500 group-hover:scale-105">
-              <img
-                src="/heritage_productions.jpg"
-                alt="Heritage Productions Logo"
-                className="w-full h-full object-cover rounded-full shadow-inner"
-              />
-            </div>
-          </div>
-          <div className="mt-3.5 flex items-center gap-2.5">
-            <span className="h-px w-8 sm:w-16 bg-gradient-to-r from-transparent to-[#d4af37]/70" />
-            <span className="text-[11px] sm:text-xs font-black uppercase tracking-[0.35em] text-[#e5c97b] font-['Outfit'] drop-shadow-[0_2px_10px_rgba(212,175,55,0.5)]">
-              Heritage Productions Presents
-            </span>
-            <span className="h-px w-8 sm:w-16 bg-gradient-to-l from-transparent to-[#d4af37]/70" />
-          </div>
-        </motion.div>
-
-        {/* Main Headline with Royal Cinzel Serif Style & Fluid Clamp Typography */}
+        {/* NAVRANG Primary Identity */}
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
-          className="space-y-3"
+          className="space-y-4 mb-4"
         >
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/15 via-[#d4af37]/20 to-amber-500/15 border border-[#d4af37]/40 text-[#f3e4b2] text-[11px] sm:text-xs font-black uppercase tracking-[0.25em] shadow-md backdrop-blur-md">
+            <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span>Grand Cultural Celebration • Navratri 2026</span>
+          </div>
+
           <h1 className="hero-clamp-title font-extrabold text-white uppercase font-['Cinzel'] tracking-[0.05em] navrang-hero-title">
-            <span className="block bg-gradient-to-b from-[#ffffff] via-[#f7e8c3] to-[#d4af37] bg-clip-text text-transparent drop-shadow-[0_4px_35px_rgba(212,175,55,0.4)]">
-              {eventName}
+            <span className="block bg-gradient-to-b from-[#ffffff] via-[#f7e8c3] to-[#d4af37] bg-clip-text text-transparent drop-shadow-[0_4px_35px_rgba(212,175,55,0.45)]">
+              NAVRANG
             </span>
           </h1>
 
-          {/* MYSURU Badge & Festive Subtitle */}
-          <div className="flex items-center justify-center gap-3">
-            <span className="h-px w-10 sm:w-20 bg-gradient-to-r from-transparent via-[#d4af37] to-transparent" />
-            <span className="px-5 py-1.5 rounded-full bg-gradient-to-r from-[#d4af37]/20 via-[#991b1b]/25 to-[#d4af37]/20 border border-[#d4af37]/50 text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-[0.3em] text-[#f7e8c3] font-['Cinzel'] shadow-[0_0_20px_rgba(212,175,55,0.25)]">
-              MYSURU
-            </span>
-            <span className="h-px w-10 sm:w-20 bg-gradient-to-r from-transparent via-[#d4af37] to-transparent" />
+          <p className="text-sm sm:text-lg md:text-xl text-[#f3e4b2] font-semibold tracking-[0.16em] uppercase max-w-xl mx-auto">
+            A premium Garba & cultural celebration experience
+          </p>
+
+          {/* IN COLLABORATION WITH THE HAPPY CIRCLE */}
+          <div className="pt-3 pb-1 flex flex-col items-center justify-center">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="h-px w-10 sm:w-20 bg-gradient-to-r from-transparent to-[#d4af37]/70" />
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.32em] text-[#e5c97b] font-['Outfit'] drop-shadow-[0_2px_10px_rgba(212,175,55,0.5)]">
+                IN COLLABORATION WITH
+              </span>
+              <span className="h-px w-10 sm:w-20 bg-gradient-to-l from-transparent to-[#d4af37]/70" />
+            </div>
+
+            {/* Official Logo of The Happy Circle */}
+            <div className="relative group p-2">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-amber-500/25 via-pink-500/20 to-cyan-500/20 blur-2xl scale-125 pointer-events-none group-hover:scale-150 transition-transform duration-700" />
+              <div className="relative w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full p-1.5 bg-gradient-to-b from-[#f3e4b2] via-[#d4af37] to-[#1a1528] shadow-[0_0_35px_rgba(212,175,55,0.35)] transition-transform duration-500 group-hover:scale-105 bg-black flex items-center justify-center">
+                <img
+                  src="/images/happy-circle-logo.png"
+                  alt="The Happy Circle Official Collaboration Logo"
+                  className="w-full h-full object-contain rounded-full"
+                />
+              </div>
+            </div>
+
+            <div className="mt-2 text-xs sm:text-sm font-black tracking-[0.25em] uppercase text-[#f7e8c3] font-['Outfit']">
+              THE HAPPY CIRCLE
+            </div>
+
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <span className="h-px w-10 sm:w-20 bg-gradient-to-r from-transparent via-[#d4af37] to-transparent" />
+              <span className="px-5 py-1.5 rounded-full bg-gradient-to-r from-[#d4af37]/20 via-[#991b1b]/25 to-[#d4af37]/20 border border-[#d4af37]/50 text-base sm:text-lg md:text-xl font-black uppercase tracking-[0.3em] text-[#f7e8c3] font-['Cinzel'] shadow-[0_0_20px_rgba(212,175,55,0.25)]">
+                MYSURU
+              </span>
+              <span className="h-px w-10 sm:w-20 bg-gradient-to-r from-transparent via-[#d4af37] to-transparent" />
+            </div>
           </div>
         </motion.div>
 
@@ -282,7 +291,7 @@ export const HomePage: React.FC = () => {
             <div className="text-base sm:text-lg font-black text-white font-['Outfit']">
               {eventTime}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Entry starts at 05:30 PM</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Gates open at 06:30 PM</div>
           </div>
         </motion.div>
 
@@ -290,7 +299,7 @@ export const HomePage: React.FC = () => {
         <div className="mt-10 sm:mt-12">
           <div className="text-xs uppercase font-extrabold tracking-[0.25em] text-[#d4af37] mb-4 flex items-center justify-center gap-2 font-['Cinzel']">
             <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
-            <span>Garba Night 2026 Begins In</span>
+            <span>NAVRANG 2026 Begins In</span>
             <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
           </div>
           <CountdownTimer eventDate={eventDate} eventTime={eventTime} />
@@ -430,67 +439,93 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-16 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      {/* Pricing & Ticket Phases Section */}
+      <section id="pricing" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#d4af37] px-3.5 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/25 mb-3">
-          ✦ Passes & Special Offers ✦
+          ✦ Official Ticket Phases & Passes ✦
         </div>
         <h2 className="text-3xl sm:text-5xl font-extrabold text-white font-['Outfit']">
           Select Your Admission Pass
         </h2>
         <p className="mt-2 text-sm text-slate-400 max-w-2xl mx-auto">
-          Every pass includes full arena admission, live concert experience, 360° video glam cam, and secure parking.
+          Every pass includes full arena admission to NAVRANG 2026, live Gujarati Dhol, 360° video booth experiences, and secure parking.
         </p>
 
-        {/* 2-Card Layout: Individual & Group Offer */}
-        <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto text-left items-stretch">
-          {/* Individual General Ticket Card */}
-          <div className="p-7 sm:p-8 rounded-3xl glass-panel border border-white/[0.08] flex flex-col justify-between relative overflow-hidden group">
+        {/* Phase Progression Timeline */}
+        <div className="max-w-2xl mx-auto mt-8 mb-10 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/50 text-[#f3e4b2] shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+            <span>EARLY BIRD • LIVE</span>
+          </div>
+          <span className="text-[#d4af37]/50 font-mono">→</span>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-slate-400">
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span>PHASE 1 • ₹799 (LOCKED)</span>
+          </div>
+          <span className="text-[#d4af37]/50 font-mono hidden sm:inline">→</span>
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/5 text-slate-500 text-[11px]">
+            <Lock className="w-3 h-3 text-slate-500" />
+            <span>PHASE 2 & FUTURE</span>
+          </div>
+        </div>
+
+        {/* 3-Card Ticket Phase Grid (Responsive, stacks vertically on mobile, no horizontal scrolling) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7 max-w-6xl mx-auto text-left items-stretch">
+          
+          {/* Card 1: EARLY BIRD TICKET (CURRENTLY ACTIVE) */}
+          <div className="p-7 sm:p-8 rounded-3xl glass-panel-gold border-2 border-[#d4af37] flex flex-col justify-between relative overflow-hidden shadow-[0_0_35px_rgba(212,175,55,0.25)] group">
+            {/* Ambient gold glow */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#d4af37]/15 rounded-full blur-2xl pointer-events-none" />
+            
             <div>
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-[10px] font-black tracking-wider uppercase text-slate-300 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 font-['Cinzel']">
-                    ADMISSION PASS
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black tracking-wider uppercase text-emerald-300 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 font-['Outfit']">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    LIVE NOW
                   </span>
                   <h3 className="text-2xl sm:text-3xl font-black text-white mt-3 font-['Cinzel'] tracking-wide">
-                    GENERAL TICKET
+                    EARLY BIRD
                   </h3>
+                  <p className="text-[11px] text-[#e5c97b] font-semibold mt-0.5">
+                    Phase 1 Early Access Pass
+                  </p>
                 </div>
                 <div className="text-right">
                   <div className="text-3xl sm:text-4xl font-black text-white font-mono">₹{ticketPrice}</div>
-                  <div className="text-xs text-slate-400 mt-0.5">per person</div>
+                  <div className="text-[11px] text-emerald-400 font-semibold mt-0.5">Taxes included</div>
                 </div>
               </div>
 
-              <div className="mt-6 pt-6 border-t border-white/[0.08] space-y-3.5 text-xs text-slate-300">
+              <div className="mt-6 pt-5 border-t border-white/[0.08] space-y-3 text-xs text-slate-300">
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Full admission to {venueCity} arena from 7 PM to Late</span>
+                  <span>Full admission to NAVRANG 2026 celebration</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>LIVE Gujarati Dhol & Insane DJ Non-Stop Garba Beats</span>
+                  <span>LIVE Gujarati Dhol, DJ & Dandiya Raas</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Complimentary access to 360° Video Booth installations</span>
+                  <span>Complimentary 360° Video Booth experience</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Instant encrypted digital QR pass delivered via Email & PDF ticket</span>
+                  <span>Instant encrypted QR ticket via Email & PDF pass</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Complimentary secure parking at venue</span>
+                  <span>Complimentary parking at Green Acres, Mysuru</span>
                 </div>
               </div>
             </div>
 
             <div className="mt-8">
               <Link
-                to="/book?count=1"
+                to="/book?phase=EARLY_BIRD"
                 onClick={() => playDandiyaClick()}
-                className="festive-button w-full py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg touch-target cursor-pointer"
+                className="festive-button w-full py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-[#d4af37]/30 touch-target cursor-pointer"
               >
                 <Ticket className="w-4 h-4" />
                 <span>BOOK NOW</span>
@@ -498,9 +533,72 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Group Offer Card (BUY 10, PAY FOR 9) */}
-          <div className="p-7 sm:p-8 rounded-3xl glass-panel-gold border-2 border-[#d4af37]/70 flex flex-col justify-between relative overflow-hidden shadow-2xl shadow-[#d4af37]/25 group">
-            {/* Badges in top right */}
+          {/* Card 2: PHASE 1 TICKET (LOCKED / COMING SOON - Requirement 9 & 10) */}
+          <div className="p-7 sm:p-8 rounded-3xl bg-[#090b14]/90 border border-white/[0.12] flex flex-col justify-between relative overflow-hidden group select-none transition-all hover:border-white/20">
+            {/* Elegant dark overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#06070c]/60 to-[#06070c]/90 pointer-events-none" />
+
+            <div className="relative z-10">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black tracking-wider uppercase text-amber-300 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 font-['Outfit']">
+                    <Lock className="w-3 h-3 text-amber-400" />
+                    COMING SOON
+                  </span>
+                  <h3 className="text-2xl sm:text-3xl font-black text-slate-200 mt-3 font-['Cinzel'] tracking-wide">
+                    PHASE 1
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                    Standard Admission Tier
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl sm:text-4xl font-black text-slate-200 font-mono">₹799</div>
+                  <div className="text-[11px] text-slate-400 font-semibold mt-0.5">Taxes included</div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-5 border-t border-white/[0.08] space-y-3 text-xs text-slate-400">
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Full admission to NAVRANG 2026 celebration</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Standard access tier after Early Bird sells out</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>360° Video Booth & Live Musical Performances</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Instant encrypted QR ticket delivery</span>
+                </div>
+              </div>
+
+              <div className="mt-6 p-3.5 rounded-xl bg-amber-500/[0.06] border border-amber-500/20 text-center">
+                <p className="text-xs text-amber-200/90 font-medium">
+                  🔒 Phase 1 tickets will unlock once Early Bird phase concludes.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 relative z-10">
+              <button
+                type="button"
+                disabled
+                className="w-full py-4 rounded-2xl bg-white/[0.05] border border-white/10 text-slate-400 font-bold text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed select-none opacity-80"
+              >
+                <Lock className="w-4 h-4 text-amber-400/80" />
+                <span>🔒 LOCKED • COMING SOON</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Card 3: GROUP OFFER (BUY 10, PAY FOR 9) */}
+          <div className="p-7 sm:p-8 rounded-3xl glass-panel-gold border-2 border-[#d4af37]/70 flex flex-col justify-between relative overflow-hidden shadow-2xl shadow-[#d4af37]/20 group">
+            {/* Badge in top right */}
             <div className="absolute top-4 right-4 flex items-center gap-1.5">
               <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm">
                 SAVE ₹{ticketPrice}
@@ -510,7 +608,7 @@ export const HomePage: React.FC = () => {
             <div>
               <div className="text-center pt-2 pb-4 border-b border-white/[0.08]">
                 <div className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-[#d4af37] font-['Cinzel']">
-                  EXCLUSIVE FESTIVE PROMOTION
+                  POPULAR FOR SQUADS
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-black text-white mt-1 uppercase font-['Cinzel'] tracking-wide">
                   BUY 10, PAY FOR 9
@@ -522,21 +620,21 @@ export const HomePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Price comparison layout matching specification */}
-              <div className="py-5 px-3 flex items-center justify-around text-center bg-black/40 rounded-2xl my-5 border border-white/[0.08]">
+              {/* Price comparison layout */}
+              <div className="py-4 px-3 flex items-center justify-around text-center bg-black/40 rounded-2xl my-4 border border-white/[0.08]">
                 <div>
                   <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">REGULAR</div>
-                  <div className="text-lg sm:text-xl font-bold font-mono text-slate-400 line-through decoration-rose-500 decoration-2 mt-1">
+                  <div className="text-base sm:text-lg font-bold font-mono text-slate-400 line-through decoration-rose-500 decoration-2 mt-1">
                     ₹{(ticketPrice * 10).toLocaleString('en-IN')}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">10 × ₹{ticketPrice}</div>
                 </div>
 
-                <div className="text-2xl font-black text-[#d4af37]">↓</div>
+                <div className="text-xl font-black text-[#d4af37]">↓</div>
 
                 <div>
                   <div className="text-[10px] uppercase font-bold text-[#d4af37] tracking-wider">GROUP PASS</div>
-                  <div className="text-3xl sm:text-4xl font-black font-mono bg-gradient-to-r from-white via-[#f3e4b2] to-[#d4af37] bg-clip-text text-transparent mt-0.5">
+                  <div className="text-2xl sm:text-3xl font-black font-mono bg-gradient-to-r from-white via-[#f3e4b2] to-[#d4af37] bg-clip-text text-transparent mt-0.5">
                     ₹{(ticketPrice * 9).toLocaleString('en-IN')}
                   </div>
                   <div className="text-[10px] font-bold text-emerald-400 mt-0.5">Pay for 9 Only</div>
@@ -544,40 +642,37 @@ export const HomePage: React.FC = () => {
               </div>
 
               {/* Value propositions */}
-              <div className="space-y-2.5 text-xs text-slate-300">
+              <div className="space-y-2 text-xs text-slate-300">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Receive <strong>10 unique QR tickets</strong> — all 10 are completely valid passes</span>
+                  <span>Receive <strong>10 unique QR tickets</strong> — all 10 completely valid</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Save <strong>₹{ticketPrice} instantly</strong> (1 ticket 100% FREE)</span>
+                  <span>Save <strong>₹{ticketPrice} instantly</strong> on Early Bird tier</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Perfect for friends, family, dance groups & Garba squads</span>
+                  <span>Ideal for families, colleagues, and dance groups</span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 pt-4 border-t border-white/[0.08]">
-              <div className="text-center text-xs font-black uppercase tracking-widest text-emerald-400 mb-3">
-                SAVE ₹{ticketPrice.toLocaleString('en-IN')}
-              </div>
+            <div className="mt-7 pt-3 border-t border-white/[0.08]">
               <Link
-                to="/book?count=10"
+                to="/book?count=10&phase=EARLY_BIRD"
                 onClick={() => playDandiyaClick()}
                 className="festive-button w-full py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-[#d4af37]/30 touch-target cursor-pointer"
               >
                 <Ticket className="w-4 h-4" />
-                <span>BOOK NOW</span>
+                <span>BOOK GROUP PASS</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
         </div>
 
-        {/* Requirement 13: Social Sharing Card */}
+        {/* Social Sharing Card */}
         <div className="mt-14 p-6 sm:p-8 rounded-3xl glass-panel border border-white/[0.08] max-w-3xl mx-auto text-center relative overflow-hidden">
           <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#d4af37] mb-2">
             <Users className="w-4 h-4 text-[#d4af37]" />
@@ -587,13 +682,13 @@ export const HomePage: React.FC = () => {
             BUY 10, PAY FOR 9
           </h3>
           <p className="mt-1 text-xs text-slate-300 max-w-md mx-auto">
-            Gather your squad, share the exclusive group offer, and save ₹{ticketPrice} together!
+            Gather your squad, share the exclusive group offer, and save ₹{ticketPrice} together for NAVRANG 2026!
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <a
               href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                `🔥 Garba Night 2026 is here!\n\nBuy 10 tickets and pay for only 9!\n\n₹${ticketPrice} OFF\n\nLet's go together! 🎉\n` + (typeof window !== 'undefined' ? `${window.location.origin}/book?count=10` : '')
+                `🔥 NAVRANG 2026 is here! In collaboration with The Happy Circle.\n\nBuy 10 tickets and pay for only 9!\n\n₹${ticketPrice} OFF\n\nLet's go together! 🎉\n` + (typeof window !== 'undefined' ? `${window.location.origin}/book?count=10` : '')
               )}`}
               target="_blank"
               rel="noreferrer"

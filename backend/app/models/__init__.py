@@ -5,6 +5,7 @@ from app.models.ticket import Ticket
 from app.models.payment import Payment
 from app.models.checkin import CheckIn
 from app.models.audit_log import AuditLog
+from app.models.ticket_phase import TicketPhase
 
 __all__ = [
     "User",
@@ -13,5 +14,6 @@ __all__ = [
     "Ticket",
     "Payment",
     "CheckIn",
-    "AuditLog"
+    "AuditLog",
+    "TicketPhase"
 ]

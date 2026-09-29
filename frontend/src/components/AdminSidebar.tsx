@@ -69,7 +69,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
       <div className="px-4 py-3 mx-3 my-3 rounded-xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-between">
         <div className="truncate">
           <div className="text-xs font-bold text-slate-200 truncate">{user?.name || 'Administrator'}</div>
-          <div className="text-[10px] text-slate-400 truncate">{user?.email || 'admin@garbanight.local'}</div>
+          <div className="text-[10px] text-slate-400 truncate">{user?.email || 'admin@navrang.local'}</div>
         </div>
         <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-[#d4af37]/15 text-[#f3e4b2] border border-[#d4af37]/30">
           {user?.role || 'ADMIN'}

@@ -12,14 +12,14 @@ export const TermsPage: React.FC = () => {
 
       <div>
         <h1 className="text-3xl sm:text-4xl font-black text-white font-['Outfit']">Terms & Conditions</h1>
-        <p className="text-xs text-slate-400 mt-1">Last updated: October 2026 • Garba Night 2026</p>
+        <p className="text-xs text-slate-400 mt-1">Last updated: October 2026 • NAVRANG 2026</p>
       </div>
 
       <div className="glass-panel rounded-3xl p-6 sm:p-8 space-y-6 text-xs sm:text-sm leading-relaxed border border-white/10">
         <section className="space-y-2">
           <h2 className="text-base font-bold text-white font-['Outfit']">1. Acceptance of Terms</h2>
           <p>
-            By purchasing tickets, attending, or registering on the official Garba Night 2026 platform, you agree to be bound by these Terms and Conditions, all applicable municipal event regulations, and security protocols.
+            By purchasing tickets, attending, or registering on the official NAVRANG 2026 platform, you agree to be bound by these Terms and Conditions, all applicable municipal event regulations, and security protocols.
           </p>
         </section>
 
@@ -33,7 +33,7 @@ export const TermsPage: React.FC = () => {
         <section className="space-y-2">
           <h2 className="text-base font-bold text-white font-['Outfit']">3. Dress Code & Etiquette</h2>
           <p>
-            Garba Night 2026 is a cultural and religious festival celebration. Traditional attire (Chaniya Choli, Kurta Pajama, Kediyu, or Dhoti) is mandatory for dance arena access. The organizers reserve the absolute right to refuse admission to individuals in non-compliant attire.
+            NAVRANG 2026 is a cultural and festive celebration. Traditional attire (Chaniya Choli, Kurta Pajama, Kediyu, or Dhoti) is mandatory for dance arena access. The organizers reserve the absolute right to refuse admission to individuals in non-compliant attire.
           </p>
         </section>
 

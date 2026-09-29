@@ -52,7 +52,7 @@ def sync_database_schema():
                 ("smtp_username", "VARCHAR(255) DEFAULT NULL"),
                 ("smtp_password", "VARCHAR(255) DEFAULT NULL"),
                 ("smtp_from_email", "VARCHAR(255) DEFAULT 'tickets@garbanight.in'"),
-                ("smtp_from_name", "VARCHAR(255) DEFAULT 'GARBA NIGHT 2026'"),
+                ("smtp_from_name", "VARCHAR(255) DEFAULT 'NAVRANG 2026'"),
                 ("smtp_use_tls", "BOOLEAN DEFAULT 1"),
                 ("razorpay_key_id", "VARCHAR(255) DEFAULT NULL"),
                 ("razorpay_key_secret", "VARCHAR(255) DEFAULT NULL"),
@@ -94,6 +94,7 @@ def sync_database_schema():
                 ("verified_by", "VARCHAR(100) DEFAULT NULL"),
                 ("verified_at", "DATETIME DEFAULT NULL"),
                 ("rejection_reason", "TEXT DEFAULT NULL"),
+                ("ticket_phase", "VARCHAR(50) DEFAULT 'EARLY_BIRD'"),
             ]
             for col_name, col_type in booking_new_cols:
                 if col_name not in cols:
@@ -131,13 +132,19 @@ def sync_database_schema():
                     except Exception as e:
                         logger.warning(f"Could not add column {col_name} to payments: {e}")
 
-        # Ensure event_settings matches required ₹599.00 pricing and Razorpay configuration
+        # Ensure event_settings matches required ₹599.00 pricing, NAVRANG 2026 branding, and Razorpay configuration
         if "event_settings" in table_names:
             try:
                 conn.execute(text("UPDATE event_settings SET ticket_price = 599.0 WHERE ticket_price = 300.0 OR ticket_price IS NULL"))
                 conn.commit()
             except Exception as e:
                 logger.warning(f"Could not update event_settings ticket_price: {e}")
+
+            try:
+                conn.execute(text("UPDATE event_settings SET event_name = 'NAVRANG 2026', smtp_from_name = 'NAVRANG 2026' WHERE event_name LIKE '%Garba%' OR event_name IS NULL OR event_name = ''"))
+                conn.commit()
+            except Exception as e:
+                logger.warning(f"Could not update event_settings event_name: {e}")
 
             try:
                 import os
@@ -156,4 +163,11 @@ def sync_database_schema():
                     logger.info("Migrated event_settings payment_method to RAZORPAY.")
             except Exception as e:
                 logger.warning(f"Could not migrate event_settings payment_method: {e}")
+
+    # Ensure ticket_phases table exists
+    try:
+        from app.models.ticket_phase import TicketPhase
+        Base.metadata.create_all(bind=engine, tables=[TicketPhase.__table__])
+    except Exception as e:
+        logger.warning(f"Could not ensure ticket_phases table: {e}")
 

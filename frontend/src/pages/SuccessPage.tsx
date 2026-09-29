@@ -56,7 +56,7 @@ export const SuccessPage: React.FC = () => {
           key: order.key_id,
           amount: Math.round(order.amount * 100),
           currency: order.currency || 'INR',
-          name: 'GARBA NIGHT 2026',
+          name: 'NAVRANG 2026',
           description: `${order.ticket_count} Official Entry Pass${order.ticket_count > 1 ? 'es' : ''} • Taxes included`,
           order_id: order.razorpay_order_id,
           prefill: {
@@ -638,14 +638,39 @@ export const SuccessPage: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-500/20 text-2xl font-black">
               ✓
             </div>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black uppercase tracking-wider mb-3">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black uppercase tracking-wider mb-4">
               ✓ PAYMENT SUCCESSFUL
             </div>
-            <h1 className="text-3xl sm:text-5xl font-black text-white font-['Cinzel'] tracking-wide">
-              BOOKING CONFIRMED
-            </h1>
-            <p className="mt-2 text-base sm:text-lg text-[#f3e4b2] font-semibold">
-              You're all set for Garba Night 2026.
+            
+            <div className="flex flex-col items-center justify-center gap-2 mb-2">
+              <span className="text-xs uppercase font-extrabold tracking-[0.25em] text-[#d4af37]">Official Entry Pass</span>
+              <h1 className="text-4xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#ffe082] via-[#ffd54f] to-[#ffb300] font-['Cinzel'] tracking-wide">
+                NAVRANG 2026
+              </h1>
+              <div className="text-2xl sm:text-3xl font-black text-white font-['Outfit'] uppercase tracking-wider mt-1">
+                BOOKING CONFIRMED
+              </div>
+
+              {/* Collaboration with The Happy Circle */}
+              <div className="mt-3 flex flex-col sm:flex-row items-center gap-2 px-5 py-2.5 rounded-2xl bg-black/40 border border-[#d4af37]/30 shadow-lg shadow-black/40">
+                <span className="text-[11px] uppercase tracking-widest text-[#f3e4b2]/80 font-bold">
+                  In collaboration with
+                </span>
+                <div className="flex items-center gap-2">
+                  <img
+                    src="/images/happy-circle-logo.png"
+                    alt="The Happy Circle"
+                    className="w-8 h-8 rounded-full object-contain border border-[#d4af37]/40 p-0.5 bg-black"
+                  />
+                  <span className="text-xs font-black text-white tracking-wider uppercase font-['Outfit']">
+                    THE HAPPY CIRCLE
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-4 text-base sm:text-lg text-[#f3e4b2] font-semibold">
+              You're all set for NAVRANG 2026!
             </p>
             <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-slate-300">
               <span className="text-slate-400 font-bold uppercase font-['Cinzel']">BOOKING ID:</span>
@@ -845,7 +870,7 @@ export const SuccessPage: React.FC = () => {
               BUY 10, PAY FOR 9
             </h3>
             <p className="mt-1 text-xs text-slate-300 max-w-md mx-auto">
-              Share the Garba Night 2026 group promotion with your friends and family so they also get a free ticket!
+              Share the NAVRANG 2026 group promotion with your friends and family so they also get a free ticket!
             </p>
             <div className="mt-5 flex justify-center">
               <button

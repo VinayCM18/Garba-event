@@ -20,16 +20,18 @@ import {
   QrCode,
   Upload,
   Image as ImageIcon,
-  Sparkles
+  Sparkles,
+  Layers
 } from 'lucide-react';
 import { fetchAdminSettings, updateAdminSettings, testAdminEmail, uploadUpiQrImage } from '../services/api';
 import { EventConfig } from '../types';
 import { useToast } from '../components/Toast';
+import { AdminTicketPhasesCard } from '../components/AdminTicketPhasesCard';
 
 export const AdminSettingsPage: React.FC = () => {
   const { success, error } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'event' | 'notifications' | 'payment'>('notifications');
+  const [activeTab, setActiveTab] = useState<'event' | 'notifications' | 'payment' | 'phases'>('phases');
   const [settings, setSettings] = useState<EventConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -238,6 +240,18 @@ export const AdminSettingsPage: React.FC = () => {
         <div className="flex p-1 rounded-2xl bg-white/[0.05] border border-white/10 self-start sm:self-auto flex-wrap gap-1">
           <button
             type="button"
+            onClick={() => setActiveTab('phases')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'phases'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Ticket Phases</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('notifications')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
               activeTab === 'notifications'
@@ -274,6 +288,13 @@ export const AdminSettingsPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Ticket Phases Tab Content */}
+      {activeTab === 'phases' && (
+        <div className="space-y-6">
+          <AdminTicketPhasesCard />
+        </div>
+      )}
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* ========================================================================= */}
@@ -499,9 +520,9 @@ export const AdminSettingsPage: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={settings.smtp_from_name || 'GARBA NIGHT 2026'}
+                    value={settings.smtp_from_name || 'NAVRANG 2026'}
                     onChange={(e) => handleChange('smtp_from_name', e.target.value)}
-                    placeholder="GARBA NIGHT 2026"
+                    placeholder="NAVRANG 2026"
                     className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
                   />
                 </div>
@@ -512,9 +533,9 @@ export const AdminSettingsPage: React.FC = () => {
                   </label>
                   <input
                     type="email"
-                    value={settings.smtp_from_email || 'tickets@garbanight.in'}
+                    value={settings.smtp_from_email || 'tickets@navrang.in'}
                     onChange={(e) => handleChange('smtp_from_email', e.target.value)}
-                    placeholder="tickets@garbanight.in"
+                    placeholder="tickets@navrang.in"
                     className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
                   />
                 </div>
@@ -540,7 +561,7 @@ export const AdminSettingsPage: React.FC = () => {
                   </li>
                   <li>Ensure <strong>2-Step Verification</strong> is switched ON.</li>
                   <li>In the top search bar, type <strong>&ldquo;App passwords&rdquo;</strong> and select it.</li>
-                  <li>Enter an app name (e.g. <em>&ldquo;Garba Night&rdquo;</em>) and click <strong>Create</strong>.</li>
+                  <li>Enter an app name (e.g. <em>&ldquo;NAVRANG&rdquo;</em>) and click <strong>Create</strong>.</li>
                   <li>Copy the 16-character code (without spaces) and paste it into the <strong>SMTP Password</strong> field above.</li>
                   <li>Click <strong>&ldquo;Save Event Settings&rdquo;</strong> below, then test below!</li>
                 </ol>

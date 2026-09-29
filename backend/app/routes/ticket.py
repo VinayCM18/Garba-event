@@ -313,7 +313,7 @@ def checkin_ticket(
     return CheckInResponse(
         success=True,
         status="SUCCESS",
-        message="✓ Check-in recorded successfully! Welcome to Garba Night 2026!",
+        message="✓ Check-in recorded successfully! Welcome to NAVRANG 2026!",
         ticket_id=ticket.ticket_id,
         booking_id=booking.booking_id if booking else None,
         customer_name=ticket.customer_name,

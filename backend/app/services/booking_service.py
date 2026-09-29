@@ -1,3 +1,4 @@
+from typing import Optional, Dict, Any, List
 import random
 import string
 from datetime import datetime
@@ -55,10 +56,10 @@ class BookingService:
         return True, remaining, event_setting.total_capacity
 
     @classmethod
-    def calculate_pricing(cls, db: Session, ticket_count: int) -> dict:
+    def calculate_pricing(cls, db: Session, ticket_count: int, ticket_phase: Optional[str] = "EARLY_BIRD") -> dict:
         """Calculates exact server-side pricing breakdown via payment_service."""
         from app.services.payment_service import payment_service
-        return payment_service.calculate_pricing(db=db, ticket_count=ticket_count)
+        return payment_service.calculate_pricing(db=db, ticket_count=ticket_count, ticket_phase_code=ticket_phase)
 
     @classmethod
     def initiate_order(
@@ -68,6 +69,7 @@ class BookingService:
         phone: str,
         ticket_count: int,
         db: Session,
+        ticket_phase: Optional[str] = "EARLY_BIRD",
         idempotency_key: str = None
     ) -> tuple[Booking, dict]:
         """Validates capacity, initializes pending booking, and returns payment checkout info."""
@@ -94,8 +96,8 @@ class BookingService:
         from app.services.payment_service import payment_service
         provider = payment_service.get_provider(db)
 
-        # Calculate exact server-side pricing
-        pricing = provider.calculate_pricing(db, ticket_count)
+        # Calculate exact server-side pricing for requested ticket phase
+        pricing = provider.calculate_pricing(db, ticket_count, ticket_phase_code=ticket_phase)
         total_amount = pricing["total_amount"]
 
         # Idempotency check: If an order with this key already exists, return it
@@ -114,6 +116,8 @@ class BookingService:
                     "payment_method": method,
                     "payment_id": existing_payment.payment_id if existing_payment else f"PAY-{existing_booking.booking_id}",
                     "booking_id": existing_booking.booking_id,
+                    "ticket_phase": existing_booking.ticket_phase or pricing.get("ticket_phase", "EARLY_BIRD"),
+                    "phase_name": pricing.get("phase_name", "Early Bird"),
                     "ticket_price": existing_booking.ticket_price,
                     "ticket_count": existing_booking.ticket_count,
                     "regular_amount": existing_booking.regular_amount or pricing["regular_amount"],
@@ -142,6 +146,7 @@ class BookingService:
             email=email.strip().lower(),
             phone=phone.strip(),
             ticket_count=ticket_count,
+            ticket_phase=pricing.get("ticket_phase", "EARLY_BIRD"),
             ticket_price=pricing["ticket_price"],
             regular_amount=pricing["regular_amount"],
             group_discount=pricing["group_discount"],
@@ -167,6 +172,8 @@ class BookingService:
         )
 
         order_info.update({
+            "ticket_phase": pricing.get("ticket_phase", "EARLY_BIRD"),
+            "phase_name": pricing.get("phase_name", "Early Bird"),
             "ticket_price": pricing["ticket_price"],
             "ticket_count": ticket_count,
             "regular_amount": pricing["regular_amount"],
@@ -238,7 +245,7 @@ class BookingService:
         existing_tickets = db.query(Ticket).filter(Ticket.booking_id == booking.id).all()
         if not existing_tickets:
             event_setting = db.query(EventSetting).first()
-            event_name = event_setting.event_name if event_setting else "GARBA NIGHT 2026"
+            event_name = event_setting.event_name if event_setting else "NAVRANG 2026"
             clean_booking_num = booking.booking_id.replace("GN-2026-", "").replace("GN", "")
 
             for i in range(1, booking.ticket_count + 1):

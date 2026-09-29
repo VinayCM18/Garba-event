@@ -37,6 +37,7 @@ import {
 } from '../services/api';
 import { DashboardAnalytics, CheckInRecord, RecentNotification } from '../types';
 import { useToast } from '../components/Toast';
+import { AdminTicketPhasesCard } from '../components/AdminTicketPhasesCard';
 
 export const AdminDashboardPage: React.FC = () => {
   const [data, setData] = useState<DashboardAnalytics | null>(null);
@@ -236,6 +237,9 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Ticket Phase Management Component */}
+      <AdminTicketPhasesCard />
 
       {/* Interactive Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

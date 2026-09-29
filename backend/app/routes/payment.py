@@ -32,10 +32,11 @@ QR_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "up
 @router.get("/calculate", response_model=CalculateFeeResponse)
 def calculate_fee(
     ticket_count: int = Query(1, ge=1, le=10),
+    ticket_phase: Optional[str] = Query("EARLY_BIRD"),
     db: Session = Depends(get_db)
 ):
     """Calculates server-side ticket pricing breakdown using the active payment provider."""
-    return booking_service.calculate_pricing(db=db, ticket_count=ticket_count)
+    return booking_service.calculate_pricing(db=db, ticket_count=ticket_count, ticket_phase=ticket_phase)
 
 @router.get("/create-order")
 @router.get("/create-order/")
@@ -67,6 +68,7 @@ def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_
         email=payload.email,
         phone=phone_clean,
         ticket_count=payload.ticket_count,
+        ticket_phase=getattr(payload, "ticket_phase", "EARLY_BIRD") or "EARLY_BIRD",
         db=db,
         idempotency_key=payload.idempotency_key
     )
@@ -79,6 +81,8 @@ def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_
         payment_method="RAZORPAY" if is_razorpay else "UPI_MANUAL",
         payment_id=order_info.get("payment_id", f"PAY-{booking.booking_id}"),
         booking_id=booking.booking_id,
+        ticket_phase=order_info.get("ticket_phase", getattr(booking, "ticket_phase", "EARLY_BIRD")),
+        phase_name=order_info.get("phase_name", "Early Bird"),
         amount=order_info.get("amount", booking.amount),
         currency=order_info.get("currency", "INR"),
         ticket_price=order_info.get("ticket_price", booking.ticket_price),
@@ -207,7 +211,7 @@ def get_upi_qr_image(db: Session = Depends(get_db)):
     from fastapi.responses import Response
 
     upi_id = (getattr(setting, "upi_id", None) or "").strip() or settings.UPI_ID or "samaymadhyastha2005@oksbi"
-    event_name = (getattr(setting, "event_name", None) or "").strip() or "GARBA NIGHT 2026"
+    event_name = (getattr(setting, "event_name", None) or "").strip() or "NAVRANG 2026"
     upi_url = f"upi://pay?pa={upi_id}&pn={event_name}&cu=INR"
 
     img = qrcode.make(upi_url)

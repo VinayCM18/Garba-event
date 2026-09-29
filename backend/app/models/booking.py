@@ -21,6 +21,7 @@ class Booking(Base):
     gst_amount = Column(Float, default=0.0, nullable=False)       # 18% GST on processing fee
     amount = Column(Float, nullable=False)  # total amount (subtotal + fee + gst)
     currency = Column(String(10), default="INR", nullable=False)
+    ticket_phase = Column(String(50), default="EARLY_BIRD", nullable=True) # EARLY_BIRD, PHASE_1, PHASE_2
     
     # Payment & Provider Details
     payment_method = Column(String(50), default="UPI_MANUAL", nullable=False) # UPI_MANUAL, RAZORPAY

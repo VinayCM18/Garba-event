@@ -35,7 +35,7 @@ def init_db_defaults():
         setting = db.query(EventSetting).first()
         if not setting:
             setting = EventSetting(
-                event_name="GARBA NIGHT 2026",
+                event_name="NAVRANG 2026",
                 event_tagline="Celebrate. Dance. Connect.",
                 event_date="October 17, 2026",
                 event_time="07:00 PM - 10:00 PM",
@@ -53,6 +53,8 @@ def init_db_defaults():
             )
             db.add(setting)
         else:
+            if not setting.event_name or "garba" in setting.event_name.lower():
+                setting.event_name = "NAVRANG 2026"
             env_raw = (
                 os.environ.get("PAYMENT_PROVIDER")
                 or os.environ.get("PAYMENT_METHOD")
@@ -63,6 +65,53 @@ def init_db_defaults():
             env_norm = env_raw.strip().upper() if isinstance(env_raw, str) else ""
             if env_norm in ("RAZORPAY", "RZP") or (not env_norm and setting.payment_method in (None, "", "UPI_MANUAL")):
                 setting.payment_method = "RAZORPAY"
+
+        # Check and seed TicketPhases
+        from app.models.ticket_phase import TicketPhase
+        if db.query(TicketPhase).count() == 0:
+            default_phases = [
+                TicketPhase(
+                    phase_code="EARLY_BIRD",
+                    name="EARLY BIRD",
+                    price=599.0,
+                    tax_included=True,
+                    status="ACTIVE",
+                    total_inventory=300,
+                    sold_count=0,
+                    display_order=1,
+                    badge_text="LIVE",
+                    description="Phase 1 early-access ticket with all-inclusive venue & celebration pass.",
+                    group_offer_eligible=True
+                ),
+                TicketPhase(
+                    phase_code="PHASE_1",
+                    name="PHASE 1",
+                    price=799.0,
+                    tax_included=True,
+                    status="LOCKED",
+                    total_inventory=500,
+                    sold_count=0,
+                    display_order=2,
+                    badge_text="COMING SOON",
+                    description="Standard tier ticket unlocks once Early Bird phase concludes.",
+                    group_offer_eligible=False
+                ),
+                TicketPhase(
+                    phase_code="PHASE_2",
+                    name="PHASE 2",
+                    price=899.0,
+                    tax_included=True,
+                    status="LOCKED",
+                    total_inventory=700,
+                    sold_count=0,
+                    display_order=3,
+                    badge_text="LOCKED",
+                    description="Final tier ticket for late registrations.",
+                    group_offer_eligible=False
+                )
+            ]
+            for phase in default_phases:
+                db.add(phase)
 
         import warnings
 
@@ -122,15 +171,15 @@ def init_db_defaults():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info("Initializing Garba Night 2026 Backend...")
+    logger.info("Initializing NAVRANG 2026 Backend...")
     init_db_defaults()
     yield
     # Shutdown
-    logger.info("Garba Night 2026 Backend shutting down.")
+    logger.info("NAVRANG 2026 Backend shutting down.")
 
 app = FastAPI(
-    title="GARBA NIGHT 2026 - Event Ticketing & QR Verification Platform",
-    description="Production-grade full-stack API for Garba Night 2026 event ticket booking, payments, QR generation, validation, and check-in system.",
+    title="NAVRANG 2026 - Official Ticketing Platform (In Collaboration with THE HAPPY CIRCLE)",
+    description="Production-grade full-stack API for NAVRANG 2026 in collaboration with THE HAPPY CIRCLE - event ticket booking, payments, QR generation, validation, and check-in system.",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -188,7 +237,7 @@ app.include_router(webhook_router)
 def health_check():
     return {
         "status": "healthy",
-        "service": "Garba Night 2026 API",
+        "service": "NAVRANG 2026 API",
         "version": "1.0.0"
     }
 

@@ -3,10 +3,13 @@ from typing import Optional
 
 class CalculateFeeRequest(BaseModel):
     ticket_count: int = Field(..., ge=1, le=10)
+    ticket_phase: Optional[str] = "EARLY_BIRD"
 
 class CalculateFeeResponse(BaseModel):
     ticket_price: float
     ticket_count: int
+    ticket_phase: Optional[str] = "EARLY_BIRD"
+    phase_name: Optional[str] = "Early Bird"
     regular_amount: float = 0.0
     group_discount: float = 0.0
     ticket_subtotal: float
@@ -28,11 +31,14 @@ class CreateOrderRequest(BaseModel):
     email: EmailStr
     phone: str = Field(..., min_length=10, max_length=15)
     ticket_count: int = Field(..., ge=1, le=10)
+    ticket_phase: Optional[str] = "EARLY_BIRD"
     idempotency_key: Optional[str] = None
 
 class CreateOrderResponse(BaseModel):
     payment_method: str = "RAZORPAY" # "RAZORPAY" or "UPI_MANUAL"
     booking_id: str
+    ticket_phase: Optional[str] = "EARLY_BIRD"
+    phase_name: Optional[str] = "Early Bird"
     amount: float
     currency: str = "INR"
     ticket_price: float

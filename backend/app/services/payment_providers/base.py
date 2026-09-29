@@ -16,7 +16,7 @@ class BasePaymentProvider(ABC):
         pass
 
     @abstractmethod
-    def calculate_pricing(self, db: Session, ticket_count: int) -> Dict[str, Any]:
+    def calculate_pricing(self, db: Session, ticket_count: int, ticket_phase_code: Optional[str] = None) -> Dict[str, Any]:
         """Calculates server-side ticket pricing breakdown."""
         pass
 

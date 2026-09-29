@@ -40,7 +40,7 @@ class EmailService:
         smtp_host = (event_setting.smtp_host or "").strip() or settings.SMTP_HOST or "smtp.gmail.com"
         smtp_port = event_setting.smtp_port or settings.SMTP_PORT or 587
         smtp_from_email = (event_setting.smtp_from_email or "").strip() or settings.FROM_EMAIL or "tickets@garbanight.in"
-        smtp_from_name = (event_setting.smtp_from_name or "").strip() or settings.FROM_NAME or "GARBA NIGHT 2026"
+        smtp_from_name = (event_setting.smtp_from_name or "").strip() or settings.FROM_NAME or "NAVRANG 2026"
         smtp_use_tls = event_setting.smtp_use_tls if hasattr(event_setting, "smtp_use_tls") else settings.SMTP_USE_TLS
 
         # Owner notification configuration
@@ -177,6 +177,9 @@ class EmailService:
               <h1 style="margin: 16px 0 4px; font-size: 28px; font-weight: 900; letter-spacing: 1.5px; color: #ffffff; text-transform: uppercase;">
                 {event_setting.event_name}
               </h1>
+              <div style="font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: #fbbf24; text-transform: uppercase; margin-bottom: 6px;">
+                IN COLLABORATION WITH THE HAPPY CIRCLE
+              </div>
               <p style="margin: 0; font-size: 12px; font-weight: 600; color: #94a3b8; letter-spacing: 1px; text-transform: uppercase;">
                 Official Admission Pass & Electronic Tax Invoice
               </p>
@@ -279,7 +282,7 @@ class EmailService:
                       </tr>
                       <tr>
                         <td style="color: #94a3b8;">Timings:</td>
-                        <td style="color: #ffffff; font-weight: 600;">Entry starts at 05:30 PM • Event: {event_setting.event_time}</td>
+                        <td style="color: #ffffff; font-weight: 600;">Gates open at 06:30 PM • Event: {event_setting.event_time}</td>
                       </tr>
                       <tr>
                         <td style="color: #94a3b8; vertical-align: top;">Venue:</td>
@@ -320,7 +323,7 @@ class EmailService:
                     <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #94a3b8; line-height: 1.7;">
                       <li>Each digital QR code is cryptographically unique and permits exactly one admission.</li>
                       <li>Traditional festive attire (Chaniya Choli / Kurta Pajama / Kediyu) or smart cultural dress is encouraged.</li>
-                      <li>Entry starts promptly at 05:30 PM. Gates close at 10:00 PM. Please arrive early to ensure seamless security processing.</li>
+                      <li>Entry starts promptly at 06:30 PM. Gates close at 10:00 PM. Please arrive early to ensure seamless security processing.</li>
                       <li>All sales are non-refundable and non-transferable under official event guidelines.</li>
                     </ul>
                   </td>

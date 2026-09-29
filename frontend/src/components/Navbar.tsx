@@ -32,29 +32,26 @@ export const Navbar: React.FC = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
-        {/* Brand: Heritage Productions + GARBA NIGHT 2026 */}
+        {/* Brand: NAVRANG × THE HAPPY CIRCLE */}
         <Link to="/" className="flex items-center gap-3 group shrink-0">
-          <div className="w-10 h-10 rounded-full overflow-hidden border border-[#d4af37]/50 shadow-[0_0_15px_rgba(212,175,55,0.3)] group-hover:scale-105 transition-transform bg-[#0d0712] flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-[0_0_15px_rgba(212,175,55,0.35)] group-hover:scale-105 transition-transform bg-black flex items-center justify-center shrink-0 p-0.5">
             <img
-              src="/heritage_productions.jpg"
-              alt="Heritage Productions Logo"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLElement).style.display = 'none';
-              }}
+              src="/images/happy-circle-logo.png"
+              alt="The Happy Circle Logo"
+              className="w-full h-full object-contain"
             />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-lg sm:text-xl font-extrabold tracking-[0.08em] bg-gradient-to-r from-white via-[#f7e8c3] to-[#d4af37] bg-clip-text text-transparent uppercase font-['Cinzel']">
-                GARBA NIGHT
+                NAVRANG
               </span>
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#d4af37]/15 text-[#f7e8c3] border border-[#d4af37]/35 tracking-wider font-['Cinzel']">
                 2026
               </span>
             </div>
-            <p className="text-[10px] text-[#e5c97b]/90 tracking-[0.18em] uppercase font-bold font-['Plus_Jakarta_Sans']">
-              Heritage Productions • Mysuru
+            <p className="text-[10px] text-[#e5c97b]/90 tracking-[0.14em] uppercase font-bold font-['Plus_Jakarta_Sans']">
+              in collab with The Happy Circle
             </p>
           </div>
         </Link>

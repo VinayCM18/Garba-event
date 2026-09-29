@@ -73,21 +73,45 @@ class RazorpayPaymentProvider(BasePaymentProvider):
 
         return key_id, key_secret, webhook_secret, mode
 
-    def calculate_pricing(self, db: Session, ticket_count: int) -> Dict[str, Any]:
+    def calculate_pricing(self, db: Session, ticket_count: int, ticket_phase_code: Optional[str] = None) -> Dict[str, Any]:
         """
-        Calculates exact ticket pricing and gateway fee breakdown.
-        - ₹599 base ticket price.
-        - BUY 10, PAY FOR 9 promotion: 10 tickets = ₹5,391.00 subtotal (saves ₹599.00).
+        Calculates exact ticket pricing and gateway fee breakdown based on ticket phase.
+        - EARLY BIRD: ₹599 base ticket price (BUY 10, PAY FOR 9 promotion enabled).
+        - PHASE 1: ₹799 base ticket price (locked until activated; group promotion disabled by default).
         - Gateway fee passing: 2% processing fee + 18% GST on the processing fee.
-          Example for 1 ticket:
-            ticket_subtotal = ₹599.00
-            payment_fee (2%) = ₹11.98
-            gst_amount (18% on fee) = ₹2.16
-            total_amount = ₹613.14
         """
         event_setting = db.query(EventSetting).first() if db else None
-        ticket_price = float(event_setting.ticket_price) if event_setting and event_setting.ticket_price is not None else 599.0
-        group_offer_enabled = bool(event_setting.group_offer_enabled) if event_setting and hasattr(event_setting, "group_offer_enabled") else True
+
+        # Resolve ticket phase
+        from app.models.ticket_phase import TicketPhase
+        phase = None
+        if ticket_phase_code and db:
+            phase = db.query(TicketPhase).filter(TicketPhase.phase_code == ticket_phase_code.strip().upper()).first()
+            if not phase:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Ticket phase '{ticket_phase_code}' was not found."
+                )
+            if phase.status != "ACTIVE":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{phase.name} tickets are currently locked and not available for purchase."
+                )
+
+        if not phase and db:
+            phase = db.query(TicketPhase).filter(TicketPhase.status == "ACTIVE").first()
+
+        if phase:
+            phase_code = phase.phase_code
+            phase_name = phase.name
+            ticket_price = float(phase.price)
+            group_offer_enabled = bool(phase.group_offer_eligible)
+        else:
+            phase_code = "EARLY_BIRD"
+            phase_name = "Early Bird"
+            ticket_price = float(event_setting.ticket_price) if event_setting and event_setting.ticket_price is not None else 599.0
+            group_offer_enabled = bool(event_setting.group_offer_enabled) if event_setting and hasattr(event_setting, "group_offer_enabled") else True
+
         group_offer_size = int(event_setting.group_offer_size) if event_setting and hasattr(event_setting, "group_offer_size") and event_setting.group_offer_size else 10
         group_offer_free_tickets = int(event_setting.group_offer_free_tickets) if event_setting and hasattr(event_setting, "group_offer_free_tickets") and event_setting.group_offer_free_tickets else 1
 
@@ -129,6 +153,8 @@ class RazorpayPaymentProvider(BasePaymentProvider):
         total_amount = round(ticket_subtotal + payment_fee + gst_amount, 2)
 
         return {
+            "ticket_phase": phase_code,
+            "phase_name": phase_name,
             "ticket_price": ticket_price,
             "ticket_count": ticket_count,
             "regular_amount": regular_amount,

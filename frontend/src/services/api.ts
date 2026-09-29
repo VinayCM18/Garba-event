@@ -10,7 +10,8 @@ import {
   AdminUser,
   QRVerifyResult,
   CheckInResult,
-  PaymentVerificationItem
+  PaymentVerificationItem,
+  TicketPhaseItem
 } from '../types';
 
 export const getApiBaseUrl = (): string => {
@@ -72,6 +73,8 @@ export const fetchPublicConfig = async (): Promise<EventConfig> => {
 };
 
 export interface FeeCalculation {
+  ticket_phase?: string;
+  phase_name?: string;
   ticket_price: number;
   ticket_count: number;
   regular_amount?: number;
@@ -91,8 +94,10 @@ export interface FeeCalculation {
   free_tickets?: number;
 }
 
-export const calculatePaymentFee = async (ticketCount: number): Promise<FeeCalculation> => {
-  const res = await api.get('/api/payments/calculate', { params: { ticket_count: ticketCount } });
+export const calculatePaymentFee = async (ticketCount: number, ticketPhase: string = 'EARLY_BIRD'): Promise<FeeCalculation> => {
+  const res = await api.get('/api/payments/calculate', {
+    params: { ticket_count: ticketCount, ticket_phase: ticketPhase }
+  });
   return res.data;
 };
 
@@ -101,6 +106,7 @@ export const createPaymentOrder = async (payload: {
   email: string;
   phone: string;
   ticket_count: number;
+  ticket_phase?: string;
   idempotency_key?: string;
 }) => {
   const res = await api.post('/api/payments/create-order', payload);
@@ -345,6 +351,17 @@ export const staffSearchTickets = async (query: string) => {
 
 export const fetchStaffCheckins = async (limit = 50) => {
   const res = await api.get('/api/staff/checkins', { params: { limit } });
+  return res.data;
+};
+
+// Admin Ticket Phase Management APIs
+export const fetchAdminTicketPhases = async (): Promise<TicketPhaseItem[]> => {
+  const res = await api.get('/api/admin/ticket-phases');
+  return res.data;
+};
+
+export const updateAdminTicketPhase = async (phaseCode: string, payload: Partial<TicketPhaseItem>) => {
+  const res = await api.put(`/api/admin/ticket-phases/${phaseCode}`, payload);
   return res.data;
 };
 

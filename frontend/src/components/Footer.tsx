@@ -10,24 +10,24 @@ export const Footer: React.FC = () => {
           {/* Brand */}
           <div className="space-y-4 md:col-span-1">
             <Link to="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden border border-[#d4af37]/40 shadow-md shadow-[#d4af37]/20 bg-[#0a0a0f] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full overflow-hidden border border-[#d4af37]/50 shadow-md shadow-[#d4af37]/20 bg-black flex items-center justify-center p-0.5 shrink-0">
                 <img
-                  src="/heritage_productions.jpg"
-                  alt="Heritage Productions"
-                  className="w-full h-full object-cover"
+                  src="/images/happy-circle-logo.png"
+                  alt="The Happy Circle Logo"
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div>
                 <span className="text-xl font-extrabold tracking-[0.12em] bg-gradient-to-r from-white via-[#f3e4b2] to-[#d4af37] bg-clip-text text-transparent uppercase font-['Cinzel'] block">
-                  GARBA NIGHT 2026
+                  NAVRANG 2026
                 </span>
-                <span className="text-[10px] text-[#e5c97b] font-bold tracking-[0.2em] uppercase block font-['Cinzel']">
-                  Heritage Productions • Mysuru
+                <span className="text-[10px] text-[#e5c97b] font-bold tracking-[0.15em] uppercase block font-['Cinzel']">
+                  in collab with The Happy Circle
                 </span>
               </div>
             </Link>
             <p className="text-xs text-slate-400 leading-relaxed">
-              The premier royal Navratri cultural gala at Green Acres, Mysuru. An unforgettable evening of authentic Garba beats, world-class acoustic staging, and encrypted digital entry passes.
+              The premier cultural celebration NAVRANG 2026 at Green Acres, Mysuru in collaboration with The Happy Circle. An unforgettable evening of authentic Garba beats, live music, and encrypted digital entry passes.
             </p>
             <div className="pt-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -88,7 +88,7 @@ export const Footer: React.FC = () => {
 
         <div className="pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <div>
-            © 2026 GARBA NIGHT Official Gala. All rights reserved. Razorpay 256-Bit Encrypted Payments.
+            © 2026 NAVRANG Official Celebration. In collaboration with The Happy Circle. All rights reserved.
           </div>
           <div className="flex items-center gap-1.5 text-slate-500">
             <span>Official Cultural Gala</span>

@@ -10,7 +10,7 @@ class Ticket(Base):
     ticket_id = Column(String(100), unique=True, index=True, nullable=False)  # GN26-TKT-00048291-01
     booking_id = Column(Integer, ForeignKey("bookings.id", ondelete="CASCADE"), nullable=False, index=True)
     customer_name = Column(String(255), nullable=False)
-    event_name = Column(String(255), default="GARBA NIGHT 2026", nullable=False)
+    event_name = Column(String(255), default="NAVRANG 2026", nullable=False)
     
     # QR Cryptographic Security
     qr_token_hash = Column(String(128), unique=True, index=True, nullable=False) # SHA-256 of raw secret token

@@ -62,7 +62,7 @@ export const RazorpayModalSimulator: React.FC<RazorpayModalSimulatorProps> = ({
                     Test Mode
                   </span>
                 </div>
-                <div className="text-xs text-slate-400">Garba Night 2026 Ticketing</div>
+                <div className="text-xs text-slate-400">NAVRANG 2026 Ticketing</div>
               </div>
             </div>
             <button onClick={onDismiss} className="text-slate-400 hover:text-white p-1">

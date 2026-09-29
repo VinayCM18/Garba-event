@@ -38,6 +38,15 @@ class TicketService:
             alignment=1, # Center
             spaceAfter=4
         )
+        collab_style = ParagraphStyle(
+            "EventCollab",
+            parent=styles["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=10,
+            textColor=colors.HexColor("#FBBF24"), # Radiant Gold
+            alignment=1,
+            spaceAfter=4
+        )
         tagline_style = ParagraphStyle(
             "EventTagline",
             parent=styles["Normal"],
@@ -45,7 +54,7 @@ class TicketService:
             fontSize=11,
             textColor=colors.HexColor("#FCD34D"),
             alignment=1,
-            spaceAfter=14
+            spaceAfter=12
         )
         badge_style = ParagraphStyle(
             "BadgeStyle",
@@ -88,6 +97,7 @@ class TicketService:
         # Header Box Table
         header_data = [
             [Paragraph(f"✦ {event_setting.event_name.upper()} ✦", title_style)],
+            [Paragraph("IN COLLABORATION WITH THE HAPPY CIRCLE", collab_style)],
             [Paragraph(f"{event_setting.event_tagline}", tagline_style)],
             [Paragraph("OFFICIAL ENTRY PASS — ADMIT ONE", badge_style)]
         ]
@@ -168,8 +178,8 @@ class TicketService:
         # Important Guidelines Box
         guidelines_header = Paragraph("<b>IMPORTANT VENUE INSTRUCTIONS</b>", ParagraphStyle("GH", fontName="Helvetica-Bold", fontSize=9, textColor=colors.HexColor("#B45309")))
         guidelines_text = Paragraph(
-            "• Entry begins promptly at 05:30 PM (Turnstiles open 05:30 PM).<br/>"
-            "• Event Timings: 06:00 PM onwards till 10:00 PM. Gates close at 10:00 PM.<br/>"
+            "• Gates open promptly at 06:30 PM.<br/>"
+            "• Event Timings: 07:00 PM onwards till 10:00 PM. Gates close at 10:00 PM.<br/>"
             "• Entry will be granted only after successful QR scanning at security.<br/>"
             "• Each QR code is uniquely encrypted and admits exactly one person once.<br/>"
             "• Traditional festive attire is celebrated and recommended.<br/>"
@@ -188,7 +198,7 @@ class TicketService:
         # Footer with IST timestamp
         ist_created = (ticket.created_at + timedelta(hours=5, minutes=30)).strftime('%d-%b-%Y %I:%M:%S %p IST')
         story.append(Paragraph(
-            f"Generated on {ist_created} • Garba Night 2026 Official E-Ticket System • Contact: {event_setting.contact_email}",
+            f"Generated on {ist_created} • NAVRANG 2026 Official E-Ticket System • In collaboration with THE HAPPY CIRCLE • Contact: {event_setting.contact_email}",
             footer_style
         ))
 
@@ -270,8 +280,18 @@ class TicketService:
             if index > 0:
                 story.append(PageBreak())
 
+            collab_style = ParagraphStyle(
+                "EventCollabBundle",
+                parent=styles["Normal"],
+                fontName="Helvetica-Bold",
+                fontSize=9,
+                textColor=colors.HexColor("#FBBF24"), # Radiant Gold
+                alignment=1,
+                spaceAfter=3
+            )
             header_data = [
                 [Paragraph(f"✦ {event_setting.event_name.upper()} ✦", title_style)],
+                [Paragraph("IN COLLABORATION WITH THE HAPPY CIRCLE", collab_style)],
                 [Paragraph(f"{event_setting.event_tagline}", tagline_style)],
                 [Paragraph(f"OFFICIAL ENTRY PASS — PASS {index + 1} OF {len(booking.tickets)}", badge_style)]
             ]
@@ -315,7 +335,7 @@ class TicketService:
             story.append(Spacer(1, 12))
 
             rules_table = Table([[
-                Paragraph("<b>EVENT NOTICE:</b> Entry starts at 05:30 PM • Event: 06:00 PM - 10:00 PM. Duplicate entries or re-scans are automatically rejected. Traditional dress code mandatory.", sub_val_style)
+                Paragraph("<b>EVENT NOTICE:</b> Gates open at 06:30 PM • Event: 07:00 PM - 10:00 PM. In collaboration with THE HAPPY CIRCLE. Duplicate entries or re-scans are automatically rejected. Traditional dress code mandatory.", sub_val_style)
             ]], colWidths=[540])
             rules_table.setStyle(TableStyle([
                 ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFBEB")),
@@ -326,7 +346,7 @@ class TicketService:
             story.append(Spacer(1, 10))
 
             story.append(Paragraph(
-                f"Pass {index + 1} of {len(booking.tickets)} • Booking #{booking.booking_id} • {event_setting.event_name} Official E-Ticket",
+                f"Pass {index + 1} of {len(booking.tickets)} • Booking #{booking.booking_id} • {event_setting.event_name} × THE HAPPY CIRCLE Official E-Ticket",
                 footer_style
             ))
 

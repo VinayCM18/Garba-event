@@ -63,6 +63,7 @@ export const BookingPage: React.FC = () => {
   const [loadingStatusText, setLoadingStatusText] = useState('Initializing order...');
   const [pricing, setPricing] = useState<FeeCalculation | null>(null);
   const [calculatingFee, setCalculatingFee] = useState(false);
+  const [selectedPhase, setSelectedPhase] = useState<string>('EARLY_BIRD');
 
   // Modal states
   const [simulatorOpen, setSimulatorOpen] = useState(false);
@@ -87,7 +88,7 @@ export const BookingPage: React.FC = () => {
 
   const ticketCount = watch('ticket_count') || 1;
 
-  // Handle URL query parameter for count (e.g. /book?count=10)
+  // Handle URL query parameters for count and phase (e.g. /book?count=10&phase=EARLY_BIRD)
   useEffect(() => {
     const countParam = searchParams.get('count');
     if (countParam) {
@@ -95,6 +96,10 @@ export const BookingPage: React.FC = () => {
       if (!isNaN(parsed) && parsed >= 1 && parsed <= 10) {
         setValue('ticket_count', parsed, { shouldValidate: true });
       }
+    }
+    const phaseParam = searchParams.get('phase');
+    if (phaseParam) {
+      setSelectedPhase(phaseParam.toUpperCase());
     }
   }, [searchParams, setValue]);
 
@@ -121,6 +126,9 @@ export const BookingPage: React.FC = () => {
     fetchPublicConfig()
       .then((cfg) => {
         setConfig(cfg);
+        if (cfg.active_phase_code) {
+          setSelectedPhase(cfg.active_phase_code);
+        }
         setLoadingConfig(false);
       })
       .catch((err) => {
@@ -129,11 +137,11 @@ export const BookingPage: React.FC = () => {
       });
   }, []);
 
-  // Fetch exact backend fee calculation whenever ticket count changes
+  // Fetch exact backend fee calculation whenever ticket count or selected phase changes
   useEffect(() => {
     let isCurrent = true;
     setCalculatingFee(true);
-    calculatePaymentFee(ticketCount)
+    calculatePaymentFee(ticketCount, selectedPhase)
       .then((res) => {
         if (isCurrent) {
           setPricing(res);
@@ -148,7 +156,7 @@ export const BookingPage: React.FC = () => {
     return () => {
       isCurrent = false;
     };
-  }, [ticketCount]);
+  }, [ticketCount, selectedPhase]);
 
   const ticketPrice = pricing?.ticket_price || config?.ticket_price || 599;
   const isGroupOffer = pricing?.is_group_offer ?? (ticketCount === 10);
@@ -178,6 +186,7 @@ export const BookingPage: React.FC = () => {
         email: data.email,
         phone: data.phone,
         ticket_count: data.ticket_count,
+        ticket_phase: selectedPhase,
         idempotency_key: idempotencyKey,
       });
 
@@ -190,8 +199,8 @@ export const BookingPage: React.FC = () => {
           key: orderResponse.key_id,
           amount: Math.round(orderResponse.amount * 100),
           currency: orderResponse.currency || 'INR',
-          name: config?.event_name || 'GARBA NIGHT 2026',
-          description: `${data.ticket_count} Official Entry Pass${data.ticket_count > 1 ? 'es' : ''} • Taxes included`,
+          name: config?.event_name || 'NAVRANG 2026',
+          description: `${data.ticket_count} NAVRANG 2026 Entry Pass${data.ticket_count > 1 ? 'es' : ''} • Taxes included`,
           order_id: orderResponse.razorpay_order_id,
           prefill: {
             name: data.customer_name,
@@ -201,6 +210,8 @@ export const BookingPage: React.FC = () => {
           notes: {
             booking_id: orderResponse.booking_id,
             ticket_count: String(data.ticket_count),
+            event: 'NAVRANG 2026 in collaboration with The Happy Circle',
+            phase: selectedPhase,
           },
           theme: {
             color: '#d4af37',
@@ -340,16 +351,42 @@ export const BookingPage: React.FC = () => {
 
       {/* Header */}
       <div className="text-center max-w-2xl mx-auto mb-10">
-        <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#d4af37] px-3.5 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/25 mb-3">
+        <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#d4af37] px-4 py-1.5 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/25 mb-4 shadow-sm backdrop-blur-md">
           <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
-          Official E-Ticket Booking Portal
+          <span>Official E-Ticket Booking Portal</span>
         </div>
-        <h1 className="text-3xl sm:text-5xl font-black text-white font-['Outfit']">
-          Book Your Entry Passes
+
+        {/* Event Collaboration Crest */}
+        <div className="flex items-center justify-center gap-3 mb-3">
+          <div className="w-9 h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-md p-0.5 bg-black shrink-0">
+            <img
+              src="/images/happy-circle-logo.png"
+              alt="The Happy Circle Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <div className="text-left">
+            <div className="text-lg sm:text-xl font-extrabold uppercase font-['Cinzel'] tracking-wider bg-gradient-to-r from-white via-[#f7e8c3] to-[#d4af37] bg-clip-text text-transparent leading-tight">
+              NAVRANG 2026
+            </div>
+            <div className="text-[10px] text-[#e5c97b] font-bold uppercase tracking-[0.14em]">
+              in collaboration with The Happy Circle
+            </div>
+          </div>
+        </div>
+
+        <h1 className="text-2xl sm:text-4xl font-black text-white font-['Outfit'] mt-1">
+          Reserve Your Entry Passes
         </h1>
-        <p className="mt-2 text-sm text-slate-400">
-          Enter attendee contact details to reserve your cryptographically secured QR entry pass for {config?.event_name || 'GARBA NIGHT 2026'}.
+        <p className="mt-2 text-xs sm:text-sm text-slate-400">
+          Enter attendee details to reserve your cryptographically secured digital passes for NAVRANG 2026 at Green Acres, Mysuru.
         </p>
+
+        {/* Active Phase Badge */}
+        <div className="mt-4 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 text-xs font-bold tracking-wide">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>ACTIVE PHASE: EARLY BIRD (₹{ticketPrice} • Taxes Included)</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -583,7 +620,10 @@ export const BookingPage: React.FC = () => {
 
             <div className="text-center pb-4 mb-4 border-b border-white/[0.08]">
               <div className="text-xs font-black text-[#f3e4b2] uppercase tracking-widest font-['Cinzel']">
-                {config?.event_name || 'GARBA NIGHT 2026'}
+                {config?.event_name || 'NAVRANG 2026'}
+              </div>
+              <div className="text-[10px] text-[#e5c97b] font-bold uppercase tracking-wider mt-0.5">
+                in collaboration with The Happy Circle
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
                 {config?.event_date || 'October 17, 2026'} • {config?.venue_name || 'Green Acres, Mysuru'}
@@ -592,7 +632,7 @@ export const BookingPage: React.FC = () => {
 
             <div className="space-y-3 text-xs text-slate-300 pb-5 border-b border-white/20">
               <div className="flex items-center justify-between">
-                <span className="text-slate-300 font-semibold">Early Bird Pass</span>
+                <span className="text-slate-300 font-semibold">{pricing?.phase_name || 'Early Bird'} Pass</span>
                 <span className="font-mono text-white font-bold">{ticketCount} × ₹{ticketPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
 

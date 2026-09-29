@@ -49,9 +49,32 @@ export interface EventConfig {
   // Razorpay Payment Gateway
   razorpay_key_id?: string;
   razorpay_key_secret?: string;
-  razorpay_key_secret_set?: boolean;
   razorpay_webhook_secret?: string;
+  razorpay_key_secret_set?: boolean;
   razorpay_webhook_secret_set?: boolean;
+
+  // Collaboration & Phases
+  collaboration_name?: string;
+  collaboration_logo_url?: string;
+  active_phase_code?: string;
+  ticket_phases?: TicketPhaseItem[];
+}
+
+export interface TicketPhaseItem {
+  id?: number;
+  phase_code: string;
+  name: string;
+  price: number;
+  tax_included: boolean;
+  status: 'ACTIVE' | 'LOCKED' | 'SOLD_OUT' | 'UPCOMING';
+  total_inventory: number;
+  sold_count: number;
+  remaining_inventory?: number;
+  remaining_tickets?: number;
+  display_order: number;
+  badge_text?: string;
+  description?: string;
+  group_offer_eligible?: boolean;
 }
 
 export interface Ticket {
@@ -59,6 +82,7 @@ export interface Ticket {
   booking_id: string;
   customer_name: string;
   event_name: string;
+  ticket_type?: string;
   ticket_status: 'VALID' | 'USED' | 'CANCELLED' | 'REFUNDED';
   checkin_status: boolean;
   checked_in_at: string | null;

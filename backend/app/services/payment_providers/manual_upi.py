@@ -20,16 +20,41 @@ from app.utils.logger import app_logger
 class ManualUPIPaymentProvider(BasePaymentProvider):
     provider_code = "UPI_MANUAL"
 
-    def calculate_pricing(self, db: Session, ticket_count: int) -> Dict[str, Any]:
+    def calculate_pricing(self, db: Session, ticket_count: int, ticket_phase_code: Optional[str] = None) -> Dict[str, Any]:
         """
-        Calculates exact ticket pricing breakdown.
-        For Manual UPI: No gateway convenience/processing fees apply.
-        Regular ticket: ₹599.0
-        Group offer: BUY 10, PAY FOR 9 -> 10 tickets = ₹5,391.0
+        Calculates exact ticket pricing breakdown for manual UPI.
         """
-        event_setting = db.query(EventSetting).first()
-        ticket_price = float(event_setting.ticket_price) if event_setting and event_setting.ticket_price is not None else 599.0
-        group_offer_enabled = bool(event_setting.group_offer_enabled) if event_setting and hasattr(event_setting, "group_offer_enabled") else True
+        event_setting = db.query(EventSetting).first() if db else None
+
+        from app.models.ticket_phase import TicketPhase
+        phase = None
+        if ticket_phase_code and db:
+            phase = db.query(TicketPhase).filter(TicketPhase.phase_code == ticket_phase_code.strip().upper()).first()
+            if not phase:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Ticket phase '{ticket_phase_code}' was not found."
+                )
+            if phase.status != "ACTIVE":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{phase.name} tickets are currently locked and not available for purchase."
+                )
+
+        if not phase and db:
+            phase = db.query(TicketPhase).filter(TicketPhase.status == "ACTIVE").first()
+
+        if phase:
+            phase_code = phase.phase_code
+            phase_name = phase.name
+            ticket_price = float(phase.price)
+            group_offer_enabled = bool(phase.group_offer_eligible)
+        else:
+            phase_code = "EARLY_BIRD"
+            phase_name = "Early Bird"
+            ticket_price = float(event_setting.ticket_price) if event_setting and event_setting.ticket_price is not None else 599.0
+            group_offer_enabled = bool(event_setting.group_offer_enabled) if event_setting and hasattr(event_setting, "group_offer_enabled") else True
+
         group_offer_size = int(event_setting.group_offer_size) if event_setting and hasattr(event_setting, "group_offer_size") and event_setting.group_offer_size else 10
         group_offer_free_tickets = int(event_setting.group_offer_free_tickets) if event_setting and hasattr(event_setting, "group_offer_free_tickets") and event_setting.group_offer_free_tickets else 1
 
@@ -59,6 +84,8 @@ class ManualUPIPaymentProvider(BasePaymentProvider):
         total_amount = ticket_subtotal
 
         return {
+            "ticket_phase": phase_code,
+            "phase_name": phase_name,
             "ticket_price": ticket_price,
             "ticket_count": ticket_count,
             "regular_amount": regular_amount,
@@ -300,7 +327,7 @@ class ManualUPIPaymentProvider(BasePaymentProvider):
         existing_tickets = db.query(Ticket).filter(Ticket.booking_id == booking.id).all()
         if not existing_tickets:
             event_setting = db.query(EventSetting).first()
-            event_name = event_setting.event_name if event_setting else "GARBA NIGHT 2026"
+            event_name = event_setting.event_name if event_setting else "NAVRANG 2026"
             clean_booking_num = booking.booking_id.replace("GN-2026-", "").replace("GN", "")
 
             for i in range(1, booking.ticket_count + 1):
