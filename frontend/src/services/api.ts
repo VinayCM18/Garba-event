@@ -13,7 +13,25 @@ import {
   PaymentVerificationItem
 } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+export const getApiBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+  // In production (Vercel), default directly to active Railway backend
+  if (import.meta.env.PROD) {
+    return 'https://serene-generosity-production-4e8f.up.railway.app';
+  }
+  // In local development, fallback to local backend URL
+  return 'http://localhost:8000';
+};
+
+export const API_BASE = getApiBaseUrl();
+
+export const getDownloadUrl = (path: string): string => {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE}${cleanPath}`;
+};
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -32,6 +50,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Non-blocking response error logging for development & troubleshooting
+api.interceptors.response.use(
+  (response) => response,
+  (err) => {
+    if (import.meta.env.DEV) {
+      console.warn(
+        `[API] ${err.config?.method?.toUpperCase()} ${err.config?.url} failed:`,
+        err.response?.status || 'Network / Connection Refused',
+        err.response?.data || err.message
+      );
+    }
+    return Promise.reject(err);
+  }
+);
+
 // Public Event & Booking APIs
 export const fetchPublicConfig = async (): Promise<EventConfig> => {
   const res = await api.get('/api/bookings/public-config');
@@ -46,6 +79,11 @@ export interface FeeCalculation {
   ticket_subtotal: number;
   payment_fee: number;
   gst_amount: number;
+  base_amount?: number;
+  tax_amount?: number;
+  tax_rate?: number;
+  tax_included?: boolean;
+  tax_label?: string;
   total_amount: number;
   currency: string;
   is_group_offer?: boolean;

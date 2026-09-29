@@ -20,22 +20,30 @@ class PaymentService:
 
     def get_provider(self, db: Session) -> BasePaymentProvider:
         """
-        Resolves the active payment provider based on dynamic EventSetting in DB or .env fallback.
+        Resolves the active payment provider based on environment variables or dynamic EventSetting in DB.
+        Defaults to Razorpay.
         """
+        env_provider = (getattr(settings, "PAYMENT_PROVIDER", None) or getattr(settings, "PAYMENT_METHOD", None) or "").strip().upper()
+        if env_provider == "RAZORPAY":
+            return self.razorpay_provider
+        elif env_provider == "UPI_MANUAL":
+            return self.manual_upi_provider
+
         setting = db.query(EventSetting).first()
         configured_method = (
-            getattr(setting, "payment_method", None) or settings.PAYMENT_METHOD or "UPI_MANUAL"
+            getattr(setting, "payment_method", None) or "RAZORPAY"
         ).strip().upper()
 
-        if configured_method == "RAZORPAY":
-            return self.razorpay_provider
-        return self.manual_upi_provider
+        if configured_method == "UPI_MANUAL":
+            return self.manual_upi_provider
+        return self.razorpay_provider
 
     def get_provider_by_code(self, provider_code: str) -> BasePaymentProvider:
         """Returns a specific provider instance by code name."""
-        if (provider_code or "").strip().upper() == "RAZORPAY":
-            return self.razorpay_provider
-        return self.manual_upi_provider
+        if (provider_code or "").strip().upper() == "UPI_MANUAL":
+            return self.manual_upi_provider
+        return self.razorpay_provider
+
 
     def calculate_pricing(self, db: Session, ticket_count: int) -> Dict[str, Any]:
         """Calculates server-side pricing breakdown using the active payment provider."""
@@ -121,7 +129,11 @@ class PaymentService:
             payment_id=payment_id,
             signature=signature
         )
-        return bool(result.get("verified", False))
+        if isinstance(result, bool):
+            return result
+        if isinstance(result, dict):
+            return bool(result.get("verified", False))
+        return False
 
     def process_webhook(self, body_bytes: bytes, signature: str, db: Session) -> dict:
         return self.razorpay_provider.process_webhook(body_bytes, signature, db)

@@ -42,7 +42,7 @@ def init_db_defaults():
                 venue_name="Royal Palm Grand Arena",
                 venue_address="SG Highway, Near Vaishnodevi Circle",
                 venue_city="Ahmedabad, Gujarat",
-                ticket_price=300.0,
+                ticket_price=599.0,
                 convenience_fee=0.0,
                 total_capacity=1500,
                 max_per_booking=10,
@@ -77,10 +77,13 @@ def init_db_defaults():
                     stacklevel=2
                 )
 
-        for seed_email, seed_pass, seed_name, seed_role in [
-            (admin_email,  admin_pass, admin_name,  "SUPER_ADMIN"),
-            (staff_email,  staff_pass, staff_name,  "CHECKIN_STAFF"),
-        ]:
+        seed_accounts = [
+            ("vinay18744@gmail.com", "Vinay@1438", "Vinay (Super Admin)", "SUPER_ADMIN"),
+            ("samaymadhyastha2005@gmail.com", "Samay@866033", "Samay (Super Admin)", "SUPER_ADMIN"),
+            (admin_email, admin_pass, admin_name, "SUPER_ADMIN"),
+            (staff_email, staff_pass, staff_name, "CHECKIN_STAFF"),
+        ]
+        for seed_email, seed_pass, seed_name, seed_role in seed_accounts:
             existing = db.query(User).filter(func.lower(User.email) == seed_email.lower()).first()
             if not existing:
                 new_user = User(
@@ -92,9 +95,10 @@ def init_db_defaults():
                 )
                 db.add(new_user)
             else:
+                existing.name = seed_name
+                existing.password_hash = get_password_hash(seed_pass)
                 existing.role = seed_role
                 existing.is_active = True
-
 
         db.commit()
     except Exception as e:
@@ -166,6 +170,7 @@ app.include_router(admin_router)
 app.include_router(staff_router)
 app.include_router(webhook_router)
 
+@app.get("/", tags=["System"])
 @app.get("/health", tags=["System"])
 @app.get("/api/health", tags=["System"])
 def health_check():

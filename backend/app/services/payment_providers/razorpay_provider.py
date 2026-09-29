@@ -71,7 +71,7 @@ class RazorpayPaymentProvider(BasePaymentProvider):
         # Tax-inclusive pricing breakdown
         tax_included = getattr(settings, "TAX_INCLUDED", True)
         tax_rate = float(getattr(settings, "TAX_RATE", 0.18))
-        pass_fee = getattr(settings, "PASS_GATEWAY_FEE_TO_CUSTOMER", False) or (getattr(event_setting, "convenience_fee", 0.0) > 0)
+        pass_fee = getattr(settings, "PASS_GATEWAY_FEE_TO_CUSTOMER", False)
 
         if pass_fee:
             fee_rate = float(getattr(settings, "GATEWAY_FEE_RATE", 0.02))
@@ -279,6 +279,14 @@ class RazorpayPaymentProvider(BasePaymentProvider):
                     app_logger.info(f"Webhook: Booking {booking.booking_id} already confirmed, skipping duplicate.")
                     return {"status": "already_confirmed", "booking_id": booking.booking_id}
 
+                # Verify amount in paise if present
+                if "amount" in payment_entity and payment_entity["amount"]:
+                    expected_paise = int(round(booking.amount * 100))
+                    actual_paise = int(payment_entity["amount"])
+                    if actual_paise != expected_paise:
+                        app_logger.error(f"Webhook amount mismatch for {booking.booking_id}: expected {expected_paise} paise, got {actual_paise} paise")
+                        raise HTTPException(status_code=400, detail="Payment amount mismatch in webhook.")
+
                 from app.services.booking_service import booking_service
                 confirmed_booking = booking_service.confirm_booking_and_generate_tickets(
                     booking_id=booking.booking_id,
@@ -294,6 +302,7 @@ class RazorpayPaymentProvider(BasePaymentProvider):
                     payment.payment_status = "CAPTURED"
                     payment.status = "PAID"
                     payment.razorpay_payment_id = payment_id
+                    payment.raw_response = body_bytes.decode("utf-8", errors="ignore")
                     payment.verified_at = datetime.utcnow()
                     db.commit()
 
@@ -312,6 +321,7 @@ class RazorpayPaymentProvider(BasePaymentProvider):
                     if payment:
                         payment.payment_status = "FAILED"
                         payment.status = "FAILED"
+                        payment.raw_response = body_bytes.decode("utf-8", errors="ignore")
                     db.commit()
                 app_logger.info(f"[RAZORPAY {mode}] Marked booking {booking.booking_id} as PAYMENT_FAILED via webhook")
                 return {"status": "payment_failed", "booking_id": booking.booking_id}

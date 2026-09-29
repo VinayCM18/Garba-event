@@ -23,7 +23,13 @@ import {
   FileCheck2,
   CreditCard
 } from 'lucide-react';
-import { fetchBookingDetails, resendCustomerBookingEmail } from '../services/api';
+import {
+  fetchBookingDetails,
+  resendCustomerBookingEmail,
+  retryPaymentOrder,
+  verifyPaymentSignature,
+  getDownloadUrl
+} from '../services/api';
 import { Booking } from '../types';
 import { useToast } from '../components/Toast';
 import { ManualUpiPaymentModal } from '../components/ManualUpiPaymentModal';
@@ -36,7 +42,81 @@ export const SuccessPage: React.FC = () => {
   const [copiedShare, setCopiedShare] = useState(false);
   const [retryModalOpen, setRetryModalOpen] = useState(false);
   const [emailingTicket, setEmailingTicket] = useState(false);
+  const [retryingRazorpay, setRetryingRazorpay] = useState(false);
   const { error, success, info } = useToast();
+
+  const handleRazorpayRetry = async () => {
+    if (!booking) return;
+    try {
+      setRetryingRazorpay(true);
+      const order = await retryPaymentOrder(booking.booking_id);
+
+      const launchModal = () => {
+        const options = {
+          key: order.key_id,
+          amount: Math.round(order.amount * 100),
+          currency: order.currency || 'INR',
+          name: 'GARBA NIGHT 2026',
+          description: `${order.ticket_count} Official Entry Pass${order.ticket_count > 1 ? 'es' : ''} • Taxes included`,
+          order_id: order.razorpay_order_id,
+          prefill: {
+            name: order.customer_name,
+            email: order.customer_email,
+            contact: order.customer_phone,
+          },
+          notes: {
+            booking_id: order.booking_id,
+            ticket_count: String(order.ticket_count),
+          },
+          theme: { color: '#d4af37' },
+          handler: async (response: any) => {
+            try {
+              info('Verifying', 'Verifying transaction with gateway...');
+              await verifyPaymentSignature({
+                booking_id: order.booking_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              success('Payment Confirmed!', 'Your booking is confirmed.');
+              loadBooking();
+            } catch (vErr: any) {
+              error('Verification Error', 'Verification in progress. Checking status...');
+              loadBooking();
+            } finally {
+              setRetryingRazorpay(false);
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              setRetryingRazorpay(false);
+              info('Cancelled', 'You can retry payment whenever you are ready.');
+            },
+          },
+        };
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', (failRes: any) => {
+          setRetryingRazorpay(false);
+          error('Payment Failed', failRes.error?.description || 'Payment failed or declined. Please retry.');
+          loadBooking();
+        });
+        rzp.open();
+      };
+
+      if (!window.Razorpay) {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        script.onload = launchModal;
+        document.body.appendChild(script);
+      } else {
+        launchModal();
+      }
+    } catch (err: any) {
+      setRetryingRazorpay(false);
+      error('Retry Error', err.response?.data?.detail || 'Could not launch payment gateway.');
+    }
+  };
 
   const handleEmailTicket = async () => {
     if (!booking) return;
@@ -75,24 +155,36 @@ export const SuccessPage: React.FC = () => {
     loadBooking();
   }, [bookingId]);
 
-  // Real-time polling when booking is under manual verification
+  // Real-time polling when booking is under verification or processing
   useEffect(() => {
     if (!booking) return;
     const isPending =
       booking.booking_status === 'PAYMENT_VERIFICATION_PENDING' ||
-      booking.payment_status === 'VERIFICATION_PENDING';
+      booking.payment_status === 'VERIFICATION_PENDING' ||
+      booking.booking_status === 'PAYMENT_PROCESSING' ||
+      booking.booking_status === 'PAYMENT_PENDING' ||
+      booking.payment_status === 'PENDING' ||
+      booking.payment_status === 'CREATED';
 
-    if (isPending) {
+    const isDone =
+      booking.booking_status === 'CONFIRMED' &&
+      (booking.payment_status === 'PAID' || booking.payment_status === 'CAPTURED');
+
+    if (isPending && !isDone) {
       const interval = setInterval(() => {
         loadBooking(true);
-      }, 7000);
+      }, 3500);
       return () => clearInterval(interval);
     }
   }, [booking?.booking_status, booking?.payment_status]);
 
   // Celebration confetti only when CONFIRMED
   useEffect(() => {
-    if (booking && booking.booking_status === 'CONFIRMED' && booking.payment_status === 'PAID') {
+    if (
+      booking &&
+      booking.booking_status === 'CONFIRMED' &&
+      (booking.payment_status === 'PAID' || booking.payment_status === 'CAPTURED')
+    ) {
       try {
         confetti({
           particleCount: 80,
@@ -139,20 +231,36 @@ export const SuccessPage: React.FC = () => {
     );
   }
 
-  const isPendingVerification =
-    booking.booking_status === 'PAYMENT_VERIFICATION_PENDING' ||
-    booking.payment_status === 'VERIFICATION_PENDING';
+  const isRazorpay = booking.payment_method === 'RAZORPAY';
 
-  const isPaymentPending =
-    booking.booking_status === 'PAYMENT_PENDING' ||
-    (booking.payment_status === 'PENDING' && !booking.utr_number);
+  const isConfirmed =
+    booking.booking_status === 'CONFIRMED' &&
+    (booking.payment_status === 'PAID' || booking.payment_status === 'CAPTURED');
 
   const isPaymentFailedOrRejected =
     booking.payment_status === 'REJECTED' ||
+    booking.payment_status === 'FAILED' ||
     booking.booking_status === 'PAYMENT_FAILED';
 
-  const isConfirmed =
-    booking.booking_status === 'CONFIRMED' && booking.payment_status === 'PAID';
+  const isPendingVerification =
+    !isRazorpay &&
+    !isConfirmed &&
+    !isPaymentFailedOrRejected &&
+    (booking.booking_status === 'PAYMENT_VERIFICATION_PENDING' ||
+      booking.payment_status === 'VERIFICATION_PENDING');
+
+  const isRazorpayProcessing =
+    isRazorpay &&
+    !isConfirmed &&
+    !isPaymentFailedOrRejected;
+
+  const isPaymentPending =
+    !isRazorpay &&
+    !isConfirmed &&
+    !isPendingVerification &&
+    !isPaymentFailedOrRejected &&
+    (booking.booking_status === 'PAYMENT_PENDING' ||
+      (booking.payment_status === 'PENDING' && !booking.utr_number));
 
   const isGroupOffer = Boolean(
     (booking.group_discount && booking.group_discount > 0) ||
@@ -180,7 +288,111 @@ export const SuccessPage: React.FC = () => {
       />
 
       {/* ========================================================================= */}
-      {/* STATE 1: PAYMENT SUBMITTED / VERIFICATION PENDING (Section 15)            */}
+      {/* STATE 1A: RAZORPAY PAYMENT PROCESSING / VERIFYING (Section 20)            */}
+      {/* ========================================================================= */}
+      {isRazorpayProcessing && (
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-8"
+        >
+          {/* Status Header */}
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-amber-500/10 relative">
+              <Clock className="w-8 h-8 animate-spin" style={{ animationDuration: '3s' }} />
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 animate-ping opacity-75" />
+            </div>
+
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-black uppercase tracking-wider mb-3">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span>Payment Status: VERIFYING PAYMENT</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-5xl font-black text-white font-['Cinzel'] tracking-wide">
+              PAYMENT PROCESSING
+            </h1>
+            <p className="mt-3 text-base text-[#f3e4b2] max-w-xl mx-auto font-medium leading-relaxed">
+              We are waiting for payment verification from Razorpay. This page updates in real-time.
+            </p>
+          </div>
+
+          {/* Details Card */}
+          <div className="glass-panel-gold rounded-3xl p-6 sm:p-8 border border-[#d4af37]/35 shadow-2xl">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center pb-6 border-b border-white/[0.08]">
+              <div>
+                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider font-['Cinzel']">
+                  BOOKING ID
+                </div>
+                <div className="text-2xl font-black text-[#f3e4b2] font-mono mt-1">
+                  {booking.booking_id}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[11px] text-slate-400 uppercase font-bold tracking-wider">
+                  Amount
+                </div>
+                <div className="text-xl font-black text-white font-mono mt-1">
+                  ₹{booking.amount.toLocaleString('en-IN')}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  {booking.ticket_count} Admission Pass{booking.ticket_count > 1 ? 'es' : ''} • Taxes included
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[11px] text-slate-400 uppercase font-bold tracking-wider">
+                  Payment Order ID
+                </div>
+                <div className="text-sm font-black text-amber-400 font-mono mt-2 break-all">
+                  {booking.razorpay_order_id || 'Generating...'}
+                </div>
+              </div>
+            </div>
+
+            {/* Real-time sync note */}
+            <div className="mt-6 p-4 rounded-2xl bg-black/40 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-300">
+              <div className="flex items-center gap-2">
+                <RefreshCw className={`w-4 h-4 text-[#d4af37] ${refreshing ? 'animate-spin' : ''}`} />
+                <span>
+                  Listening for gateway confirmation webhook. Polling real-time status...
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => loadBooking(true)}
+                  disabled={refreshing}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs flex items-center gap-1.5 transition-all"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                  <span>Refresh Now</span>
+                </button>
+                <button
+                  onClick={handleRazorpayRetry}
+                  disabled={retryingRazorpay}
+                  className="festive-button px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span>{retryingRazorpay ? 'Opening...' : 'Complete / Retry Payment'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-center gap-3">
+              <Link
+                to="/"
+                className="luxury-outline-button px-7 py-3 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+              >
+                <Home className="w-4 h-4" />
+                <span>Return to Home</span>
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* STATE 1B: PAYMENT SUBMITTED / VERIFICATION PENDING (Manual UPI)           */}
       {/* ========================================================================= */}
       {isPendingVerification && (
         <motion.div
@@ -307,7 +519,7 @@ export const SuccessPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* STATE 2: PAYMENT REJECTED / FAILED                                       */}
+      {/* STATE 2: PAYMENT REJECTED / FAILED (Section 19 & 20)                       */}
       {/* ========================================================================= */}
       {isPaymentFailedOrRejected && (
         <motion.div
@@ -319,24 +531,18 @@ export const SuccessPage: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-rose-500/10">
               <XCircle className="w-9 h-9" />
             </div>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-black uppercase tracking-wider mb-3">
+              <span>Status: PAYMENT FAILED</span>
+            </div>
             <h1 className="text-3xl sm:text-5xl font-black text-white font-['Outfit'] uppercase">
-              Payment Rejected
+              ✕ PAYMENT FAILED
             </h1>
             <p className="mt-2 text-base text-rose-300 font-medium">
-              We could not verify the submitted payment transaction.
+              {booking.rejection_reason || 'We could not complete the payment transaction.'}
             </p>
           </div>
 
           <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-rose-500/30 shadow-2xl">
-            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 mb-6">
-              <div className="text-xs font-bold uppercase tracking-wider text-rose-400 mb-1">
-                Reason for Rejection:
-              </div>
-              <div className="text-sm font-semibold text-white">
-                {booking.rejection_reason || 'UTR / Transaction Reference was not found in our bank records.'}
-              </div>
-            </div>
-
             <div className="grid grid-cols-2 gap-4 text-center pb-6 border-b border-white/[0.08]">
               <div>
                 <div className="text-[11px] text-slate-400 uppercase font-bold">Booking ID</div>
@@ -349,12 +555,23 @@ export const SuccessPage: React.FC = () => {
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-              <button
-                onClick={() => setRetryModalOpen(true)}
-                className="festive-button px-7 py-3.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#d4af37]/25"
-              >
-                <span>RETRY PAYMENT SUBMISSION</span>
-              </button>
+              {isRazorpay ? (
+                <button
+                  onClick={handleRazorpayRetry}
+                  disabled={retryingRazorpay}
+                  className="festive-button px-8 py-3.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#d4af37]/25"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>{retryingRazorpay ? 'LAUNCHING RAZORPAY...' : 'TRY PAYMENT AGAIN'}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setRetryModalOpen(true)}
+                  className="festive-button px-7 py-3.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#d4af37]/25"
+                >
+                  <span>RETRY PAYMENT SUBMISSION</span>
+                </button>
+              )}
 
               <Link
                 to="/"
@@ -421,6 +638,9 @@ export const SuccessPage: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-500/20 text-2xl font-black">
               ✓
             </div>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black uppercase tracking-wider mb-3">
+              ✓ PAYMENT SUCCESSFUL
+            </div>
             <h1 className="text-3xl sm:text-5xl font-black text-white font-['Cinzel'] tracking-wide">
               BOOKING CONFIRMED
             </h1>
@@ -475,7 +695,7 @@ export const SuccessPage: React.FC = () => {
 
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <a
-                  href={`/api/bookings/${booking.booking_id}/pdf`}
+                  href={getDownloadUrl(`/api/bookings/${booking.booking_id}/pdf`)}
                   download
                   className="festive-button px-7 py-3 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#d4af37]/20"
                 >
@@ -547,7 +767,7 @@ export const SuccessPage: React.FC = () => {
               </a>
 
               <a
-                href={`/api/bookings/${booking.booking_id}/pdf`}
+                href={getDownloadUrl(`/api/bookings/${booking.booking_id}/pdf`)}
                 download
                 className="luxury-outline-button px-6 py-3.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 touch-target cursor-pointer"
               >

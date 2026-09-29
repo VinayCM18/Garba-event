@@ -49,10 +49,11 @@ class ManualUPIPaymentProvider(BasePaymentProvider):
             offer_name = None
             free_tickets = 0
 
-        # For UPI Manual payments, there is no payment gateway surcharge (0% fee, 0 GST)
-        payment_fee = 0.0
-        gst_amount = 0.0
-        total_amount = ticket_subtotal
+        # Tax-inclusive pricing breakdown (18% GST)
+        tax_rate = 0.18
+        tax_amount = round(ticket_subtotal - (ticket_subtotal / (1.0 + tax_rate)), 2)
+        base_amount = round(ticket_subtotal - tax_amount, 2)
+        tax_label = "Taxes included"
 
         return {
             "ticket_price": ticket_price,
@@ -62,6 +63,11 @@ class ManualUPIPaymentProvider(BasePaymentProvider):
             "ticket_subtotal": ticket_subtotal,
             "payment_fee": payment_fee,
             "gst_amount": gst_amount,
+            "tax_amount": tax_amount,
+            "base_amount": base_amount,
+            "tax_rate": tax_rate,
+            "tax_included": True,
+            "tax_label": tax_label,
             "total_amount": total_amount,
             "currency": "INR",
             "is_group_offer": is_group_offer,

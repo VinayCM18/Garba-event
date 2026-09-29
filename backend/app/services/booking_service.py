@@ -105,7 +105,7 @@ class BookingService:
                 existing_payment = db.query(Payment).filter(Payment.booking_id == existing_booking.id).first()
                 upi_id = getattr(event_setting, "upi_id", None) or settings.UPI_ID
                 upi_instructions = getattr(event_setting, "upi_payment_instructions", None) or settings.UPI_PAYMENT_INSTRUCTIONS
-                key_id, _, _, is_mock = payment_service._get_credentials(db)
+                key_id, _, _, mode = payment_service._get_credentials(db)
 
                 return existing_booking, {
                     "payment_method": existing_booking.payment_method or provider.provider_code,
@@ -126,8 +126,8 @@ class BookingService:
                     "upi_qr_image_url": "/api/payments/qr-image",
                     "upi_payment_instructions": upi_instructions,
                     "razorpay_order_id": existing_booking.razorpay_order_id,
-                    "key_id": key_id if not is_mock else "rzp_test_simulation",
-                    "is_simulation": is_mock
+                    "key_id": key_id,
+                    "is_simulation": False
                 }
 
         booking_id = cls.generate_booking_id(db)
@@ -197,10 +197,12 @@ class BookingService:
             raise HTTPException(status_code=404, detail="Booking not found.")
 
         # Idempotent: If already confirmed, return directly
-        if booking.booking_status == "CONFIRMED" and booking.payment_status == "PAID":
+        if booking.booking_status == "CONFIRMED" and booking.payment_status in ["PAID", "CAPTURED"]:
             return booking
 
         now = datetime.utcnow()
+        is_razorpay = (payment_method == "RAZORPAY" or booking.payment_method == "RAZORPAY")
+        resolved_payment_status = "CAPTURED" if is_razorpay else "PAID"
 
         # Update Payment record
         payment = db.query(Payment).filter(Payment.booking_id == booking.id).first()
@@ -209,24 +211,24 @@ class BookingService:
                 payment.razorpay_payment_id = razorpay_payment_id
             if razorpay_signature:
                 payment.razorpay_signature = razorpay_signature
-            payment.payment_status = "PAID"
+            payment.payment_status = resolved_payment_status
             payment.status = "PAID"
-            payment.payment_method = payment_method or payment.payment_method or "UPI_MANUAL"
+            payment.payment_method = payment_method or payment.payment_method or "RAZORPAY"
             if verified_by:
                 payment.verified_by = verified_by
-                payment.verified_at = now
+            payment.verified_at = now
             payment.updated_at = now
 
         if razorpay_payment_id:
             booking.razorpay_payment_id = razorpay_payment_id
         if razorpay_signature:
             booking.razorpay_signature = razorpay_signature
-        booking.payment_method = payment_method or booking.payment_method or "UPI_MANUAL"
+        booking.payment_method = payment_method or booking.payment_method or ("RAZORPAY" if is_razorpay else "UPI_MANUAL")
         booking.payment_status = "PAID"
         booking.booking_status = "CONFIRMED"
         if verified_by:
             booking.verified_by = verified_by
-            booking.verified_at = now
+        booking.verified_at = now
         booking.updated_at = now
 
         # Generate individual tickets if not yet created
@@ -271,11 +273,19 @@ class BookingService:
         db.commit()
         db.refresh(booking)
 
-        # 1. Send customer ticket confirmation email safely
-        email_service.send_confirmation_email(booking.booking_id, db)
+        # 1. Send customer ticket confirmation email safely (idempotent: avoid re-sending)
+        if booking.email_status != "SENT":
+            try:
+                email_service.send_confirmation_email(booking.booking_id, db)
+            except Exception as e:
+                app_logger.error(f"Error dispatching confirmation email: {e}")
 
-        # 2. Send instant notification message & email to event owner/organizer
-        email_service.send_owner_notification(booking.booking_id, db)
+        # 2. Send instant notification message & email to event owner/organizer (idempotent)
+        if not booking.owner_notified:
+            try:
+                email_service.send_owner_notification(booking.booking_id, db)
+            except Exception as e:
+                app_logger.error(f"Error dispatching owner notification: {e}")
 
         return booking
 

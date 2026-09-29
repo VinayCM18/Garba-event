@@ -149,7 +149,7 @@ def resend_booking_email(booking_id: str, db: Session = Depends(get_db)):
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found.")
 
-    if booking.booking_status != "CONFIRMED" or booking.payment_status != "PAID":
+    if booking.booking_status != "CONFIRMED" or booking.payment_status not in ["PAID", "CAPTURED"]:
         raise HTTPException(status_code=400, detail="Cannot send tickets for unconfirmed booking.")
 
     from app.services.email_service import EmailService

@@ -215,8 +215,33 @@ def get_upi_qr_image(db: Session = Depends(get_db)):
 @router.post("/verify", response_model=VerifyPaymentResponse)
 def verify_payment(payload: VerifyPaymentRequest, db: Session = Depends(get_db)):
     """Verifies Razorpay payment signature and confirms booking."""
+    from app.models.booking import Booking
+    booking = db.query(Booking).filter(Booking.booking_id == payload.booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+
+    # Idempotency check: If already confirmed, return success directly
+    if booking.booking_status == "CONFIRMED" and booking.payment_status in ["PAID", "CAPTURED"]:
+        return VerifyPaymentResponse(
+            success=True,
+            message="Payment already verified and confirmed. Tickets issued!",
+            booking_id=booking.booking_id,
+            payment_status=booking.payment_status,
+            booking_status=booking.booking_status
+        )
+
+    # Validate Order ID
+    expected_order_id = booking.razorpay_order_id or ""
+    incoming_order_id = payload.razorpay_order_id or expected_order_id
+
+    if expected_order_id and incoming_order_id != expected_order_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Payment verification failed: Razorpay order ID mismatch."
+        )
+
     is_valid = payment_service.verify_payment(
-        order_id=payload.razorpay_order_id or "",
+        order_id=incoming_order_id,
         payment_id=payload.razorpay_payment_id or "",
         signature=payload.razorpay_signature or "",
         db=db
@@ -229,7 +254,7 @@ def verify_payment(payload: VerifyPaymentRequest, db: Session = Depends(get_db))
         )
 
     # Confirm booking atomically and generate tickets
-    booking = booking_service.confirm_booking_and_generate_tickets(
+    confirmed_booking = booking_service.confirm_booking_and_generate_tickets(
         booking_id=payload.booking_id,
         razorpay_payment_id=payload.razorpay_payment_id,
         razorpay_signature=payload.razorpay_signature,
@@ -240,21 +265,22 @@ def verify_payment(payload: VerifyPaymentRequest, db: Session = Depends(get_db))
     return VerifyPaymentResponse(
         success=True,
         message="Payment verified successfully. Tickets issued!",
-        booking_id=booking.booking_id,
-        payment_status=booking.payment_status,
-        booking_status=booking.booking_status
+        booking_id=confirmed_booking.booking_id,
+        payment_status=confirmed_booking.payment_status,
+        booking_status=confirmed_booking.booking_status
     )
 
 @router.post("/webhook")
 @router.post("/razorpay/webhook")
 async def razorpay_webhook(
     request: Request,
-    x_razorpay_signature: str = Header(None),
+    x_razorpay_signature: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
     """Handles incoming Razorpay asynchronous webhooks with signature verification."""
+    signature = x_razorpay_signature or request.headers.get("x-razorpay-signature")
     body_bytes = await request.body()
-    result = payment_service.process_webhook(body_bytes, x_razorpay_signature, db)
+    result = payment_service.process_webhook(body_bytes, signature, db)
     return result
 
 @router.post("/retry/{booking_id}", response_model=CreateOrderResponse)

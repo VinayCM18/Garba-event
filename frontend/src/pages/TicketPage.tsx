@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   ArrowLeft
 } from 'lucide-react';
-import { fetchTicketByToken, fetchPublicConfig } from '../services/api';
+import { fetchTicketByToken, fetchPublicConfig, getDownloadUrl } from '../services/api';
 import { Ticket, EventConfig } from '../types';
 
 export const TicketPage: React.FC = () => {
@@ -84,7 +84,7 @@ export const TicketPage: React.FC = () => {
             <span>Print</span>
           </button>
           <a
-            href={`/api/tickets/${ticket.ticket_id}/pdf`}
+            href={getDownloadUrl(`/api/tickets/${ticket.ticket_id}/pdf`)}
             download
             className="festive-button px-4 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5"
           >

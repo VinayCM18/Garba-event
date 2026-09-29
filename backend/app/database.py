@@ -108,7 +108,14 @@ def sync_database_schema():
             cols = {col["name"] for col in inspector.get_columns("payments")}
             payment_new_cols = [
                 ("payment_id", "VARCHAR(100) DEFAULT NULL"),
+                ("payment_method", "VARCHAR(50) DEFAULT 'RAZORPAY'"),
+                ("currency", "VARCHAR(10) DEFAULT 'INR'"),
                 ("payment_status", "VARCHAR(50) DEFAULT 'PENDING'"),
+                ("razorpay_order_id", "VARCHAR(100) DEFAULT NULL"),
+                ("razorpay_payment_id", "VARCHAR(100) DEFAULT NULL"),
+                ("razorpay_signature", "VARCHAR(255) DEFAULT NULL"),
+                ("idempotency_key", "VARCHAR(100) DEFAULT NULL"),
+                ("raw_response", "TEXT DEFAULT NULL"),
                 ("utr_number", "VARCHAR(100) DEFAULT NULL"),
                 ("payment_screenshot", "VARCHAR(255) DEFAULT NULL"),
                 ("verified_by", "VARCHAR(100) DEFAULT NULL"),
@@ -123,4 +130,12 @@ def sync_database_schema():
                         logger.info(f"Added column {col_name} to payments.")
                     except Exception as e:
                         logger.warning(f"Could not add column {col_name} to payments: {e}")
+
+        # Ensure event_settings matches required ₹599.00 pricing and Razorpay configuration
+        if "event_settings" in table_names:
+            try:
+                conn.execute(text("UPDATE event_settings SET ticket_price = 599.0 WHERE ticket_price = 300.0 OR ticket_price IS NULL"))
+                conn.commit()
+            except Exception as e:
+                logger.warning(f"Could not update event_settings ticket_price: {e}")
 

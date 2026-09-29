@@ -23,7 +23,8 @@ import {
   resendBookingEmail,
   resendOwnerAlert,
   cancelBooking,
-  getExportCSVUrl
+  getExportCSVUrl,
+  getDownloadUrl
 } from '../services/api';
 import { Booking } from '../types';
 import { useToast } from '../components/Toast';
@@ -229,23 +230,20 @@ export const AdminBookingsPage: React.FC = () => {
                 <th className="py-3.5 px-4">Booking ID</th>
                 <th className="py-3.5 px-4">Customer</th>
                 <th className="py-3.5 px-4">Tickets</th>
-                <th className="py-3.5 px-4">Regular Amount</th>
-                <th className="py-3.5 px-4">Discount</th>
-                <th className="py-3.5 px-4">Ticket Amount</th>
-                <th className="py-3.5 px-4">Payment Fee</th>
-                <th className="py-3.5 px-4">GST (18%)</th>
-                <th className="py-3.5 px-4">Total Paid</th>
-                <th className="py-3.5 px-4">Payment</th>
-                <th className="py-3.5 px-4">Booking</th>
+                <th className="py-3.5 px-4">Amount</th>
+                <th className="py-3.5 px-4">Razorpay Order ID</th>
                 <th className="py-3.5 px-4">Razorpay Payment ID</th>
-                <th className="py-3.5 px-4">Created At</th>
+                <th className="py-3.5 px-4">Method</th>
+                <th className="py-3.5 px-4">Status</th>
+                <th className="py-3.5 px-4">Created Time</th>
+                <th className="py-3.5 px-4">Paid Time</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-slate-300">
               {bookings.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="py-12 text-center text-slate-500">
+                  <td colSpan={11} className="py-12 text-center text-slate-500">
                     No bookings found matching your search criteria.
                   </td>
                 </tr>
@@ -255,9 +253,6 @@ export const AdminBookingsPage: React.FC = () => {
                   const discount = b.group_discount ?? 0.0;
                   const isGroup = Boolean(b.is_group_offer || discount > 0 || (b.ticket_count === 10 && discount > 0));
                   const offerName = b.offer_name || (isGroup ? 'BUY 10 PAY FOR 9' : null);
-                  const subtotal = b.ticket_subtotal ?? (regularAmount - discount);
-                  const fee = b.payment_fee ?? 0.0;
-                  const gst = b.gst_amount ?? 0.0;
                   return (
                     <tr key={b.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-3.5 px-4 font-mono font-bold text-amber-400">
@@ -286,40 +281,42 @@ export const AdminBookingsPage: React.FC = () => {
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4 font-mono text-slate-300 whitespace-nowrap">
-                        ₹{regularAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <td className="py-3.5 px-4 font-mono font-bold text-emerald-400 whitespace-nowrap">
+                        ₹{b.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
 
-                      <td className="py-3.5 px-4 font-mono whitespace-nowrap">
-                        {discount > 0 ? (
-                          <span className="text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                            -₹{discount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
+                      <td className="py-3.5 px-4 font-mono text-[11px] text-slate-300">
+                        {b.razorpay_order_id ? (
+                          <span className="text-amber-200/90 font-mono">{b.razorpay_order_id}</span>
                         ) : (
                           <span className="text-slate-600">—</span>
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4 font-mono text-white font-semibold whitespace-nowrap">
-                        ₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <td className="py-3.5 px-4 font-mono text-[11px] text-slate-400">
+                        {b.razorpay_payment_id ? (
+                          <span className="text-[#60a5fa]">{b.razorpay_payment_id}</span>
+                        ) : b.utr_number ? (
+                          <span className="text-amber-300">{b.utr_number}</span>
+                        ) : (
+                          <span className="text-slate-500 italic">Pending</span>
+                        )}
                       </td>
 
-                      <td className="py-3.5 px-4 font-mono text-slate-400 whitespace-nowrap">
-                        ₹{fee.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-
-                      <td className="py-3.5 px-4 font-mono text-slate-400 whitespace-nowrap">
-                        ₹{gst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-
-                      <td className="py-3.5 px-4 font-mono font-bold text-emerald-400 whitespace-nowrap">
-                        ₹{b.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <td className="py-3.5 px-4 font-mono text-[10px] uppercase">
+                        <span className={`px-2 py-0.5 rounded font-bold ${
+                          b.payment_method === 'RAZORPAY'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        }`}>
+                          {b.payment_method || 'RAZORPAY'}
+                        </span>
                       </td>
 
                       <td className="py-3.5 px-4">
                         <span
                           className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                            b.payment_status === 'PAID'
+                            b.payment_status === 'PAID' || b.payment_status === 'CAPTURED'
                               ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
                               : b.payment_status === 'PENDING'
                               ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
@@ -332,29 +329,7 @@ export const AdminBookingsPage: React.FC = () => {
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                            b.booking_status === 'CONFIRMED'
-                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
-                              : b.booking_status === 'PENDING'
-                              ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
-                              : 'bg-rose-500/15 text-rose-400 border border-rose-500/20'
-                          }`}
-                        >
-                          {b.booking_status}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 font-mono text-[11px] text-slate-400">
-                        {b.razorpay_payment_id ? (
-                          <span className="text-[#60a5fa]">{b.razorpay_payment_id}</span>
-                        ) : (
-                          <span className="text-slate-500 italic">Pending</span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4 text-slate-400 text-[11px]">
+                      <td className="py-3.5 px-4 text-slate-400 text-[11px] whitespace-nowrap">
                         {new Date(b.created_at).toLocaleDateString('en-IN', {
                           day: '2-digit',
                           month: 'short',
@@ -362,6 +337,22 @@ export const AdminBookingsPage: React.FC = () => {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-slate-400 text-[11px] whitespace-nowrap font-mono">
+                        {b.verified_at ? (
+                          <span className="text-emerald-300">
+                            {new Date(b.verified_at).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        ) : (
+                          <span className="text-slate-600">—</span>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
@@ -375,7 +366,7 @@ export const AdminBookingsPage: React.FC = () => {
                           </Link>
 
                           <a
-                            href={`/api/bookings/${b.booking_id}/pdf`}
+                            href={getDownloadUrl(`/api/bookings/${b.booking_id}/pdf`)}
                             download
                             className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
                             title="Download PDF"
