@@ -78,9 +78,9 @@ class Settings(BaseSettings):
 
     # Default Event Configuration
     DEFAULT_EVENT_NAME: str = "NAVRANG 2026"
-    DEFAULT_EVENT_DATE: str = "October 16, 2026"
-    DEFAULT_EVENT_TIME: str = "07:00 PM - 02:00 AM IST"
-    DEFAULT_EVENT_VENUE: str = "Serenity Groove"
+    DEFAULT_EVENT_DATE: str = "October 17, 2026"
+    DEFAULT_EVENT_TIME: str = "07:00 PM - 10:00 PM"
+    DEFAULT_EVENT_VENUE: str = "Green Acres, Mysuru"
     DEFAULT_TICKET_PRICE: float = 599.00
     DEFAULT_CONVENIENCE_FEE: float = 0.00
     DEFAULT_TOTAL_CAPACITY: int = 1500

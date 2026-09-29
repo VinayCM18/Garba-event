@@ -12,7 +12,7 @@ export const RulesPage: React.FC = () => {
 
       <div>
         <h1 className="text-3xl sm:text-4xl font-black text-white font-['Outfit']">Venue Rules & Guidelines</h1>
-        <p className="text-xs text-slate-400 mt-1">The Serenity Grove, Mysuru</p>
+        <p className="text-xs text-slate-400 mt-1">Green Acres, Mysuru</p>
       </div>
 
       <div className="glass-panel rounded-3xl p-6 sm:p-8 space-y-6 text-xs sm:text-sm leading-relaxed border border-white/10">

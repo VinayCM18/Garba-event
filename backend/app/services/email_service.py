@@ -396,7 +396,7 @@ class EmailService:
                 NEW TICKET BOOKING CONFIRMED
               </h2>
               <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                {event_setting.event_name} • The Serenity Grove, Mysuru
+                {event_setting.event_name} • {event_setting.venue_name}, {event_setting.venue_city}
               </p>
             </td>
           </tr>
@@ -550,7 +550,7 @@ class EmailService:
                 <tr>
                   <td style="padding: 11px 18px; font-size: 13px; color: #94a3b8;">Venue & Schedule:</td>
                   <td style="padding: 11px 18px; font-size: 12px; color: #cbd5e1; text-align: right;">
-                    <strong>Entry: 05:30 PM</strong> | Event: <strong>{event_setting.event_time}</strong><br/>
+                    <strong>Gates Open: 06:30 PM</strong> | Event: <strong>{event_setting.event_time}</strong><br/>
                     {event_setting.venue_name}, {event_setting.venue_address}
                   </td>
                 </tr>
@@ -875,7 +875,7 @@ class EmailService:
         <tr><td style="color: #94a3b8; padding: 6px 0;">Amount Due:</td><td style="color: #34d399; font-weight: bold; font-size: 16px; text-align: right;">₹{int(booking.amount):,}</td></tr>
         <tr><td style="color: #94a3b8; padding: 6px 0;">Submitted UTR:</td><td style="color: #fbbf24; font-family: monospace; font-weight: bold; font-size: 14px; text-align: right;">{booking.utr_number or 'Pending'}</td></tr>
         <tr><td style="color: #94a3b8; padding: 6px 0;">Submission Time:</td><td style="color: #f3e4b2; font-weight: bold; text-align: right;">{submission_ist}</td></tr>
-        <tr><td style="color: #94a3b8; padding: 6px 0;">Venue & Timings:</td><td style="color: #cbd5e1; text-align: right;">The Serenity Grove, Mysuru • Entry: 05:30 PM</td></tr>
+        <tr><td style="color: #94a3b8; padding: 6px 0;">Venue & Timings:</td><td style="color: #cbd5e1; text-align: right;">{event_setting.venue_name}, {event_setting.venue_city} • {event_setting.event_time}</td></tr>
       </table>
     </div>
     <div style="text-align: center;">

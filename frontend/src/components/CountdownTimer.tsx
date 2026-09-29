@@ -68,7 +68,7 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
     seconds: 0,
   });
 
-  const effectiveDate = eventDate || targetDateStr || 'October 16, 2026';
+  const effectiveDate = eventDate || targetDateStr || 'October 17, 2026';
 
   useEffect(() => {
     const target = parseTargetTime(effectiveDate, eventTime);

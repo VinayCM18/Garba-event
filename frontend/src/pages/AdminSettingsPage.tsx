@@ -876,7 +876,7 @@ export const AdminSettingsPage: React.FC = () => {
                   type="text"
                   value={settings.venue_name || ''}
                   onChange={(e) => handleChange('venue_name', e.target.value)}
-                  placeholder="The Serenity Grove"
+                  placeholder="Green Acres"
                   className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
                 />
               </div>
@@ -902,7 +902,7 @@ export const AdminSettingsPage: React.FC = () => {
                   type="text"
                   value={settings.venue_address || ''}
                   onChange={(e) => handleChange('venue_address', e.target.value)}
-                  placeholder="The Serenity Grove, Mysuru"
+                  placeholder="Green Acres, Mysuru"
                   className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
                 />
               </div>

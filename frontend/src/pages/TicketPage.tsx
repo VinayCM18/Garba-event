@@ -180,15 +180,15 @@ export const TicketPage: React.FC = () => {
               <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1 font-['Cinzel']">
                 <Calendar className="w-3 h-3 text-[#d4af37]" /> Event Date
               </div>
-              <div className="font-semibold text-white mt-0.5">{config?.event_date || 'October 16, 2026'}</div>
+              <div className="font-semibold text-white mt-0.5">{config?.event_date || 'October 17, 2026'}</div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
               <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1 font-['Cinzel']">
                 <Clock className="w-3 h-3 text-[#d4af37]" /> Time & Entry
               </div>
-              <div className="font-semibold text-white mt-0.5">{config?.event_time || '06:00 PM - 10:00 PM'}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Entry starts 05:30 PM</div>
+              <div className="font-semibold text-white mt-0.5">{config?.event_time || '07:00 PM - 10:00 PM'}</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Gates open 06:30 PM</div>
             </div>
 
             <div className="col-span-2 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
@@ -196,7 +196,7 @@ export const TicketPage: React.FC = () => {
                 <MapPin className="w-3 h-3 text-[#d4af37]" /> Venue
               </div>
               <div className="font-semibold text-white mt-0.5">
-                {config?.venue_name ? `${config.venue_name}, ${config.venue_city || 'Mysuru'}` : 'The Serenity Grove, Mysuru'}
+                {config?.venue_name ? `${config.venue_name}, ${config.venue_city || 'Mysuru'}` : 'Green Acres, Mysuru'}
               </div>
             </div>
           </div>

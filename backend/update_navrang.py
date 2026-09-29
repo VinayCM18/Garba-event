@@ -29,11 +29,11 @@ def update_event_to_navrang():
 
         setting.event_name = "NAVRANG 2026"
         setting.event_tagline = "The Ultimate Navratri Cultural Gala"
-        setting.event_date = "October 16, 2026"
-        setting.event_time = "07:00 PM - Late"
-        setting.venue_name = "Serenity Groove"
-        setting.venue_address = "Serenity Groove"
-        setting.venue_city = "Ahmedabad, Gujarat"
+        setting.event_date = "October 17, 2026"
+        setting.event_time = "07:00 PM - 10:00 PM"
+        setting.venue_name = "Green Acres"
+        setting.venue_address = "Green Acres, Mysuru"
+        setting.venue_city = "Mysuru"
         setting.ticket_price = 599.0
         setting.convenience_fee = 0.0
         setting.total_capacity = 1500

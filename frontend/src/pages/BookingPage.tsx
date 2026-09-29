@@ -590,13 +590,13 @@ export const BookingPage: React.FC = () => {
                 {config?.event_name || 'GARBA NIGHT 2026'}
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
-                {config?.event_date || 'October 16, 2026'} • {config?.venue_name || 'The Serenity Grove, Mysuru'}
+                {config?.event_date || 'October 17, 2026'} • {config?.venue_name || 'Green Acres, Mysuru'}
               </div>
             </div>
 
             <div className="space-y-3 text-xs text-slate-300 pb-5 border-b border-white/20">
               <div className="flex items-center justify-between">
-                <span className="text-slate-300 font-semibold">General Tickets</span>
+                <span className="text-slate-300 font-semibold">Early Bird Pass</span>
                 <span className="font-mono text-white font-bold">{ticketCount} × ₹{ticketPrice.toLocaleString('en-IN')}</span>
               </div>
 

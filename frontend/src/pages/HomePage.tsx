@@ -52,14 +52,14 @@ export const HomePage: React.FC = () => {
   };
 
   const eventName = config?.event_name || 'GARBA NIGHT 2026';
-  const eventDate = config?.event_date || 'October 16, 2026';
-  const eventTime = config?.event_time || '06:00 PM - 10:00 PM';
-  const venueName = config?.venue_name || 'The Serenity Grove';
-  const venueAddress = config?.venue_address || 'The Serenity Grove, Mysuru';
+  const eventDate = config?.event_date || 'October 17, 2026';
+  const eventTime = config?.event_time || '07:00 PM - 10:00 PM';
+  const venueName = config?.venue_name || 'Green Acres';
+  const venueAddress = config?.venue_address || 'Green Acres, Mysuru';
   const venueCity = config?.venue_city || 'Mysuru';
   const ticketPrice = config?.ticket_price || 599;
   const remaining = config?.remaining_tickets ?? 1460;
-  const mapsUrl = 'https://maps.google.com/?q=The+Serenity+Grove+Mysuru';
+  const mapsUrl = 'https://maps.google.com/?q=Green+Acres+Mysuru';
 
   const handleToggleAmbient = () => {
     const nextState = toggleAmbientSound();
@@ -132,20 +132,20 @@ export const HomePage: React.FC = () => {
       a: 'To honor the rich cultural elegance of GARBA NIGHT 2026, traditional Indian festive attire is strictly encouraged. Women are requested to wear Chaniya Choli, and men in Kurta Pajama or Kediyu. Western casuals (jeans, t-shirts) are restricted.'
     },
     {
-      q: 'Will physical tickets be sold at The Serenity Grove gates?',
+      q: 'Will physical tickets be sold at Green Acres gates?',
       a: 'No, all passes must be secured in advance online to maintain strict venue safety and capacity regulations. Admission is permitted exclusively upon scanning an authentic encrypted digital QR pass.'
     },
     {
       q: 'What is included in the ₹599 Early Bird Pass?',
-      a: 'The ₹599 Early Bird Pass grants complete admission to the live concert arena, dance floor, 360° video booth experiences, food pavilion access, and complimentary parking at The Serenity Grove, Mysuru.'
+      a: 'The ₹599 Early Bird Pass grants complete admission to the live concert arena, dance floor, 360° video booth experiences, food pavilion access, and complimentary parking at Green Acres, Mysuru.'
     },
     {
       q: 'Can I purchase multiple passes in a single booking?',
       a: 'Yes, you may reserve up to 10 passes in a single transaction. Each attendee receives a uniquely hashed cryptographically signed QR code pass for seamless turnstile entry.'
     },
     {
-      q: 'How do I locate The Serenity Grove on the event day?',
-      a: 'The Serenity Grove is easily accessible with expansive access roads and dedicated parking in Mysuru. You can tap the "Open in Google Maps" link on this page or search for The Serenity Grove, Mysuru.'
+      q: 'How do I locate Green Acres on the event day?',
+      a: 'Green Acres is easily accessible with expansive access roads and dedicated parking in Mysuru. You can tap the "Open in Google Maps" link on this page or search for Green Acres, Mysuru.'
     },
     {
       q: 'What is the cancellation and refund policy?',
@@ -650,9 +650,9 @@ export const HomePage: React.FC = () => {
               <div className="w-14 h-14 mx-auto rounded-full bg-[#d4af37]/10 flex items-center justify-center text-[#d4af37]">
                 <MapPin className="w-7 h-7" />
               </div>
-              <div className="font-bold text-white text-base">The Serenity Grove Location Pin</div>
+              <div className="font-bold text-white text-base">Green Acres Location Pin</div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Located at The Serenity Grove, Mysuru. Easily navigable with broad access roads, drop-off bays, and dedicated parking for 1,500+ vehicles.
+                Located at Green Acres, Mysuru. Easily navigable with broad access roads, drop-off bays, and dedicated parking for 1,500+ vehicles.
               </p>
               <a
                 href={mapsUrl}
@@ -676,7 +676,7 @@ export const HomePage: React.FC = () => {
             Knowledge Base
           </div>
           <h2 className="text-3xl font-extrabold text-white font-['Outfit']">Frequently Asked Questions</h2>
-          <p className="mt-2 text-sm text-slate-400">Everything you need to know about booking and admission at The Serenity Grove, Mysuru</p>
+          <p className="mt-2 text-sm text-slate-400">Everything you need to know about booking and admission at Green Acres, Mysuru</p>
         </div>
 
         <div className="space-y-3.5">
