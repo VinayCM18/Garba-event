@@ -47,10 +47,22 @@ def init_db_defaults():
                 total_capacity=1500,
                 max_per_booking=10,
                 booking_open=True,
+                payment_method="RAZORPAY",
                 contact_email="support@garbanight.in",
                 contact_phone="+91 98765 43210"
             )
             db.add(setting)
+        else:
+            env_raw = (
+                os.environ.get("PAYMENT_PROVIDER")
+                or os.environ.get("PAYMENT_METHOD")
+                or getattr(settings, "PAYMENT_PROVIDER", None)
+                or getattr(settings, "PAYMENT_METHOD", None)
+                or ""
+            )
+            env_norm = env_raw.strip().upper() if isinstance(env_raw, str) else ""
+            if env_norm in ("RAZORPAY", "RZP") or (not env_norm and setting.payment_method in (None, "", "UPI_MANUAL")):
+                setting.payment_method = "RAZORPAY"
 
         import warnings
 

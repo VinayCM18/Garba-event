@@ -1,9 +1,11 @@
+import os
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 from app.config import settings
 from app.models.event_setting import EventSetting
 from app.models.booking import Booking
 from app.models.user import User
+from app.utils.logger import app_logger
 from app.services.payment_providers.base import BasePaymentProvider
 from app.services.payment_providers.manual_upi import ManualUPIPaymentProvider
 from app.services.payment_providers.razorpay_provider import RazorpayPaymentProvider
@@ -20,22 +22,42 @@ class PaymentService:
 
     def get_provider(self, db: Session) -> BasePaymentProvider:
         """
-        Resolves the active payment provider based on environment variables or dynamic EventSetting in DB.
-        Defaults to Razorpay.
+        Deterministically resolves the active payment provider.
+        Priority:
+        1. Environment variables PAYMENT_PROVIDER or PAYMENT_METHOD (checked directly in os.environ and settings).
+           - "RAZORPAY" / "RZP" -> RazorpayPaymentProvider
+           - "UPI_MANUAL" / "MANUAL_UPI" / "UPI" -> ManualUPIPaymentProvider
+        2. Database EventSetting.payment_method ONLY when environment variables are intentionally unset/empty.
+        3. Defaults to RazorpayPaymentProvider.
         """
-        env_provider = (getattr(settings, "PAYMENT_PROVIDER", None) or getattr(settings, "PAYMENT_METHOD", None) or "").strip().upper()
-        if env_provider == "RAZORPAY":
-            return self.razorpay_provider
-        elif env_provider == "UPI_MANUAL":
-            return self.manual_upi_provider
+        # Step 1: Check environment variables first (case-insensitive & whitespace trimmed)
+        env_raw = (
+            os.environ.get("PAYMENT_PROVIDER")
+            or os.environ.get("PAYMENT_METHOD")
+            or getattr(settings, "PAYMENT_PROVIDER", None)
+            or getattr(settings, "PAYMENT_METHOD", None)
+            or ""
+        )
+        if isinstance(env_raw, str):
+            env_val = env_raw.strip().upper()
+            if env_val in ("RAZORPAY", "RZP"):
+                return self.razorpay_provider
+            elif env_val in ("UPI_MANUAL", "MANUAL_UPI", "UPI"):
+                return self.manual_upi_provider
 
-        setting = db.query(EventSetting).first()
-        configured_method = (
-            getattr(setting, "payment_method", None) or "RAZORPAY"
-        ).strip().upper()
+        # Step 2: Fallback to database setting ONLY when environment is intentionally unset/empty
+        try:
+            setting = db.query(EventSetting).first() if db else None
+            if setting and getattr(setting, "payment_method", None):
+                db_method = str(setting.payment_method).strip().upper()
+                if db_method in ("UPI_MANUAL", "MANUAL_UPI", "UPI"):
+                    return self.manual_upi_provider
+                elif db_method in ("RAZORPAY", "RZP"):
+                    return self.razorpay_provider
+        except Exception as e:
+            app_logger.warning(f"Could not read payment_method from EventSetting: {e}")
 
-        if configured_method == "UPI_MANUAL":
-            return self.manual_upi_provider
+        # Step 3: Default to Razorpay
         return self.razorpay_provider
 
     def get_provider_by_code(self, provider_code: str) -> BasePaymentProvider:

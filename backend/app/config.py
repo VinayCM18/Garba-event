@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     QR_SECRET_SALT: str = ""
 
     # Payment Provider Settings (Pluggable: "RAZORPAY" or "UPI_MANUAL")
-    PAYMENT_METHOD: str = "RAZORPAY"
-    PAYMENT_PROVIDER: str = "RAZORPAY"
+    PAYMENT_METHOD: Optional[str] = None
+    PAYMENT_PROVIDER: Optional[str] = None
     UPI_ID: str = ""
     UPI_QR_IMAGE: str = "uploads/qr/upi_qr.jpg"
     UPI_PAYMENT_INSTRUCTIONS: str = (

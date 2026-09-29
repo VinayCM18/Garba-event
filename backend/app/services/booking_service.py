@@ -107,8 +107,11 @@ class BookingService:
                 upi_instructions = getattr(event_setting, "upi_payment_instructions", None) or settings.UPI_PAYMENT_INSTRUCTIONS
                 key_id, _, _, mode = payment_service._get_credentials(db)
 
+                method = existing_booking.payment_method or provider.provider_code
+                is_razorpay = (method == "RAZORPAY")
+
                 return existing_booking, {
-                    "payment_method": existing_booking.payment_method or provider.provider_code,
+                    "payment_method": method,
                     "payment_id": existing_payment.payment_id if existing_payment else f"PAY-{existing_booking.booking_id}",
                     "booking_id": existing_booking.booking_id,
                     "ticket_price": existing_booking.ticket_price,
@@ -122,11 +125,11 @@ class BookingService:
                     "currency": existing_booking.currency,
                     "is_group_offer": (existing_booking.group_discount or 0) > 0,
                     "offer_name": "BUY 10, PAY FOR 9" if (existing_booking.group_discount or 0) > 0 else None,
-                    "upi_id": upi_id,
-                    "upi_qr_image_url": "/api/payments/qr-image",
-                    "upi_payment_instructions": upi_instructions,
-                    "razorpay_order_id": existing_booking.razorpay_order_id,
-                    "key_id": key_id,
+                    "upi_id": None if is_razorpay else upi_id,
+                    "upi_qr_image_url": None if is_razorpay else "/api/payments/qr-image",
+                    "upi_payment_instructions": None if is_razorpay else upi_instructions,
+                    "razorpay_order_id": (existing_payment.razorpay_order_id if existing_payment and existing_payment.razorpay_order_id else existing_booking.razorpay_order_id) if is_razorpay else None,
+                    "key_id": key_id if is_razorpay else None,
                     "is_simulation": False
                 }
 

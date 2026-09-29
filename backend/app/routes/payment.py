@@ -71,8 +71,12 @@ def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_
         idempotency_key=payload.idempotency_key
     )
 
+    active_method = order_info.get("payment_method", getattr(booking, "payment_method", "RAZORPAY"))
+    is_razorpay = (active_method or "").strip().upper() in ("RAZORPAY", "RZP")
+    razorpay_mode = (os.environ.get("RAZORPAY_MODE") or getattr(settings, "RAZORPAY_MODE", "TEST")).strip().upper()
+
     return CreateOrderResponse(
-        payment_method=order_info.get("payment_method", getattr(booking, "payment_method", "RAZORPAY")),
+        payment_method="RAZORPAY" if is_razorpay else "UPI_MANUAL",
         payment_id=order_info.get("payment_id", f"PAY-{booking.booking_id}"),
         booking_id=booking.booking_id,
         amount=order_info.get("amount", booking.amount),
@@ -95,14 +99,14 @@ def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_
         is_group_offer=order_info.get("is_group_offer", (getattr(booking, "group_discount", 0.0) or 0) > 0),
         offer_name=order_info.get("offer_name", "BUY 10, PAY FOR 9" if (getattr(booking, "group_discount", 0.0) or 0) > 0 else None),
         free_tickets=order_info.get("free_tickets", 1 if (getattr(booking, "group_discount", 0.0) or 0) > 0 else 0),
-        # UPI Manual details
-        upi_id=order_info.get("upi_id"),
-        upi_qr_image_url=order_info.get("upi_qr_image_url", "/api/payments/qr-image"),
-        upi_payment_instructions=order_info.get("upi_payment_instructions"),
+        # UPI Manual details (strictly suppressed for Razorpay orders)
+        upi_id=None if is_razorpay else order_info.get("upi_id"),
+        upi_qr_image_url=None if is_razorpay else order_info.get("upi_qr_image_url", "/api/payments/qr-image"),
+        upi_payment_instructions=None if is_razorpay else order_info.get("upi_payment_instructions"),
         # Razorpay details
         razorpay_order_id=order_info.get("razorpay_order_id"),
         key_id=order_info.get("key_id"),
-        razorpay_mode=settings.RAZORPAY_MODE,
+        razorpay_mode=razorpay_mode,
         is_simulation=order_info.get("is_simulation", False)
     )
 

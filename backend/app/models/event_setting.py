@@ -45,7 +45,7 @@ class EventSetting(Base):
     razorpay_webhook_secret = Column(String(255), nullable=True)
 
     # Dynamic Payment Provider / Manual UPI Settings (Editable via Admin Settings)
-    payment_method = Column(String(50), default="UPI_MANUAL", nullable=False) # UPI_MANUAL or RAZORPAY
+    payment_method = Column(String(50), default="RAZORPAY", nullable=False) # RAZORPAY or UPI_MANUAL
     upi_id = Column(String(255), default="samaymadhyastha2005@oksbi", nullable=False)
     upi_qr_image = Column(String(255), default="uploads/qr/upi_qr.jpg", nullable=False)
     upi_payment_instructions = Column(Text, default="Scan the QR code using any UPI app (Google Pay, PhonePe, Paytm, etc.). After payment, enter your UTR / Transaction ID and upload screenshot.", nullable=False)

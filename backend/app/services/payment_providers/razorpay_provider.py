@@ -1,3 +1,4 @@
+import os
 import uuid
 import json
 from datetime import datetime
@@ -22,31 +23,59 @@ class RazorpayPaymentProvider(BasePaymentProvider):
     provider_code = "RAZORPAY"
 
     def _get_credentials(self, db: Session):
-        """Resolves Razorpay API credentials dynamically from database settings or environment."""
-        setting = db.query(EventSetting).first()
-        key_id = (getattr(setting, "razorpay_key_id", None) or "").strip() if setting else ""
-        if not key_id:
-            key_id = (settings.RAZORPAY_KEY_ID or "").strip()
+        """Resolves Razorpay API credentials prioritizing environment variables over DB settings."""
+        setting = db.query(EventSetting).first() if db else None
 
-        key_secret = (getattr(setting, "razorpay_key_secret", None) or "").strip() if setting else ""
-        if not key_secret:
-            key_secret = (settings.RAZORPAY_KEY_SECRET or "").strip()
+        key_id = (
+            os.environ.get("RAZORPAY_KEY_ID")
+            or getattr(settings, "RAZORPAY_KEY_ID", None)
+            or (getattr(setting, "razorpay_key_id", None) if setting else None)
+            or ""
+        )
+        if isinstance(key_id, str):
+            key_id = key_id.strip()
 
-        webhook_secret = (getattr(setting, "razorpay_webhook_secret", None) or "").strip() if setting else ""
-        if not webhook_secret:
-            webhook_secret = (settings.RAZORPAY_WEBHOOK_SECRET or "").strip()
+        key_secret = (
+            os.environ.get("RAZORPAY_KEY_SECRET")
+            or getattr(settings, "RAZORPAY_KEY_SECRET", None)
+            or (getattr(setting, "razorpay_key_secret", None) if setting else None)
+            or ""
+        )
+        if isinstance(key_secret, str):
+            key_secret = key_secret.strip()
 
-        mode = (getattr(settings, "RAZORPAY_MODE", "TEST") or "TEST").strip().upper()
+        webhook_secret = (
+            os.environ.get("RAZORPAY_WEBHOOK_SECRET")
+            or getattr(settings, "RAZORPAY_WEBHOOK_SECRET", None)
+            or (getattr(setting, "razorpay_webhook_secret", None) if setting else None)
+            or ""
+        )
+        if isinstance(webhook_secret, str):
+            webhook_secret = webhook_secret.strip()
+
+        mode = (
+            os.environ.get("RAZORPAY_MODE")
+            or getattr(settings, "RAZORPAY_MODE", None)
+            or "TEST"
+        )
+        if isinstance(mode, str):
+            mode = mode.strip().upper()
+
         return key_id, key_secret, webhook_secret, mode
 
     def calculate_pricing(self, db: Session, ticket_count: int) -> Dict[str, Any]:
         """
-        Calculates exact tax-inclusive ticket pricing breakdown.
-        - ₹599 base ticket price is tax-inclusive.
-        - BUY 10, PAY FOR 9 promotion: 10 tickets = ₹5,391.00 (saves ₹599.00).
-        - Gateway fees are NOT passed to the customer unless PASS_GATEWAY_FEE_TO_CUSTOMER is explicitly configured.
+        Calculates exact ticket pricing and gateway fee breakdown.
+        - ₹599 base ticket price.
+        - BUY 10, PAY FOR 9 promotion: 10 tickets = ₹5,391.00 subtotal (saves ₹599.00).
+        - Gateway fee passing: 2% processing fee + 18% GST on the processing fee.
+          Example for 1 ticket:
+            ticket_subtotal = ₹599.00
+            payment_fee (2%) = ₹11.98
+            gst_amount (18% on fee) = ₹2.16
+            total_amount = ₹613.14
         """
-        event_setting = db.query(EventSetting).first()
+        event_setting = db.query(EventSetting).first() if db else None
         ticket_price = float(event_setting.ticket_price) if event_setting and event_setting.ticket_price is not None else 599.0
         group_offer_enabled = bool(event_setting.group_offer_enabled) if event_setting and hasattr(event_setting, "group_offer_enabled") else True
         group_offer_size = int(event_setting.group_offer_size) if event_setting and hasattr(event_setting, "group_offer_size") and event_setting.group_offer_size else 10
@@ -68,31 +97,26 @@ class RazorpayPaymentProvider(BasePaymentProvider):
             offer_name = None
             free_tickets = 0
 
-        # Tax-inclusive pricing breakdown
-        tax_included = getattr(settings, "TAX_INCLUDED", True)
-        tax_rate = float(getattr(settings, "TAX_RATE", 0.18))
-        pass_fee = getattr(settings, "PASS_GATEWAY_FEE_TO_CUSTOMER", False)
+        # Razorpay Gateway Fee (2%) and GST on Gateway Fee (18%)
+        pass_fee_env = os.environ.get("PASS_GATEWAY_FEE_TO_CUSTOMER")
+        if pass_fee_env is not None:
+            pass_fee = pass_fee_env.strip().lower() in ("true", "1", "yes")
+        else:
+            pass_fee = getattr(settings, "PASS_GATEWAY_FEE_TO_CUSTOMER", True)
+            if isinstance(pass_fee, str):
+                pass_fee = pass_fee.strip().lower() in ("true", "1", "yes")
+
+        fee_rate = float(os.environ.get("GATEWAY_FEE_RATE") or getattr(settings, "GATEWAY_FEE_RATE", 0.02) or 0.02)
+        fee_gst_rate = float(os.environ.get("GATEWAY_FEE_GST_RATE") or getattr(settings, "GATEWAY_FEE_GST_RATE", 0.18) or 0.18)
 
         if pass_fee:
-            fee_rate = float(getattr(settings, "GATEWAY_FEE_RATE", 0.02))
             payment_fee = round(ticket_subtotal * fee_rate, 2)
-            gst_amount = round(payment_fee * float(getattr(settings, "GATEWAY_FEE_GST_RATE", 0.18)), 2)
+            gst_amount = round(payment_fee * fee_gst_rate, 2)
         else:
             payment_fee = 0.0
             gst_amount = 0.0
 
         total_amount = round(ticket_subtotal + payment_fee + gst_amount, 2)
-
-        if tax_included:
-            # Ticket price already includes tax: Base + Tax = ticket_subtotal
-            tax_amount = round(ticket_subtotal - (ticket_subtotal / (1.0 + tax_rate)), 2)
-            base_amount = round(ticket_subtotal - tax_amount, 2)
-            tax_label = "Taxes included"
-        else:
-            base_amount = ticket_subtotal
-            tax_amount = round(ticket_subtotal * tax_rate, 2)
-            total_amount = round(total_amount + tax_amount, 2)
-            tax_label = f"+ {int(tax_rate * 100)}% GST"
 
         return {
             "ticket_price": ticket_price,
@@ -102,11 +126,11 @@ class RazorpayPaymentProvider(BasePaymentProvider):
             "ticket_subtotal": ticket_subtotal,
             "payment_fee": payment_fee,
             "gst_amount": gst_amount,
-            "tax_amount": tax_amount,
-            "base_amount": base_amount,
-            "tax_rate": tax_rate,
-            "tax_included": tax_included,
-            "tax_label": tax_label,
+            "tax_amount": gst_amount,
+            "base_amount": ticket_subtotal,
+            "tax_rate": fee_gst_rate,
+            "tax_included": False,
+            "tax_label": "Razorpay Fee + GST",
             "total_amount": total_amount,
             "currency": "INR",
             "is_group_offer": is_group_offer,

@@ -54,6 +54,9 @@ class ManualUPIPaymentProvider(BasePaymentProvider):
         tax_amount = round(ticket_subtotal - (ticket_subtotal / (1.0 + tax_rate)), 2)
         base_amount = round(ticket_subtotal - tax_amount, 2)
         tax_label = "Taxes included"
+        payment_fee = 0.0
+        gst_amount = 0.0
+        total_amount = ticket_subtotal
 
         return {
             "ticket_price": ticket_price,

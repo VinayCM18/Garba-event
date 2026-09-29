@@ -60,7 +60,7 @@ def sync_database_schema():
                 ("group_offer_enabled", "BOOLEAN DEFAULT 1"),
                 ("group_offer_size", "INTEGER DEFAULT 10"),
                 ("group_offer_free_tickets", "INTEGER DEFAULT 1"),
-                ("payment_method", "VARCHAR(50) DEFAULT 'UPI_MANUAL'"),
+                ("payment_method", "VARCHAR(50) DEFAULT 'RAZORPAY'"),
                 ("upi_id", "VARCHAR(255) DEFAULT 'samaymadhyastha2005@oksbi'"),
                 ("upi_qr_image", "VARCHAR(255) DEFAULT 'uploads/qr/upi_qr.jpg'"),
                 ("upi_payment_instructions", "TEXT DEFAULT 'Scan the QR code using any UPI app (GPay, PhonePe, Paytm, etc.). After paying, enter your UTR / Transaction ID.'"),
@@ -138,4 +138,22 @@ def sync_database_schema():
                 conn.commit()
             except Exception as e:
                 logger.warning(f"Could not update event_settings ticket_price: {e}")
+
+            try:
+                import os
+                env_raw = (
+                    os.environ.get("PAYMENT_PROVIDER")
+                    or os.environ.get("PAYMENT_METHOD")
+                    or getattr(settings, "PAYMENT_PROVIDER", None)
+                    or getattr(settings, "PAYMENT_METHOD", None)
+                    or ""
+                )
+                env_norm = env_raw.strip().upper() if isinstance(env_raw, str) else ""
+                # If explicitly RAZORPAY or unset (default), migrate existing rows to RAZORPAY safely without affecting bookings/payments
+                if env_norm in ("RAZORPAY", "RZP", ""):
+                    conn.execute(text("UPDATE event_settings SET payment_method = 'RAZORPAY' WHERE payment_method != 'RAZORPAY' OR payment_method IS NULL"))
+                    conn.commit()
+                    logger.info("Migrated event_settings payment_method to RAZORPAY.")
+            except Exception as e:
+                logger.warning(f"Could not migrate event_settings payment_method: {e}")
 
