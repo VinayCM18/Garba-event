@@ -14,7 +14,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy backend requirements and install dependencies
 COPY backend/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir setuptools wheel && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir setuptools wheel
+RUN pip install --no-cache-dir -r requirements.txt
+RUN python -c "import razorpay; print('Razorpay SDK installed:', razorpay.__version__ if hasattr(razorpay, '__version__') else 'installed')"
 
 # Copy backend application source
 COPY backend ./backend
