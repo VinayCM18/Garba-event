@@ -14,6 +14,7 @@ import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { RefundPage } from './pages/RefundPage';
 import { RulesPage } from './pages/RulesPage';
+import { BookingStatusPage } from './pages/BookingStatusPage';
 
 // Management Authentication Page
 import { ManagementLoginPage } from './pages/ManagementLoginPage';
@@ -44,6 +45,9 @@ export const App: React.FC = () => {
             <Route path="/" element={<HomePage />} />
             <Route path="/book" element={<BookingPage />} />
             <Route path="/success/:bookingId" element={<SuccessPage />} />
+            <Route path="/booking-status" element={<BookingStatusPage />} />
+            <Route path="/booking-status/:bookingId" element={<BookingStatusPage />} />
+            <Route path="/payment-status" element={<BookingStatusPage />} />
             <Route path="/ticket/:token" element={<TicketPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />

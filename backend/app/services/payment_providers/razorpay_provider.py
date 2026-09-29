@@ -1,12 +1,14 @@
 import uuid
 import json
-try:
-    import razorpay
-except Exception:
-    razorpay = None
+from datetime import datetime
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
+
+try:
+    import razorpay
+except Exception as _rzp_err:
+    razorpay = None
 
 from app.config import settings
 from app.models.booking import Booking
@@ -34,16 +36,16 @@ class RazorpayPaymentProvider(BasePaymentProvider):
         if not webhook_secret:
             webhook_secret = (settings.RAZORPAY_WEBHOOK_SECRET or "").strip()
 
-        is_mock = (
-            not key_id
-            or "placeholder" in key_id.lower()
-            or not key_secret
-            or "placeholder" in key_secret.lower()
-        )
-        return key_id, key_secret, webhook_secret, is_mock
+        mode = (getattr(settings, "RAZORPAY_MODE", "TEST") or "TEST").strip().upper()
+        return key_id, key_secret, webhook_secret, mode
 
     def calculate_pricing(self, db: Session, ticket_count: int) -> Dict[str, Any]:
-        """Calculates ticket subtotal + 2% Razorpay processing fee + 18% GST."""
+        """
+        Calculates exact tax-inclusive ticket pricing breakdown.
+        - ₹599 base ticket price is tax-inclusive.
+        - BUY 10, PAY FOR 9 promotion: 10 tickets = ₹5,391.00 (saves ₹599.00).
+        - Gateway fees are NOT passed to the customer unless PASS_GATEWAY_FEE_TO_CUSTOMER is explicitly configured.
+        """
         event_setting = db.query(EventSetting).first()
         ticket_price = float(event_setting.ticket_price) if event_setting and event_setting.ticket_price is not None else 599.0
         group_offer_enabled = bool(event_setting.group_offer_enabled) if event_setting and hasattr(event_setting, "group_offer_enabled") else True
@@ -52,6 +54,7 @@ class RazorpayPaymentProvider(BasePaymentProvider):
 
         regular_amount = round(ticket_price * ticket_count, 2)
 
+        # Apply group promotion (e.g. 10 tickets for price of 9)
         if group_offer_enabled and ticket_count == group_offer_size:
             group_discount = round(ticket_price * group_offer_free_tickets, 2)
             ticket_subtotal = round(regular_amount - group_discount, 2)
@@ -65,11 +68,31 @@ class RazorpayPaymentProvider(BasePaymentProvider):
             offer_name = None
             free_tickets = 0
 
-        # Optional processing fee if configured, default 0 for simplicity or 2% if specified
-        fee_rate = 0.02 if getattr(event_setting, "convenience_fee", 0.0) > 0 else 0.0
-        payment_fee = round(ticket_subtotal * fee_rate, 2)
-        gst_amount = round(payment_fee * 0.18, 2)
+        # Tax-inclusive pricing breakdown
+        tax_included = getattr(settings, "TAX_INCLUDED", True)
+        tax_rate = float(getattr(settings, "TAX_RATE", 0.18))
+        pass_fee = getattr(settings, "PASS_GATEWAY_FEE_TO_CUSTOMER", False) or (getattr(event_setting, "convenience_fee", 0.0) > 0)
+
+        if pass_fee:
+            fee_rate = float(getattr(settings, "GATEWAY_FEE_RATE", 0.02))
+            payment_fee = round(ticket_subtotal * fee_rate, 2)
+            gst_amount = round(payment_fee * float(getattr(settings, "GATEWAY_FEE_GST_RATE", 0.18)), 2)
+        else:
+            payment_fee = 0.0
+            gst_amount = 0.0
+
         total_amount = round(ticket_subtotal + payment_fee + gst_amount, 2)
+
+        if tax_included:
+            # Ticket price already includes tax: Base + Tax = ticket_subtotal
+            tax_amount = round(ticket_subtotal - (ticket_subtotal / (1.0 + tax_rate)), 2)
+            base_amount = round(ticket_subtotal - tax_amount, 2)
+            tax_label = "Taxes included"
+        else:
+            base_amount = ticket_subtotal
+            tax_amount = round(ticket_subtotal * tax_rate, 2)
+            total_amount = round(total_amount + tax_amount, 2)
+            tax_label = f"+ {int(tax_rate * 100)}% GST"
 
         return {
             "ticket_price": ticket_price,
@@ -79,6 +102,11 @@ class RazorpayPaymentProvider(BasePaymentProvider):
             "ticket_subtotal": ticket_subtotal,
             "payment_fee": payment_fee,
             "gst_amount": gst_amount,
+            "tax_amount": tax_amount,
+            "base_amount": base_amount,
+            "tax_rate": tax_rate,
+            "tax_included": tax_included,
+            "tax_label": tax_label,
             "total_amount": total_amount,
             "currency": "INR",
             "is_group_offer": is_group_offer,
@@ -93,31 +121,51 @@ class RazorpayPaymentProvider(BasePaymentProvider):
         idempotency_key: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
-        """Creates an order via Razorpay API (or simulation in test mode)."""
-        key_id, key_secret, _, is_mock = self._get_credentials(db)
+        """Creates a verified order via Razorpay API in Test or Live mode."""
+        key_id, key_secret, _, mode = self._get_credentials(db)
+
+        if not key_id or not key_secret:
+            raise HTTPException(
+                status_code=500,
+                detail="Razorpay API credentials (RAZORPAY_KEY_ID & RAZORPAY_KEY_SECRET) are not configured. Please set them in your Railway environment variables or Admin Settings."
+            )
+
+        if razorpay is None:
+            raise HTTPException(
+                status_code=500,
+                detail="Razorpay package is not initialized on the server. Please ensure dependencies are properly installed."
+            )
+
+        # Amount in paise (1 INR = 100 paise)
         amount_paise = int(round(booking.amount * 100))
 
-        order_id = ""
-        if is_mock:
-            order_id = f"order_mock_{uuid.uuid4().hex[:14]}"
-            app_logger.info(f"[SIMULATED PAYMENT] Created mock order {order_id} for INR {booking.amount}")
-        else:
-            try:
-                client = razorpay.Client(auth=(key_id, key_secret))
-                order_data = {
-                    "amount": amount_paise,
-                    "currency": "INR",
-                    "receipt": booking.booking_id,
-                    "notes": {"booking_id": booking.booking_id}
+        try:
+            client = razorpay.Client(auth=(key_id, key_secret))
+            order_data = {
+                "amount": amount_paise,
+                "currency": "INR",
+                "receipt": booking.booking_id,
+                "notes": {
+                    "booking_id": booking.booking_id,
+                    "customer_name": booking.customer_name,
+                    "email": booking.email,
+                    "phone": booking.phone,
+                    "ticket_count": str(booking.ticket_count),
+                    "mode": mode,
+                    "pricing": "tax_inclusive"
                 }
-                rzp_order = client.order.create(data=order_data)
-                order_id = rzp_order["id"]
-                app_logger.info(f"[REAL RAZORPAY] Created live order {order_id} for INR {booking.amount}")
-            except Exception as e:
-                app_logger.error(f"Razorpay order creation failed: {e}")
-                raise HTTPException(status_code=502, detail=f"Failed to initialize payment gateway: {e}")
+            }
+            rzp_order = client.order.create(data=order_data)
+            order_id = rzp_order["id"]
+            app_logger.info(f"[RAZORPAY {mode}] Created real order {order_id} for booking {booking.booking_id} (INR {booking.amount})")
+        except HTTPException:
+            raise
+        except Exception as e:
+            app_logger.error(f"Razorpay order creation failed: {e}")
+            raise HTTPException(status_code=502, detail=f"Failed to initialize payment gateway: {str(e)}")
 
         # Update payment record
+        now = datetime.utcnow()
         payment = db.query(Payment).filter(Payment.booking_id == booking.id).first()
         if not payment:
             payment = Payment(
@@ -127,9 +175,11 @@ class RazorpayPaymentProvider(BasePaymentProvider):
                 payment_method="RAZORPAY",
                 amount=booking.amount,
                 currency="INR",
-                payment_status="PENDING",
+                payment_status="CREATED",
                 status="PENDING",
-                idempotency_key=idempotency_key
+                idempotency_key=idempotency_key,
+                created_at=now,
+                updated_at=now
             )
             db.add(payment)
         else:
@@ -137,14 +187,16 @@ class RazorpayPaymentProvider(BasePaymentProvider):
             payment.razorpay_order_id = order_id
             payment.payment_method = "RAZORPAY"
             payment.amount = booking.amount
-            payment.payment_status = "PENDING"
+            payment.payment_status = "CREATED"
             payment.status = "PENDING"
             payment.idempotency_key = idempotency_key
+            payment.updated_at = now
 
         booking.razorpay_order_id = order_id
         booking.payment_method = "RAZORPAY"
         booking.payment_status = "PENDING"
         booking.booking_status = "PAYMENT_PENDING"
+        booking.updated_at = now
         db.commit()
         db.refresh(booking)
 
@@ -154,37 +206,49 @@ class RazorpayPaymentProvider(BasePaymentProvider):
             "booking_id": booking.booking_id,
             "amount": booking.amount,
             "currency": "INR",
-            "key_id": key_id if not is_mock else "rzp_test_simulation",
-            "is_simulation": is_mock
+            "key_id": key_id,
+            "is_simulation": False
         }
 
-    def verify_payment(self, db: Session, **kwargs) -> Dict[str, Any]:
-        """Verifies HMAC signature of Razorpay payment."""
+    def verify_payment(self, db: Session, **kwargs) -> bool:
+        """Verifies HMAC SHA256 signature of Razorpay payment."""
         order_id = kwargs.get("order_id", "")
         payment_id = kwargs.get("payment_id", "")
         signature = kwargs.get("signature", "")
 
-        key_id, key_secret, _, is_mock = self._get_credentials(db)
+        key_id, key_secret, _, mode = self._get_credentials(db)
 
-        if is_mock or order_id.startswith("order_mock_"):
-            if signature.startswith("sim_sig_") or signature == "test_success_sig" or len(signature) >= 10:
-                app_logger.info(f"[SIMULATED PAYMENT] Verified signature for {order_id}")
-                return {"verified": True, "is_mock": True}
-            return {"verified": False, "is_mock": True}
+        if not key_secret:
+            app_logger.error("RAZORPAY_KEY_SECRET is not configured for signature verification!")
+            return False
+
+        if not order_id or not payment_id or not signature:
+            app_logger.warning("Missing order_id, payment_id, or signature in payment verification.")
+            return False
 
         is_valid = verify_razorpay_signature(order_id, payment_id, signature, key_secret=key_secret)
         if not is_valid:
-            app_logger.warning(f"Razorpay signature mismatch for order: {order_id}")
-            return {"verified": False, "is_mock": False}
-        return {"verified": True, "is_mock": False}
+            app_logger.warning(f"[RAZORPAY {mode}] Signature mismatch for order: {order_id}, payment: {payment_id}")
+            return False
+
+        app_logger.info(f"[RAZORPAY {mode}] Signature verified successfully for order: {order_id}")
+        return True
 
     def process_webhook(self, body_bytes: bytes, signature: str, db: Session) -> dict:
-        """Handles incoming Razorpay asynchronous webhooks."""
-        _, _, webhook_secret, is_mock = self._get_credentials(db)
-        if not is_mock and webhook_secret:
-            if not verify_razorpay_webhook_signature(body_bytes, signature, webhook_secret=webhook_secret):
-                app_logger.warning("Razorpay webhook signature verification failed!")
-                raise HTTPException(status_code=400, detail="Invalid webhook signature")
+        """Handles incoming Razorpay asynchronous webhooks with signature verification."""
+        _, _, webhook_secret, mode = self._get_credentials(db)
+
+        if not webhook_secret:
+            app_logger.error("RAZORPAY_WEBHOOK_SECRET is not configured.")
+            raise HTTPException(status_code=500, detail="Razorpay webhook secret not configured on server.")
+
+        if not signature:
+            app_logger.warning("Missing x-razorpay-signature header on webhook request.")
+            raise HTTPException(status_code=400, detail="Missing webhook signature header.")
+
+        if not verify_razorpay_webhook_signature(body_bytes, signature, webhook_secret=webhook_secret):
+            app_logger.warning("Razorpay webhook signature verification failed!")
+            raise HTTPException(status_code=400, detail="Invalid webhook signature.")
 
         try:
             event = json.loads(body_bytes.decode("utf-8"))
@@ -206,10 +270,13 @@ class RazorpayPaymentProvider(BasePaymentProvider):
                 booking = db.query(Booking).filter(Booking.booking_id == booking_id_hint).first()
 
             if not booking:
+                app_logger.warning(f"Webhook received for unknown booking (order: {order_id}, hint: {booking_id_hint})")
                 return {"status": "unmatched", "order_id": order_id, "event": event_type}
 
             if event_type in ["payment.captured", "order.paid"]:
-                if booking.booking_status == "CONFIRMED" and booking.payment_status == "PAID":
+                # Idempotency check: If already confirmed, don't duplicate tickets or emails
+                if booking.booking_status == "CONFIRMED" and booking.payment_status in ["PAID", "CAPTURED"]:
+                    app_logger.info(f"Webhook: Booking {booking.booking_id} already confirmed, skipping duplicate.")
                     return {"status": "already_confirmed", "booking_id": booking.booking_id}
 
                 from app.services.booking_service import booking_service
@@ -218,23 +285,41 @@ class RazorpayPaymentProvider(BasePaymentProvider):
                     razorpay_payment_id=payment_id,
                     razorpay_signature="webhook_verified",
                     db=db,
-                    payment_method=payment_entity.get("method", "razorpay_webhook")
+                    payment_method=payment_entity.get("method", "RAZORPAY")
                 )
+
+                # Update payment record explicitly to CAPTURED
+                payment = db.query(Payment).filter(Payment.booking_id == confirmed_booking.id).first()
+                if payment:
+                    payment.payment_status = "CAPTURED"
+                    payment.status = "PAID"
+                    payment.razorpay_payment_id = payment_id
+                    payment.verified_at = datetime.utcnow()
+                    db.commit()
+
+                app_logger.info(f"[RAZORPAY {mode}] Confirmed booking {confirmed_booking.booking_id} via webhook ({event_type})")
                 return {
                     "status": "confirmed",
                     "booking_id": confirmed_booking.booking_id,
-                    "payment_status": confirmed_booking.payment_status
+                    "payment_status": "CAPTURED"
                 }
 
             elif event_type in ["payment.failed"]:
-                if booking.payment_status != "PAID":
+                if booking.payment_status not in ["PAID", "CAPTURED"]:
                     booking.payment_status = "FAILED"
+                    booking.booking_status = "PAYMENT_FAILED"
+                    payment = db.query(Payment).filter(Payment.booking_id == booking.id).first()
+                    if payment:
+                        payment.payment_status = "FAILED"
+                        payment.status = "FAILED"
                     db.commit()
+                app_logger.info(f"[RAZORPAY {mode}] Marked booking {booking.booking_id} as PAYMENT_FAILED via webhook")
                 return {"status": "payment_failed", "booking_id": booking.booking_id}
 
             return {"status": "ignored", "event": event_type, "booking_id": booking.booking_id}
         except HTTPException:
             raise
         except Exception as e:
-            app_logger.error(f"Error handling webhook: {e}")
-            raise HTTPException(status_code=400, detail="Webhook payload error")
+            app_logger.error(f"Error handling Razorpay webhook: {e}")
+            raise HTTPException(status_code=400, detail="Webhook payload processing error.")
+

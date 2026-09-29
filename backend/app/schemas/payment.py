@@ -10,8 +10,13 @@ class CalculateFeeResponse(BaseModel):
     regular_amount: float = 0.0
     group_discount: float = 0.0
     ticket_subtotal: float
-    payment_fee: float
-    gst_amount: float
+    payment_fee: float = 0.0
+    gst_amount: float = 0.0
+    tax_amount: float = 0.0
+    base_amount: float = 0.0
+    tax_rate: float = 0.18
+    tax_included: bool = True
+    tax_label: str = "Taxes included"
     total_amount: float
     currency: str = "INR"
     is_group_offer: bool = False
@@ -26,7 +31,7 @@ class CreateOrderRequest(BaseModel):
     idempotency_key: Optional[str] = None
 
 class CreateOrderResponse(BaseModel):
-    payment_method: str = "UPI_MANUAL" # "UPI_MANUAL" or "RAZORPAY"
+    payment_method: str = "RAZORPAY" # "RAZORPAY" or "UPI_MANUAL"
     booking_id: str
     amount: float
     currency: str = "INR"
@@ -37,6 +42,11 @@ class CreateOrderResponse(BaseModel):
     ticket_subtotal: float
     payment_fee: float = 0.0
     gst_amount: float = 0.0
+    tax_amount: float = 0.0
+    base_amount: float = 0.0
+    tax_rate: float = 0.18
+    tax_included: bool = True
+    tax_label: str = "Taxes included"
     customer_name: str
     customer_email: str
     customer_phone: str
@@ -50,9 +60,10 @@ class CreateOrderResponse(BaseModel):
     upi_qr_image_url: Optional[str] = None
     upi_payment_instructions: Optional[str] = None
     
-    # Razorpay Fields (Optional when UPI_MANUAL)
+    # Razorpay Fields
     razorpay_order_id: Optional[str] = None
     key_id: Optional[str] = None
+    razorpay_mode: Optional[str] = "TEST"
     is_simulation: bool = False
 
 class SubmitPaymentProofResponse(BaseModel):

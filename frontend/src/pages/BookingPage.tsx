@@ -189,22 +189,23 @@ export const BookingPage: React.FC = () => {
         return;
       }
 
-      // Razorpay Flow
-      if (orderResponse.is_simulation || !window.Razorpay) {
-        setSimulatorOpen(true);
-      } else {
-        // Standard Razorpay Live/Test Modal
+      // Real Razorpay Flow
+      const launchRazorpay = () => {
         const options = {
           key: orderResponse.key_id,
           amount: Math.round(orderResponse.amount * 100),
           currency: orderResponse.currency || 'INR',
           name: config?.event_name || 'GARBA NIGHT 2026',
-          description: `${data.ticket_count} Official Entry Pass${data.ticket_count > 1 ? 'es' : ''}`,
+          description: `${data.ticket_count} Official Entry Pass${data.ticket_count > 1 ? 'es' : ''} • Taxes included`,
           order_id: orderResponse.razorpay_order_id,
           prefill: {
             name: data.customer_name,
             email: data.email,
             contact: data.phone,
+          },
+          notes: {
+            booking_id: orderResponse.booking_id,
+            ticket_count: String(data.ticket_count),
           },
           theme: {
             color: '#d4af37',
@@ -230,10 +231,24 @@ export const BookingPage: React.FC = () => {
           setSubmitting(false);
           error(
             'Payment Failed',
-            failRes.error?.description || 'Payment failed. Your booking has not been confirmed. Please retry.'
+            failRes.error?.description || 'Payment failed or was declined. Your booking has not been confirmed. Please retry.'
           );
         });
         rzp.open();
+      };
+
+      if (!window.Razorpay) {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        script.onload = () => launchRazorpay();
+        script.onerror = () => {
+          setSubmitting(false);
+          error('Gateway Error', 'Could not load Razorpay checkout SDK. Please check your internet connection.');
+        };
+        document.body.appendChild(script);
+      } else {
+        launchRazorpay();
       }
     } catch (err: any) {
       setSubmitting(false);

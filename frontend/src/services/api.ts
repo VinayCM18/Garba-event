@@ -84,6 +84,25 @@ export const fetchBookingDetails = async (bookingId: string): Promise<Booking> =
   return res.data;
 };
 
+export const lookupBookingStatus = async (bookingId: string, contact?: string): Promise<Booking> => {
+  const res = await api.get('/api/bookings/status/lookup', {
+    params: { booking_id: bookingId, contact }
+  });
+  return res.data;
+};
+
+export const retryPaymentOrder = async (bookingId: string) => {
+  const res = await api.post(`/api/payments/retry/${bookingId}`);
+  return res.data;
+};
+
+export const failPaymentOrder = async (bookingId: string, reason?: string) => {
+  const res = await api.post(`/api/payments/fail/${bookingId}`, null, {
+    params: { reason }
+  });
+  return res.data;
+};
+
 export const resendCustomerBookingEmail = async (bookingId: string): Promise<{ success: boolean; message: string }> => {
   const res = await api.post(`/api/bookings/${bookingId}/resend-email`);
   return res.data;

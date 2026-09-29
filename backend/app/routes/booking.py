@@ -160,3 +160,30 @@ def resend_booking_email(booking_id: str, db: Session = Depends(get_db)):
         "message": f"Tickets have been dispatched to {booking.email}" if dispatched else "Email queued or SMTP pending configuration."
     }
 
+@router.get("/status/lookup", response_model=BookingDetailResponse)
+def lookup_booking_status(
+    booking_id: str,
+    contact: str = None,
+    db: Session = Depends(get_db)
+):
+    """Customer lookup for booking status using Booking ID and optional Phone/Email verification."""
+    clean_id = (booking_id or "").strip().upper()
+    query = db.query(Booking).filter(func.upper(Booking.booking_id) == clean_id)
+    if contact and contact.strip():
+        c = contact.strip().lower()
+        from sqlalchemy import or_
+        query = query.filter(
+            or_(
+                func.lower(Booking.email) == c,
+                Booking.phone == c,
+                Booking.phone.like(f"%{c[-10:]}")
+            )
+        )
+
+    booking = query.first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="No booking found matching the provided Booking ID and contact detail.")
+
+    return get_booking(booking.booking_id, db)
+
+

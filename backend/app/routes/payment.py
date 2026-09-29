@@ -72,7 +72,7 @@ def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_
     )
 
     return CreateOrderResponse(
-        payment_method=order_info.get("payment_method", getattr(booking, "payment_method", "UPI_MANUAL")),
+        payment_method=order_info.get("payment_method", getattr(booking, "payment_method", "RAZORPAY")),
         payment_id=order_info.get("payment_id", f"PAY-{booking.booking_id}"),
         booking_id=booking.booking_id,
         amount=order_info.get("amount", booking.amount),
@@ -84,6 +84,11 @@ def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_
         ticket_subtotal=order_info.get("ticket_subtotal", getattr(booking, "ticket_subtotal", booking.amount)),
         payment_fee=order_info.get("payment_fee", getattr(booking, "payment_fee", 0.0)),
         gst_amount=order_info.get("gst_amount", getattr(booking, "gst_amount", 0.0)),
+        tax_amount=order_info.get("tax_amount", 0.0),
+        base_amount=order_info.get("base_amount", 0.0),
+        tax_rate=order_info.get("tax_rate", 0.18),
+        tax_included=order_info.get("tax_included", True),
+        tax_label=order_info.get("tax_label", "Taxes included"),
         customer_name=booking.customer_name,
         customer_email=booking.email,
         customer_phone=booking.phone,
@@ -97,6 +102,7 @@ def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_
         # Razorpay details
         razorpay_order_id=order_info.get("razorpay_order_id"),
         key_id=order_info.get("key_id"),
+        razorpay_mode=settings.RAZORPAY_MODE,
         is_simulation=order_info.get("is_simulation", False)
     )
 
@@ -240,6 +246,7 @@ def verify_payment(payload: VerifyPaymentRequest, db: Session = Depends(get_db))
     )
 
 @router.post("/webhook")
+@router.post("/razorpay/webhook")
 async def razorpay_webhook(
     request: Request,
     x_razorpay_signature: str = Header(None),
@@ -249,3 +256,75 @@ async def razorpay_webhook(
     body_bytes = await request.body()
     result = payment_service.process_webhook(body_bytes, x_razorpay_signature, db)
     return result
+
+@router.post("/retry/{booking_id}", response_model=CreateOrderResponse)
+def retry_payment(booking_id: str, db: Session = Depends(get_db)):
+    """Re-initiates payment order for an existing pending or failed booking."""
+    from app.models.booking import Booking
+    booking = db.query(Booking).filter(Booking.booking_id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+
+    if booking.booking_status == "CONFIRMED" and booking.payment_status in ["PAID", "CAPTURED"]:
+        raise HTTPException(status_code=400, detail="This booking has already been verified and confirmed.")
+
+    # Re-verify capacity
+    is_avail, remaining, _ = booking_service.check_capacity(db, requested_tickets=booking.ticket_count)
+    if not is_avail:
+        raise HTTPException(status_code=400, detail=f"Only {remaining} tickets remaining. Cannot fulfill order.")
+
+    provider = payment_service.get_provider(db)
+    order_info = provider.initiate_payment(booking=booking, db=db)
+    pricing = provider.calculate_pricing(db, booking.ticket_count)
+
+    return CreateOrderResponse(
+        payment_method=order_info.get("payment_method", "RAZORPAY"),
+        payment_id=order_info.get("payment_id", f"PAY-{booking.booking_id}"),
+        booking_id=booking.booking_id,
+        amount=order_info.get("amount", booking.amount),
+        currency=order_info.get("currency", "INR"),
+        ticket_price=pricing.get("ticket_price", booking.ticket_price),
+        ticket_count=booking.ticket_count,
+        regular_amount=pricing.get("regular_amount", getattr(booking, "regular_amount", booking.ticket_count * 599.0)),
+        group_discount=pricing.get("group_discount", getattr(booking, "group_discount", 0.0)),
+        ticket_subtotal=pricing.get("ticket_subtotal", getattr(booking, "ticket_subtotal", booking.amount)),
+        payment_fee=pricing.get("payment_fee", 0.0),
+        gst_amount=pricing.get("gst_amount", 0.0),
+        tax_amount=pricing.get("tax_amount", 0.0),
+        base_amount=pricing.get("base_amount", 0.0),
+        tax_rate=pricing.get("tax_rate", 0.18),
+        tax_included=pricing.get("tax_included", True),
+        tax_label=pricing.get("tax_label", "Taxes included"),
+        customer_name=booking.customer_name,
+        customer_email=booking.email,
+        customer_phone=booking.phone,
+        is_group_offer=pricing.get("is_group_offer", False),
+        offer_name=pricing.get("offer_name"),
+        free_tickets=pricing.get("free_tickets", 0),
+        razorpay_order_id=order_info.get("razorpay_order_id"),
+        key_id=order_info.get("key_id"),
+        razorpay_mode=settings.RAZORPAY_MODE,
+        is_simulation=False
+    )
+
+@router.post("/fail/{booking_id}")
+def mark_payment_failed(booking_id: str, reason: Optional[str] = None, db: Session = Depends(get_db)):
+    """Marks a booking payment as failed if customer aborts or gateway declines."""
+    from app.models.booking import Booking
+    from app.models.payment import Payment
+    booking = db.query(Booking).filter(Booking.booking_id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+
+    if booking.booking_status != "CONFIRMED":
+        booking.payment_status = "FAILED"
+        booking.booking_status = "PAYMENT_FAILED"
+        payment = db.query(Payment).filter(Payment.booking_id == booking.id).first()
+        if payment:
+            payment.payment_status = "FAILED"
+            payment.status = "FAILED"
+            if reason:
+                payment.rejection_reason = reason
+        db.commit()
+    return {"status": "ok", "booking_id": booking.booking_id, "payment_status": "FAILED"}
+

@@ -428,12 +428,18 @@ export const AdminBookingDetailPage: React.FC = () => {
                 <>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Razorpay Pay ID:</span>
-                    <span className="font-mono text-[#60a5fa]">{booking.razorpay_payment_id || 'Pending'}</span>
+                    <span className="font-mono text-[#60a5fa] font-bold">{booking.razorpay_payment_id || 'Pending'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Razorpay Order ID:</span>
-                    <span className="font-mono text-slate-400">{booking.razorpay_order_id || 'Pending'}</span>
+                    <span className="font-mono text-slate-300">{booking.razorpay_order_id || 'Pending'}</span>
                   </div>
+                  {booking.verified_at && (
+                    <div className="flex justify-between text-slate-400">
+                      <span>Paid / Verified At:</span>
+                      <span className="text-slate-300 font-mono">{new Date(booking.verified_at).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
                 </>
               )}
             </div>

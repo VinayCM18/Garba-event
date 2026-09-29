@@ -80,7 +80,7 @@ export const AdminAuditLogsPage: React.FC = () => {
                     <td className="py-3.5 px-4 text-slate-300 font-sans">{log.entity_type}</td>
                     <td className="py-3.5 px-4 text-slate-200">{log.entity_id || 'N/A'}</td>
                     <td className="py-3.5 px-4 text-slate-300 font-sans">{log.user_email || 'System'}</td>
-                    <td className="py-3.5 px-4 text-slate-400">{log.ip_address || '127.0.0.1'}</td>
+                    <td className="py-3.5 px-4 text-slate-400">{log.ip_address || '—'}</td>
                     <td className="py-3.5 px-4 text-slate-400 max-w-xs truncate" title={log.details || ''}>
                       {log.details || '—'}
                     </td>

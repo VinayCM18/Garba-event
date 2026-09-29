@@ -36,8 +36,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     QR_SECRET_SALT: str = ""
 
-    # Payment Provider Settings (Pluggable: "UPI_MANUAL" or "RAZORPAY")
-    PAYMENT_METHOD: str = "UPI_MANUAL"
+    # Payment Provider Settings (Pluggable: "RAZORPAY" or "UPI_MANUAL")
+    PAYMENT_METHOD: str = "RAZORPAY"
+    PAYMENT_PROVIDER: str = "RAZORPAY"
     UPI_ID: str = ""
     UPI_QR_IMAGE: str = "uploads/qr/upi_qr.jpg"
     UPI_PAYMENT_INSTRUCTIONS: str = (
@@ -49,6 +50,14 @@ class Settings(BaseSettings):
     RAZORPAY_KEY_ID: str = ""
     RAZORPAY_KEY_SECRET: str = ""
     RAZORPAY_WEBHOOK_SECRET: str = ""
+    RAZORPAY_MODE: str = "TEST"  # "TEST" or "LIVE"
+
+    # Tax & Gateway Fee Configuration
+    TAX_INCLUDED: bool = True
+    TAX_RATE: float = 0.18  # 18% GST (already included in customer-facing price when TAX_INCLUDED=True)
+    PASS_GATEWAY_FEE_TO_CUSTOMER: bool = False  # Do NOT add gateway fee to customer unless explicitly enabled
+    GATEWAY_FEE_RATE: float = 0.02  # 2% gateway processing fee
+    GATEWAY_FEE_GST_RATE: float = 0.18  # 18% GST on gateway fee
 
     # Email Delivery (Resend API or SMTP)
     EMAIL_PROVIDER: str = "console"  # "resend" | "smtp" | "console"
