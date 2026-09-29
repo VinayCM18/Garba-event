@@ -6,10 +6,21 @@ from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
+from app.utils.logger import app_logger
+
 try:
     import razorpay
-except Exception as _rzp_err:
+    RAZORPAY_IMPORT_ERROR = None
+except Exception as exc:
     razorpay = None
+    RAZORPAY_IMPORT_ERROR = f"{type(exc).__name__}: {exc}"
+
+if razorpay is not None:
+    app_logger.info("Razorpay Python SDK imported successfully.")
+else:
+    app_logger.error(
+        f"Razorpay Python SDK import failed: {RAZORPAY_IMPORT_ERROR}"
+    )
 
 from app.config import settings
 from app.models.booking import Booking
@@ -17,7 +28,6 @@ from app.models.payment import Payment
 from app.models.event_setting import EventSetting
 from app.services.payment_providers.base import BasePaymentProvider
 from app.utils.security import verify_razorpay_signature, verify_razorpay_webhook_signature
-from app.utils.logger import app_logger
 
 class RazorpayPaymentProvider(BasePaymentProvider):
     provider_code = "RAZORPAY"
@@ -157,7 +167,10 @@ class RazorpayPaymentProvider(BasePaymentProvider):
         if razorpay is None:
             raise HTTPException(
                 status_code=500,
-                detail="Razorpay package is not initialized on the server. Please ensure dependencies are properly installed."
+                detail=(
+                    "Razorpay SDK import failed on server. "
+                    f"Import error: {RAZORPAY_IMPORT_ERROR}"
+                )
             )
 
         # Amount in paise (1 INR = 100 paise)
