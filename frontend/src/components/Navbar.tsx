@@ -33,13 +33,25 @@ export const Navbar: React.FC = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
         {/* Brand: NAVRANG × THE HAPPY CIRCLE */}
-        <Link to="/" className="flex items-center gap-3 group shrink-0">
-          <div className="w-10 h-10 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-[0_0_15px_rgba(212,175,55,0.35)] group-hover:scale-105 transition-transform bg-black flex items-center justify-center shrink-0 p-0.5">
-            <img
-              src="/images/happy-circle-logo.png"
-              alt="The Happy Circle Logo"
-              className="w-full h-full object-contain"
-            />
+        <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Logo 1: Heritage Productions */}
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-[0_0_10px_rgba(212,175,55,0.3)] group-hover:scale-105 transition-transform bg-black flex items-center justify-center shrink-0">
+              <img
+                src="/heritage_productions.jpg"
+                alt="Heritage Productions"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <span className="text-[11px] sm:text-xs text-[#d4af37] font-black font-mono">×</span>
+            {/* Logo 2: The Happy Circle */}
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-[0_0_10px_rgba(212,175,55,0.3)] group-hover:scale-105 transition-transform bg-black flex items-center justify-center shrink-0 p-0.5">
+              <img
+                src="/images/happy-circle-logo.png"
+                alt="The Happy Circle"
+                className="w-full h-full object-contain"
+              />
+            </div>
           </div>
           <div>
             <div className="flex items-center gap-2">

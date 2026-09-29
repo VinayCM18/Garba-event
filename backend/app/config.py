@@ -54,10 +54,10 @@ class Settings(BaseSettings):
 
     # Tax & Gateway Fee Configuration
     TAX_INCLUDED: bool = True
-    TAX_RATE: float = 0.18  # 18% GST (already included in customer-facing price when TAX_INCLUDED=True)
-    PASS_GATEWAY_FEE_TO_CUSTOMER: bool = True  # Pass gateway fee (2% + 18% GST) to customer
-    GATEWAY_FEE_RATE: float = 0.02  # 2% gateway processing fee
-    GATEWAY_FEE_GST_RATE: float = 0.18  # 18% GST on gateway fee
+    TAX_RATE: float = 0.0
+    PASS_GATEWAY_FEE_TO_CUSTOMER: bool = False  # No tax/fee added to ticket price
+    GATEWAY_FEE_RATE: float = 0.0
+    GATEWAY_FEE_GST_RATE: float = 0.0
 
     # Email Delivery (Resend API or SMTP)
     EMAIL_PROVIDER: str = "console"  # "resend" | "smtp" | "console"

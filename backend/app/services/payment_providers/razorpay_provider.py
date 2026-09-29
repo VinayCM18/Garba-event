@@ -131,26 +131,26 @@ class RazorpayPaymentProvider(BasePaymentProvider):
             offer_name = None
             free_tickets = 0
 
-        # Razorpay Gateway Fee (2%) and GST on Gateway Fee (18%)
+        # No additional tax or gateway fee added to customer price
         pass_fee_env = os.environ.get("PASS_GATEWAY_FEE_TO_CUSTOMER")
         if pass_fee_env is not None:
             pass_fee = pass_fee_env.strip().lower() in ("true", "1", "yes")
         else:
-            pass_fee = getattr(settings, "PASS_GATEWAY_FEE_TO_CUSTOMER", True)
+            pass_fee = getattr(settings, "PASS_GATEWAY_FEE_TO_CUSTOMER", False)
             if isinstance(pass_fee, str):
                 pass_fee = pass_fee.strip().lower() in ("true", "1", "yes")
 
-        fee_rate = float(os.environ.get("GATEWAY_FEE_RATE") or getattr(settings, "GATEWAY_FEE_RATE", 0.02) or 0.02)
-        fee_gst_rate = float(os.environ.get("GATEWAY_FEE_GST_RATE") or getattr(settings, "GATEWAY_FEE_GST_RATE", 0.18) or 0.18)
+        fee_rate = float(os.environ.get("GATEWAY_FEE_RATE") or getattr(settings, "GATEWAY_FEE_RATE", 0.0) or 0.0)
+        fee_gst_rate = float(os.environ.get("GATEWAY_FEE_GST_RATE") or getattr(settings, "GATEWAY_FEE_GST_RATE", 0.0) or 0.0)
 
-        if pass_fee:
+        if pass_fee and fee_rate > 0:
             payment_fee = round(ticket_subtotal * fee_rate, 2)
             gst_amount = round(payment_fee * fee_gst_rate, 2)
         else:
             payment_fee = 0.0
             gst_amount = 0.0
 
-        total_amount = round(ticket_subtotal + payment_fee + gst_amount, 2)
+        total_amount = round(ticket_subtotal, 2)
 
         return {
             "ticket_phase": phase_code,

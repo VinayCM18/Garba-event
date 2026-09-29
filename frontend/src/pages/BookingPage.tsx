@@ -358,12 +358,22 @@ export const BookingPage: React.FC = () => {
 
         {/* Event Collaboration Crest */}
         <div className="flex items-center justify-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-md p-0.5 bg-black shrink-0">
-            <img
-              src="/images/happy-circle-logo.png"
-              alt="The Happy Circle Logo"
-              className="w-full h-full object-contain"
-            />
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-md bg-black shrink-0">
+              <img
+                src="/heritage_productions.jpg"
+                alt="Heritage Productions"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <span className="text-xs text-[#d4af37] font-bold font-mono">×</span>
+            <div className="w-9 h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-md p-0.5 bg-black shrink-0">
+              <img
+                src="/images/happy-circle-logo.png"
+                alt="The Happy Circle Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
           </div>
           <div className="text-left">
             <div className="text-lg sm:text-xl font-extrabold uppercase font-['Cinzel'] tracking-wider bg-gradient-to-r from-white via-[#f7e8c3] to-[#d4af37] bg-clip-text text-transparent leading-tight">
@@ -385,7 +395,7 @@ export const BookingPage: React.FC = () => {
         {/* Active Phase Badge */}
         <div className="mt-4 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 text-xs font-bold tracking-wide">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>ACTIVE PHASE: EARLY BIRD (₹{ticketPrice} • Taxes Included)</span>
+          <span>ACTIVE PHASE: EARLY BIRD (₹{ticketPrice})</span>
         </div>
       </div>
 
@@ -655,22 +665,7 @@ export const BookingPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Gateway & Tax Breakdown */}
-              <div className="pt-2.5 pb-1 border-t border-white/10 space-y-2">
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Razorpay Fee (2%)</span>
-                  <span className="font-mono text-slate-300">
-                    ₹{paymentFee.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span>GST on Razorpay Fee (18%)</span>
-                  <span className="font-mono text-slate-300">
-                    ₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
+              {/* Flat Ticket Price - No extra taxes or fees */}
             </div>
 
             {/* TOTAL visually prominent */}

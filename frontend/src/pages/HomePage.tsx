@@ -206,8 +206,8 @@ export const HomePage: React.FC = () => {
           </p>
 
           {/* IN COLLABORATION WITH THE HAPPY CIRCLE */}
-          <div className="pt-3 pb-1 flex flex-col items-center justify-center">
-            <div className="flex items-center gap-3 mb-3">
+          <div className="pt-4 pb-2 flex flex-col items-center justify-center">
+            <div className="flex items-center gap-3 mb-4">
               <span className="h-px w-10 sm:w-20 bg-gradient-to-r from-transparent to-[#d4af37]/70" />
               <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.32em] text-[#e5c97b] font-['Outfit'] drop-shadow-[0_2px_10px_rgba(212,175,55,0.5)]">
                 IN COLLABORATION WITH
@@ -215,23 +215,45 @@ export const HomePage: React.FC = () => {
               <span className="h-px w-10 sm:w-20 bg-gradient-to-l from-transparent to-[#d4af37]/70" />
             </div>
 
-            {/* Official Logo of The Happy Circle */}
-            <div className="relative group p-2">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-amber-500/25 via-pink-500/20 to-cyan-500/20 blur-2xl scale-125 pointer-events-none group-hover:scale-150 transition-transform duration-700" />
-              <div className="relative w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full p-1.5 bg-gradient-to-b from-[#f3e4b2] via-[#d4af37] to-[#1a1528] shadow-[0_0_35px_rgba(212,175,55,0.35)] transition-transform duration-500 group-hover:scale-105 bg-black flex items-center justify-center">
-                <img
-                  src="/images/happy-circle-logo.png"
-                  alt="The Happy Circle Official Collaboration Logo"
-                  className="w-full h-full object-contain rounded-full"
-                />
+            {/* Official Logos Side by Side */}
+            <div className="flex items-center justify-center gap-4 sm:gap-8">
+              {/* Logo 1: Heritage Productions */}
+              <div className="flex flex-col items-center group">
+                <div className="relative w-24 h-24 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full p-1 bg-gradient-to-b from-[#f3e4b2] via-[#d4af37] to-[#1a1528] shadow-[0_0_30px_rgba(212,175,55,0.3)] transition-transform duration-500 group-hover:scale-105 bg-black flex items-center justify-center overflow-hidden">
+                  <img
+                    src="/heritage_productions.jpg"
+                    alt="Heritage Productions"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                </div>
+                <span className="mt-2.5 text-[10px] sm:text-xs font-black tracking-[0.2em] uppercase text-[#f7e8c3] font-['Outfit']">
+                  HERITAGE PRODUCTIONS
+                </span>
+              </div>
+
+              {/* Collaboration Cross */}
+              <div className="flex flex-col items-center justify-center px-1">
+                <span className="text-2xl sm:text-4xl font-black text-[#d4af37] drop-shadow-[0_0_15px_rgba(212,175,55,0.8)] font-mono">
+                  ×
+                </span>
+              </div>
+
+              {/* Logo 2: The Happy Circle */}
+              <div className="flex flex-col items-center group">
+                <div className="relative w-24 h-24 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full p-1 bg-gradient-to-b from-[#f3e4b2] via-[#d4af37] to-[#1a1528] shadow-[0_0_30px_rgba(212,175,55,0.3)] transition-transform duration-500 group-hover:scale-105 bg-black flex items-center justify-center overflow-hidden">
+                  <img
+                    src="/images/happy-circle-logo.png"
+                    alt="The Happy Circle Official Collaboration Logo"
+                    className="w-full h-full object-contain rounded-full"
+                  />
+                </div>
+                <span className="mt-2.5 text-[10px] sm:text-xs font-black tracking-[0.2em] uppercase text-[#f7e8c3] font-['Outfit']">
+                  THE HAPPY CIRCLE
+                </span>
               </div>
             </div>
 
-            <div className="mt-2 text-xs sm:text-sm font-black tracking-[0.25em] uppercase text-[#f7e8c3] font-['Outfit']">
-              THE HAPPY CIRCLE
-            </div>
-
-            <div className="mt-4 flex items-center justify-center gap-3">
+            <div className="mt-5 flex items-center justify-center gap-3">
               <span className="h-px w-10 sm:w-20 bg-gradient-to-r from-transparent via-[#d4af37] to-transparent" />
               <span className="px-5 py-1.5 rounded-full bg-gradient-to-r from-[#d4af37]/20 via-[#991b1b]/25 to-[#d4af37]/20 border border-[#d4af37]/50 text-base sm:text-lg md:text-xl font-black uppercase tracking-[0.3em] text-[#f7e8c3] font-['Cinzel'] shadow-[0_0_20px_rgba(212,175,55,0.25)]">
                 MYSURU
@@ -493,7 +515,7 @@ export const HomePage: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-3xl sm:text-4xl font-black text-white font-mono">₹{ticketPrice}</div>
-                  <div className="text-[11px] text-emerald-400 font-semibold mt-0.5">Taxes included</div>
+                  <div className="text-[11px] text-emerald-400 font-semibold mt-0.5">Official Pass</div>
                 </div>
               </div>
 
@@ -554,7 +576,7 @@ export const HomePage: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-3xl sm:text-4xl font-black text-slate-200 font-mono">₹799</div>
-                  <div className="text-[11px] text-slate-400 font-semibold mt-0.5">Taxes included</div>
+                  <div className="text-[11px] text-slate-400 font-semibold mt-0.5">Upcoming Phase</div>
                 </div>
               </div>
 

@@ -10,12 +10,22 @@ export const Footer: React.FC = () => {
           {/* Brand */}
           <div className="space-y-4 md:col-span-1">
             <Link to="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden border border-[#d4af37]/50 shadow-md shadow-[#d4af37]/20 bg-black flex items-center justify-center p-0.5 shrink-0">
-                <img
-                  src="/images/happy-circle-logo.png"
-                  alt="The Happy Circle Logo"
-                  className="w-full h-full object-contain"
-                />
+              <div className="flex items-center gap-1.5 shrink-0">
+                <div className="w-8 h-8 rounded-full overflow-hidden border border-[#d4af37]/50 shadow-md bg-black flex items-center justify-center shrink-0">
+                  <img
+                    src="/heritage_productions.jpg"
+                    alt="Heritage Productions"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="text-xs text-[#d4af37] font-bold font-mono">×</span>
+                <div className="w-8 h-8 rounded-full overflow-hidden border border-[#d4af37]/50 shadow-md bg-black flex items-center justify-center p-0.5 shrink-0">
+                  <img
+                    src="/images/happy-circle-logo.png"
+                    alt="The Happy Circle"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
               </div>
               <div>
                 <span className="text-xl font-extrabold tracking-[0.12em] bg-gradient-to-r from-white via-[#f3e4b2] to-[#d4af37] bg-clip-text text-transparent uppercase font-['Cinzel'] block">
