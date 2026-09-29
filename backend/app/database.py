@@ -47,6 +47,8 @@ def sync_database_schema():
                 ("owner_notification_phone", "VARCHAR(50) DEFAULT '+91 98765 43210'"),
                 ("owner_notification_enabled", "BOOLEAN DEFAULT 1"),
                 ("owner_webhook_url", "VARCHAR(500) DEFAULT NULL"),
+                ("email_provider", "VARCHAR(50) DEFAULT 'smtp'"),
+                ("resend_api_key", "VARCHAR(255) DEFAULT NULL"),
                 ("smtp_host", "VARCHAR(255) DEFAULT 'smtp.gmail.com'"),
                 ("smtp_port", "INTEGER DEFAULT 587"),
                 ("smtp_username", "VARCHAR(255) DEFAULT NULL"),

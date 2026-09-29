@@ -32,7 +32,9 @@ class EventSetting(Base):
     owner_notification_enabled = Column(Boolean, default=True, nullable=False)
     owner_webhook_url = Column(String(500), nullable=True)
 
-    # Dynamic SMTP Credentials (Editable via Admin Settings)
+    # Dynamic SMTP & Resend API Credentials (Editable via Admin Settings)
+    email_provider = Column(String(50), default="smtp", nullable=False) # "resend" or "smtp"
+    resend_api_key = Column(String(255), nullable=True)
     smtp_host = Column(String(255), default="smtp.gmail.com", nullable=False)
     smtp_port = Column(Integer, default=587, nullable=False)
     smtp_username = Column(String(255), nullable=True)

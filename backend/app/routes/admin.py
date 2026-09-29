@@ -514,8 +514,11 @@ def get_settings(current_user: User = Depends(require_admin), db: Session = Depe
         db.refresh(event_setting)
 
     smtp_pwd_present = bool((event_setting.smtp_password or "").strip() or settings.SMTP_PASSWORD)
+    resend_key_present = bool((event_setting.resend_api_key or "").strip() or (settings.RESEND_API_KEY and "placeholder" not in settings.RESEND_API_KEY))
     rzp_secret_present = bool((event_setting.razorpay_key_secret or "").strip() or (settings.RAZORPAY_KEY_SECRET and "placeholder" not in settings.RAZORPAY_KEY_SECRET))
     rzp_webhook_present = bool((event_setting.razorpay_webhook_secret or "").strip() or (settings.RAZORPAY_WEBHOOK_SECRET and "placeholder" not in settings.RAZORPAY_WEBHOOK_SECRET))
+
+    eff_email_provider = getattr(event_setting, "email_provider", None) or ("resend" if resend_key_present else "smtp")
 
     return EventSettingResponse(
         event_name=event_setting.event_name,
@@ -537,6 +540,8 @@ def get_settings(current_user: User = Depends(require_admin), db: Session = Depe
         group_offer_size=getattr(event_setting, "group_offer_size", 10),
         group_offer_free_tickets=getattr(event_setting, "group_offer_free_tickets", 1),
         group_offer_discount=round(float(event_setting.ticket_price) * getattr(event_setting, "group_offer_free_tickets", 1), 2),
+        email_provider=eff_email_provider,
+        resend_api_key_set=resend_key_present,
         owner_notification_email=getattr(event_setting, "owner_notification_email", None) or settings.OWNER_NOTIFICATION_EMAIL or "vinay18744@gmail.com",
         owner_notification_phone=getattr(event_setting, "owner_notification_phone", None) or settings.OWNER_NOTIFICATION_PHONE or "+91 98765 43210",
         owner_notification_enabled=getattr(event_setting, "owner_notification_enabled", True),
@@ -575,7 +580,7 @@ def update_settings(
     for key, value in update_data.items():
         if value is not None:
             # If passwords/secrets are empty string, don't overwrite existing
-            if key in ["smtp_password", "razorpay_key_secret", "razorpay_webhook_secret"]:
+            if key in ["smtp_password", "razorpay_key_secret", "razorpay_webhook_secret", "resend_api_key"]:
                 if str(value).strip():
                     setattr(event_setting, key, str(value).strip())
                     audit_data[key] = "********"
@@ -595,8 +600,11 @@ def update_settings(
     db.refresh(event_setting)
 
     smtp_pwd_present = bool((event_setting.smtp_password or "").strip() or settings.SMTP_PASSWORD)
+    resend_key_present = bool((event_setting.resend_api_key or "").strip() or (settings.RESEND_API_KEY and "placeholder" not in settings.RESEND_API_KEY))
     rzp_secret_present = bool((event_setting.razorpay_key_secret or "").strip() or (settings.RAZORPAY_KEY_SECRET and "placeholder" not in settings.RAZORPAY_KEY_SECRET))
     rzp_webhook_present = bool((event_setting.razorpay_webhook_secret or "").strip() or (settings.RAZORPAY_WEBHOOK_SECRET and "placeholder" not in settings.RAZORPAY_WEBHOOK_SECRET))
+
+    eff_email_provider = getattr(event_setting, "email_provider", None) or ("resend" if resend_key_present else "smtp")
 
     return EventSettingResponse(
         event_name=event_setting.event_name,
@@ -618,6 +626,8 @@ def update_settings(
         group_offer_size=getattr(event_setting, "group_offer_size", 10),
         group_offer_free_tickets=getattr(event_setting, "group_offer_free_tickets", 1),
         group_offer_discount=round(float(event_setting.ticket_price) * getattr(event_setting, "group_offer_free_tickets", 1), 2),
+        email_provider=eff_email_provider,
+        resend_api_key_set=resend_key_present,
         owner_notification_email=getattr(event_setting, "owner_notification_email", None) or settings.OWNER_NOTIFICATION_EMAIL or "vinay18744@gmail.com",
         owner_notification_phone=getattr(event_setting, "owner_notification_phone", None) or settings.OWNER_NOTIFICATION_PHONE or "+91 98765 43210",
         owner_notification_enabled=getattr(event_setting, "owner_notification_enabled", True),
@@ -645,8 +655,8 @@ def test_email(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Test SMTP connection and dispatch verification test email."""
-    result = email_service.test_smtp_connection(payload.to_email, db)
+    """Test email connection (Resend API or SMTP) and dispatch verification test email."""
+    result = email_service.test_connection(payload.to_email, db)
     return result
 
 @router.get("/notifications/recent", response_model=list[RecentNotificationItem])

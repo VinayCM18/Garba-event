@@ -32,7 +32,10 @@ export interface EventConfig {
   upi_qr_image_url?: string;
   upi_payment_instructions?: string;
 
-  // Owner Notification & Dynamic SMTP Configuration
+  // Email Delivery & Notification Configuration
+  email_provider?: 'smtp' | 'resend' | string;
+  resend_api_key?: string;
+  resend_api_key_set?: boolean;
   owner_notification_email?: string;
   owner_notification_phone?: string;
   owner_notification_enabled?: boolean;

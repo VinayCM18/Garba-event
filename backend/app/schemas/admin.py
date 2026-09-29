@@ -50,6 +50,8 @@ class EventSettingResponse(BaseModel):
     group_offer_discount: float = 599.0
 
     # Owner & Email Dispatch Configuration
+    email_provider: str = "smtp" # "resend" or "smtp"
+    resend_api_key_set: bool = False
     owner_notification_email: str = "vinay18744@gmail.com"
     owner_notification_phone: str = "+91 98765 43210"
     owner_notification_enabled: bool = True
@@ -98,6 +100,8 @@ class EventSettingUpdateRequest(BaseModel):
     group_offer_free_tickets: Optional[int] = None
 
     # Owner & Email Dispatch Configuration
+    email_provider: Optional[str] = None
+    resend_api_key: Optional[str] = None
     owner_notification_email: Optional[str] = None
     owner_notification_phone: Optional[str] = None
     owner_notification_enabled: Optional[bool] = None

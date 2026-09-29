@@ -39,6 +39,8 @@ export const AdminSettingsPage: React.FC = () => {
   // Password visibility & SMTP Password state
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [showResendKey, setShowResendKey] = useState(false);
+  const [newResendKey, setNewResendKey] = useState('');
 
   // Razorpay credentials state
   const [showRazorpaySecret, setShowRazorpaySecret] = useState(false);
@@ -132,7 +134,8 @@ export const AdminSettingsPage: React.FC = () => {
         group_offer_size: Number(settings.group_offer_size) || 10,
         group_offer_free_tickets: Number(settings.group_offer_free_tickets) || 1,
 
-        // Owner Notification & Dynamic SMTP settings
+        // Email Delivery & Notification Settings
+        email_provider: settings.email_provider || 'resend',
         owner_notification_email: settings.owner_notification_email,
         owner_notification_phone: settings.owner_notification_phone,
         owner_notification_enabled: settings.owner_notification_enabled,
@@ -158,6 +161,9 @@ export const AdminSettingsPage: React.FC = () => {
       if (newPassword.trim()) {
         payload.smtp_password = newPassword.trim();
       }
+      if (newResendKey.trim()) {
+        payload.resend_api_key = newResendKey.trim();
+      }
       if (newRazorpaySecret.trim()) {
         payload.razorpay_key_secret = newRazorpaySecret.trim();
       }
@@ -168,6 +174,7 @@ export const AdminSettingsPage: React.FC = () => {
       const updated = await updateAdminSettings(payload);
       setSettings(updated);
       setNewPassword('');
+      setNewResendKey('');
       setNewRazorpaySecret('');
       setNewRazorpayWebhookSecret('');
       success('Settings Updated', 'Event configuration, credentials, and notification rules successfully saved.');
@@ -392,7 +399,7 @@ export const AdminSettingsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* SMTP Mail Server Configuration */}
+            {/* Mail Server & Notification Configuration */}
             <div className="p-6 sm:p-8 rounded-3xl glass-panel border border-white/10 space-y-6">
               <div className="flex items-center gap-3 border-b border-white/10 pb-4">
                 <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
@@ -400,172 +407,338 @@ export const AdminSettingsPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                    SMTP Email Server Configuration
+                    Email Delivery & Notification Engine
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Connect your Gmail or SMTP host so ticket confirmation emails with attached PDF passes reach customer inboxes.
+                    Configure Resend API (HTTPS Port 443 — Recommended for Railway) or custom SMTP so tickets, PDF passes, and owner alerts reach inboxes reliably.
                   </p>
                 </div>
               </div>
 
-              {/* Status indicator */}
+              {/* Provider Selector Tabs */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                  Select Email Dispatch Provider
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleChange('email_provider', 'resend')}
+                    className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      (settings.email_provider || 'resend') === 'resend'
+                        ? 'bg-amber-500/10 border-amber-500/50 shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
+                        : 'bg-black/30 border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className={`w-4 h-4 ${(settings.email_provider || 'resend') === 'resend' ? 'text-amber-400' : 'text-slate-400'}`} />
+                        <span className="text-xs font-bold text-white">Resend API</span>
+                      </div>
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                        Cloud / Railway Ready
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-2">
+                      Operates over HTTPS (Port 443). Bypasses Railway's SMTP port 587 block completely. Free 100 emails/day.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleChange('email_provider', 'smtp')}
+                    className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      settings.email_provider === 'smtp'
+                        ? 'bg-amber-500/10 border-amber-500/50 shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
+                        : 'bg-black/30 border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Server className={`w-4 h-4 ${settings.email_provider === 'smtp' ? 'text-amber-400' : 'text-slate-400'}`} />
+                        <span className="text-xs font-bold text-white">Standard SMTP / Gmail</span>
+                      </div>
+                      <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">
+                        Port 587 / 465 / 2525
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-2">
+                      Connect your Gmail or SMTP relay. Note: Railway blocks outbound ports 587/465 to prevent spam.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Indicator */}
               <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <span
                     className={`w-3 h-3 rounded-full ${
-                      settings.smtp_username && (settings.smtp_password_set || newPassword)
-                        ? 'bg-emerald-400 animate-pulse'
-                        : 'bg-amber-400'
+                      (settings.email_provider || 'resend') === 'resend'
+                        ? (settings.resend_api_key_set || newResendKey)
+                          ? 'bg-emerald-400 animate-pulse'
+                          : 'bg-amber-400'
+                        : settings.smtp_username && (settings.smtp_password_set || newPassword)
+                          ? 'bg-emerald-400 animate-pulse'
+                          : 'bg-amber-400'
                     }`}
                   />
                   <div className="text-xs font-semibold text-slate-200">
-                    {settings.smtp_username && (settings.smtp_password_set || newPassword) ? (
+                    {(settings.email_provider || 'resend') === 'resend' ? (
+                      settings.resend_api_key_set || newResendKey ? (
+                        <span className="text-emerald-400">
+                          Resend API Configured & Ready (Bypasses Railway SMTP Restrictions via Port 443 HTTPS)
+                        </span>
+                      ) : (
+                        <span className="text-amber-400">
+                          Resend API Key Missing — Enter your free key below to enable reliable cloud email delivery.
+                        </span>
+                      )
+                    ) : settings.smtp_username && (settings.smtp_password_set || newPassword) ? (
                       <span className="text-emerald-400">
-                        SMTP Configured & Ready (Sender: {settings.smtp_username})
+                        SMTP Configured (Sender: {settings.smtp_username})
                       </span>
                     ) : (
                       <span className="text-amber-400">
-                        SMTP Credentials Incomplete — Please configure Gmail App Password below to deliver emails.
+                        SMTP Credentials Incomplete — Please configure Gmail App Password below.
                       </span>
                     )}
                   </div>
                 </div>
 
-                {settings.smtp_password_set && (
+                {((settings.email_provider || 'resend') === 'resend' ? settings.resend_api_key_set : settings.smtp_password_set) && (
                   <span className="text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-mono">
-                    ✓ Password Encrypted & Stored
+                    ✓ Key Encrypted & Stored
                   </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    SMTP Server Host
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.smtp_host || 'smtp.gmail.com'}
-                    onChange={(e) => handleChange('smtp_host', e.target.value)}
-                    placeholder="smtp.gmail.com"
-                    className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
-                  />
-                  <p className="text-[11px] text-slate-500 mt-1">Default for Gmail: smtp.gmail.com</p>
-                </div>
+              {/* RESEND API CONFIGURATION FIELDS */}
+              {(settings.email_provider || 'resend') === 'resend' ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <Key className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Resend API Key (re_...)</span>
+                        </span>
+                        {settings.resend_api_key_set && (
+                          <span className="text-[10px] text-emerald-400 font-normal">
+                            (Leave empty to keep existing key)
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showResendKey ? 'text' : 'password'}
+                          value={newResendKey}
+                          onChange={(e) => setNewResendKey(e.target.value)}
+                          placeholder={settings.resend_api_key_set ? '•••••••••••••••••••••••• (saved)' : 're_xxxxxxxxxxxxxxxxxxxx'}
+                          className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400 font-mono tracking-wider pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowResendKey(!showResendKey)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                        >
+                          {showResendKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-amber-400/80 mt-1">
+                        Get your free API key at <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="underline font-bold">resend.com</a> (100 free emails/day, no credit card required).
+                      </p>
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    SMTP Port
-                  </label>
-                  <input
-                    type="number"
-                    value={settings.smtp_port || 587}
-                    onChange={(e) => handleChange('smtp_port', Number(e.target.value))}
-                    placeholder="587"
-                    className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400 font-mono"
-                  />
-                  <p className="text-[11px] text-slate-500 mt-1">Port 587 for TLS (recommended) or 465 for SSL.</p>
-                </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                        Sender From Name
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.smtp_from_name || 'NAVRANG 2026'}
+                        onChange={(e) => handleChange('smtp_from_name', e.target.value)}
+                        placeholder="NAVRANG 2026"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    SMTP Username / Email
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.smtp_username || ''}
-                    onChange={(e) => handleChange('smtp_username', e.target.value)}
-                    placeholder="your-email@gmail.com"
-                    className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
-                  />
-                  <p className="text-[11px] text-slate-500 mt-1">Your full Gmail address or SMTP login.</p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <Key className="w-3.5 h-3.5 text-amber-400" />
-                      <span>SMTP Password / App Password</span>
-                    </span>
-                    {settings.smtp_password_set && (
-                      <span className="text-[10px] text-emerald-400 font-normal">
-                        (Leave empty to keep existing password)
-                      </span>
-                    )}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder={settings.smtp_password_set ? '•••••••••••••••• (saved)' : '16-character App Password'}
-                      className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400 font-mono tracking-wider pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                        Sender From Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={settings.smtp_from_email || 'onboarding@resend.dev'}
+                        onChange={(e) => handleChange('smtp_from_email', e.target.value)}
+                        placeholder="onboarding@resend.dev"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        Use <code className="text-amber-300 font-mono">onboarding@resend.dev</code> for testing or enter your verified Resend domain address.
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-amber-400/80 mt-1">
-                    For Gmail, use a 16-character Google App Password (not your standard password).
-                  </p>
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    Sender From Name
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.smtp_from_name || 'NAVRANG 2026'}
-                    onChange={(e) => handleChange('smtp_from_name', e.target.value)}
-                    placeholder="NAVRANG 2026"
-                    className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
-                  />
+                  {/* Resend Setup Instructions Guide */}
+                  <div className="p-4 rounded-2xl bg-amber-500/[0.05] border border-amber-500/20 text-xs text-slate-300 space-y-2">
+                    <div className="font-bold text-amber-400 flex items-center gap-1.5">
+                      <HelpCircle className="w-4 h-4" />
+                      <span>How to setup Resend in 30 seconds (Bypasses Railway Errno 101):</span>
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1 text-slate-300 text-[11px] pl-1 leading-relaxed">
+                      <li>Open <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline font-semibold">resend.com</a> and sign up for a free account.</li>
+                      <li>In the dashboard, click <strong>API Keys</strong> &rarr; <strong>Create API Key</strong>.</li>
+                      <li>Copy the key (starts with <code className="text-amber-300 font-mono">re_</code>) and paste it into the <strong>Resend API Key</strong> field above.</li>
+                      <li>Click <strong>&ldquo;Save Event Settings&rdquo;</strong> below, then click <strong>&ldquo;Send Test Email Now&rdquo;</strong> to verify!</li>
+                      <li>(Optional) Add and verify your custom domain in Resend to send from your own domain email address.</li>
+                    </ol>
+                  </div>
                 </div>
+              ) : (
+                /* SMTP CONFIGURATION FIELDS */
+                <div className="space-y-4">
+                  {/* Railway Port Block Notice */}
+                  <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 space-y-1">
+                    <div className="font-bold text-rose-400 flex items-center gap-1.5">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>Important Railway Cloud Notice:</span>
+                    </div>
+                    <p className="text-[11px] text-rose-200 leading-relaxed">
+                      Railway and other cloud container platforms block outbound TCP connections on ports <strong>587</strong> and <strong>465</strong> at the network firewall level to prevent spam. This produces <em>[Errno 101] Network is unreachable</em> when connecting to Gmail. To deliver emails on Railway without restrictions, switch to <strong>Resend API</strong> above!
+                    </p>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    Sender From Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={settings.smtp_from_email || 'tickets@navrang.in'}
-                    onChange={(e) => handleChange('smtp_from_email', e.target.value)}
-                    placeholder="tickets@navrang.in"
-                    className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                        SMTP Server Host
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.smtp_host || 'smtp.gmail.com'}
+                        onChange={(e) => handleChange('smtp_host', e.target.value)}
+                        placeholder="smtp.gmail.com"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">Default for Gmail: smtp.gmail.com</p>
+                    </div>
 
-              {/* Instructions Guide */}
-              <div className="p-4 rounded-2xl bg-amber-500/[0.05] border border-amber-500/20 text-xs text-slate-300 space-y-2">
-                <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                  <HelpCircle className="w-4 h-4" />
-                  <span>How to generate a Gmail App Password (Takes 60 seconds):</span>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                        SMTP Port
+                      </label>
+                      <input
+                        type="number"
+                        value={settings.smtp_port || 587}
+                        onChange={(e) => handleChange('smtp_port', Number(e.target.value))}
+                        placeholder="587"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400 font-mono"
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">Port 587 for TLS, 465 for SSL, or 2525 for relays.</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                        SMTP Username / Email
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.smtp_username || ''}
+                        onChange={(e) => handleChange('smtp_username', e.target.value)}
+                        placeholder="your-email@gmail.com"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">Your full Gmail address or SMTP login.</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <Key className="w-3.5 h-3.5 text-amber-400" />
+                          <span>SMTP Password / App Password</span>
+                        </span>
+                        {settings.smtp_password_set && (
+                          <span className="text-[10px] text-emerald-400 font-normal">
+                            (Leave empty to keep existing password)
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder={settings.smtp_password_set ? '•••••••••••••••• (saved)' : '16-character App Password'}
+                          className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400 font-mono tracking-wider pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-amber-400/80 mt-1">
+                        For Gmail, use a 16-character Google App Password (not your standard password).
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                        Sender From Name
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.smtp_from_name || 'NAVRANG 2026'}
+                        onChange={(e) => handleChange('smtp_from_name', e.target.value)}
+                        placeholder="NAVRANG 2026"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                        Sender From Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={settings.smtp_from_email || 'tickets@navrang.in'}
+                        onChange={(e) => handleChange('smtp_from_email', e.target.value)}
+                        placeholder="tickets@navrang.in"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Gmail App Password Guide */}
+                  <div className="p-4 rounded-2xl bg-amber-500/[0.05] border border-amber-500/20 text-xs text-slate-300 space-y-2">
+                    <div className="font-bold text-amber-400 flex items-center gap-1.5">
+                      <HelpCircle className="w-4 h-4" />
+                      <span>How to generate a Gmail App Password (Takes 60 seconds):</span>
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1 text-slate-300 text-[11px] pl-1 leading-relaxed">
+                      <li>
+                        Open your Google Account at{' '}
+                        <a
+                          href="https://myaccount.google.com/security"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-amber-400 underline font-semibold"
+                        >
+                          myaccount.google.com/security
+                        </a>
+                      </li>
+                      <li>Ensure <strong>2-Step Verification</strong> is switched ON.</li>
+                      <li>In the top search bar, type <strong>&ldquo;App passwords&rdquo;</strong> and select it.</li>
+                      <li>Enter an app name (e.g. <em>&ldquo;NAVRANG&rdquo;</em>) and click <strong>Create</strong>.</li>
+                      <li>Copy the 16-character code (without spaces) and paste it into the <strong>SMTP Password</strong> field above.</li>
+                      <li>Click <strong>&ldquo;Save Event Settings&rdquo;</strong> below, then test below!</li>
+                    </ol>
+                  </div>
                 </div>
-                <ol className="list-decimal list-inside space-y-1 text-slate-300 text-[11px] pl-1 leading-relaxed">
-                  <li>
-                    Open your Google Account at{' '}
-                    <a
-                      href="https://myaccount.google.com/security"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-amber-400 underline font-semibold"
-                    >
-                      myaccount.google.com/security
-                    </a>
-                  </li>
-                  <li>Ensure <strong>2-Step Verification</strong> is switched ON.</li>
-                  <li>In the top search bar, type <strong>&ldquo;App passwords&rdquo;</strong> and select it.</li>
-                  <li>Enter an app name (e.g. <em>&ldquo;NAVRANG&rdquo;</em>) and click <strong>Create</strong>.</li>
-                  <li>Copy the 16-character code (without spaces) and paste it into the <strong>SMTP Password</strong> field above.</li>
-                  <li>Click <strong>&ldquo;Save Event Settings&rdquo;</strong> below, then test below!</li>
-                </ol>
-              </div>
+              )}
 
               {/* Test Email Dispatch Section */}
               <div className="pt-4 border-t border-white/10">
@@ -620,7 +793,7 @@ export const AdminSettingsPage: React.FC = () => {
                         <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                       )}
                       <div>
-                        <div className="font-bold">{testResult.message}</div>
+                        <div className="font-bold whitespace-pre-line leading-relaxed">{testResult.message}</div>
                         {testResult.details && (
                           <div className="text-[11px] font-mono mt-1 opacity-80 break-all">
                             {testResult.details}
