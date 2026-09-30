@@ -50,10 +50,10 @@ class EventSettingResponse(BaseModel):
     group_offer_discount: float = 599.0
 
     # Owner & Email Dispatch Configuration
-    email_provider: str = "smtp" # "resend" or "smtp"
+    email_provider: str = "resend" # "resend", "smtp", or "console"
     resend_api_key_set: bool = False
-    owner_notification_email: str = "vinay18744@gmail.com"
-    owner_notification_phone: str = "+91 98765 43210"
+    owner_notification_email: str = ""
+    owner_notification_phone: str = ""
     owner_notification_enabled: bool = True
     owner_webhook_url: Optional[str] = None
     smtp_host: str = "smtp.gmail.com"

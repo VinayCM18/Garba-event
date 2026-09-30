@@ -59,8 +59,8 @@ class Settings(BaseSettings):
     GATEWAY_FEE_RATE: float = 0.0
     GATEWAY_FEE_GST_RATE: float = 0.0
 
-    # Email Delivery (Resend API or SMTP)
-    EMAIL_PROVIDER: str = "console"  # "resend" | "smtp" | "console"
+    # Email Delivery (Resend API, SMTP, or Console)
+    EMAIL_PROVIDER: str = "resend"  # "resend" | "smtp" | "console"
     RESEND_API_KEY: Optional[str] = None
     SMTP_HOST: Optional[str] = "smtp.gmail.com"
     SMTP_PORT: int = 587

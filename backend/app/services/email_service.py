@@ -36,35 +36,56 @@ class EmailService:
         if not event_setting:
             event_setting = EventSetting()
 
+        # Resend API Key: EventSetting in DB or environment variable
         resend_api_key = (
             getattr(event_setting, "resend_api_key", None) or ""
         ).strip() or (settings.RESEND_API_KEY or "").strip()
 
-        configured_provider = (getattr(event_setting, "email_provider", None) or "").strip().lower()
-        if configured_provider in ("resend", "smtp"):
-            email_provider = configured_provider
+        # Provider determination:
+        # 1. DB event_setting.email_provider (resend / smtp / console)
+        # 2. Environment variable EMAIL_PROVIDER (resend / smtp / console)
+        # 3. Default to resend if resend_api_key is set
+        # 4. In production -> "resend"
+        # 5. In dev without keys -> "console"
+        db_provider = (getattr(event_setting, "email_provider", None) or "").strip().lower()
+        env_provider = (settings.EMAIL_PROVIDER or "").strip().lower()
+
+        if db_provider in ("resend", "smtp", "console"):
+            email_provider = db_provider
+        elif env_provider in ("resend", "smtp", "console"):
+            email_provider = env_provider
         elif resend_api_key:
             email_provider = "resend"
-        elif settings.EMAIL_PROVIDER and settings.EMAIL_PROVIDER.lower() in ("resend", "smtp"):
-            email_provider = settings.EMAIL_PROVIDER.lower()
+        elif settings.ENVIRONMENT == "production":
+            email_provider = "resend"
         else:
-            email_provider = "smtp"
+            email_provider = "console"
 
         smtp_username = (event_setting.smtp_username or "").strip() or settings.SMTP_USERNAME
         smtp_password = (event_setting.smtp_password or "").strip() or settings.SMTP_PASSWORD
         smtp_host = (event_setting.smtp_host or "").strip() or settings.SMTP_HOST or "smtp.gmail.com"
         smtp_port = event_setting.smtp_port or settings.SMTP_PORT or 587
-        smtp_from_email = (event_setting.smtp_from_email or "").strip() or settings.FROM_EMAIL or "tickets@garbanight.in"
-        smtp_from_name = (event_setting.smtp_from_name or "").strip() or settings.FROM_NAME or "NAVRANG 2026"
-        smtp_use_tls = event_setting.smtp_use_tls if hasattr(event_setting, "smtp_use_tls") else settings.SMTP_USE_TLS
+        smtp_from_email = (
+            (event_setting.smtp_from_email or "").strip()
+            or (settings.FROM_EMAIL or "").strip()
+            or "onboarding@resend.dev"
+        )
+        smtp_from_name = (
+            (event_setting.smtp_from_name or "").strip()
+            or (settings.FROM_NAME or "").strip()
+            or "NAVRANG 2026"
+        )
+        smtp_use_tls = getattr(event_setting, "smtp_use_tls", True) if hasattr(event_setting, "smtp_use_tls") else settings.SMTP_USE_TLS
 
-        # Owner notification configuration
+        # Owner notification configuration (no hardcoded fallback)
         owner_email = (
-            getattr(event_setting, "owner_notification_email", None) or ""
-        ).strip() or settings.OWNER_NOTIFICATION_EMAIL or "vinay18744@gmail.com"
+            (getattr(event_setting, "owner_notification_email", None) or "").strip()
+            or (settings.OWNER_NOTIFICATION_EMAIL or "").strip()
+        )
         owner_phone = (
-            getattr(event_setting, "owner_notification_phone", None) or ""
-        ).strip() or settings.OWNER_NOTIFICATION_PHONE or "+91 98765 43210"
+            (getattr(event_setting, "owner_notification_phone", None) or "").strip()
+            or (settings.OWNER_NOTIFICATION_PHONE or "").strip()
+        )
         owner_enabled = getattr(event_setting, "owner_notification_enabled", True)
         owner_webhook = getattr(event_setting, "owner_webhook_url", None) or settings.OWNER_WEBHOOK_URL
 
@@ -102,7 +123,7 @@ class EmailService:
         api_key = config.get("resend_api_key")
         if not api_key:
             raise ValueError(
-                "Resend API Key is not configured. Please enter your Resend API Key in Admin Settings or set RESEND_API_KEY."
+                "Resend API Key is not configured. Please set RESEND_API_KEY in environment or Admin Settings."
             )
 
         from_name = config.get("smtp_from_name") or "NAVRANG 2026"
@@ -119,9 +140,14 @@ class EmailService:
         if attachments:
             resend_attachments = []
             for att in attachments:
+                content = att["content_bytes"]
+                if isinstance(content, bytes):
+                    b64_content = base64.b64encode(content).decode("utf-8")
+                else:
+                    b64_content = content
                 resend_attachments.append({
                     "filename": att["filename"],
-                    "content": base64.b64encode(att["content_bytes"]).decode("utf-8"),
+                    "content": b64_content,
                 })
             payload["attachments"] = resend_attachments
 
@@ -151,9 +177,9 @@ class EmailService:
 
             # Auto-fallback: If custom domain is not yet verified in Resend,
             # Resend requires sending from onboarding@resend.dev. Retry with onboarding@resend.dev!
-            if "domain" in err_msg.lower() or "not verified" in err_msg.lower():
+            if ("domain" in err_msg.lower() or "not verified" in err_msg.lower()) and "onboarding@resend.dev" not in from_email:
                 app_logger.warning(
-                    f"Resend domain verification required for {from_email}. Falling back to onboarding@resend.dev for test/staging dispatch."
+                    f"Resend domain verification required for {from_email}. Falling back to onboarding@resend.dev for test dispatch."
                 )
                 payload["from"] = f"{from_name} <onboarding@resend.dev>"
                 retry_req = urllib.request.Request(
@@ -177,14 +203,164 @@ class EmailService:
         except Exception as e:
             raise RuntimeError(f"Resend HTTP request failed: {str(e)}") from e
 
+    @classmethod
+    def _dispatch_smtp_flow(
+        cls,
+        to_emails: List[str],
+        subject: str,
+        html_content: str,
+        config: Dict[str, Any],
+        attachments: Optional[List[Dict[str, Any]]] = None,
+        is_owner: bool = False,
+        qr_bytes: Optional[bytes] = None,
+    ) -> Dict[str, Any]:
+        """Internal helper for standard SMTP message creation and delivery."""
+        from_name = config.get("smtp_from_name") or "NAVRANG 2026"
+        from_email = config.get("smtp_from_email") or "tickets@garbanight.in"
+
+        for recipient in to_emails:
+            msg = MIMEMultipart("related")
+            msg["Subject"] = subject
+            msg["From"] = f"{from_name} <{from_email}>"
+            msg["To"] = recipient
+
+            # Attach HTML
+            msg_alt = MIMEMultipart("alternative")
+            msg_alt.attach(MIMEText(html_content, "html"))
+            msg.attach(msg_alt)
+
+            # Embed inline QR code image if bytes available
+            if qr_bytes:
+                try:
+                    qr_image = MIMEImage(qr_bytes, "png")
+                    qr_image.add_header("Content-ID", "<qrcode_ticket>")
+                    qr_image.add_header("Content-Disposition", "inline", filename="qrcode.png")
+                    msg.attach(qr_image)
+                except Exception as img_err:
+                    app_logger.warning(f"Could not attach inline QR image: {img_err}")
+
+            # Attach files (PDF, etc.)
+            if attachments:
+                for att in attachments:
+                    try:
+                        filename = att.get("filename", "document.pdf")
+                        content = att.get("content_bytes")
+                        if isinstance(content, str):
+                            content = base64.b64decode(content)
+                        part = MIMEApplication(content, Name=filename)
+                        part["Content-Disposition"] = f'attachment; filename="{filename}"'
+                        msg.attach(part)
+                    except Exception as att_err:
+                        app_logger.warning(f"Could not attach file {att.get('filename')}: {att_err}")
+
+            cls._dispatch_smtp_message(msg, config)
+
+        return {"success": True, "provider": "smtp", "to": to_emails}
+
+    @classmethod
+    def _dispatch_message(
+        cls,
+        to_emails: List[str],
+        subject: str,
+        html_content: str,
+        config: Dict[str, Any],
+        attachments: Optional[List[Dict[str, Any]]] = None,
+        is_owner: bool = False,
+        qr_bytes: Optional[bytes] = None,
+    ) -> Dict[str, Any]:
+        """Provider-aware message dispatcher: routes email through Resend, SMTP, or Console based on active provider configuration with automatic SMTP->Resend fallback."""
+        provider = (config.get("email_provider") or "resend").lower().strip()
+        log_prefix = "[OWNER EMAIL]" if is_owner else "[EMAIL]"
+        msg_type = "booking notification" if is_owner else "customer confirmation"
+        has_resend = bool(config.get("resend_api_key"))
+        has_smtp = bool(config.get("smtp_username") and config.get("smtp_password"))
+
+        # -------------------------------------------------------------
+        # 1. RESEND DISPATCH (Port 443 HTTPS REST API)
+        # -------------------------------------------------------------
+        if provider == "resend":
+            if not has_resend:
+                err = "Resend API Key is not configured. Please set RESEND_API_KEY in environment or Admin Settings."
+                app_logger.error(f"{log_prefix} Resend {'owner email' if is_owner else 'customer email'} failed: {err}")
+                raise ValueError(err)
+
+            app_logger.info(f"{log_prefix} Sending {msg_type} via Resend to {to_emails}")
+            try:
+                res = cls._dispatch_resend_email(to_emails, subject, html_content, config, attachments)
+                app_logger.info(f"{log_prefix} {msg_type.capitalize()} sent successfully")
+                return res
+            except Exception as e:
+                err_str = str(e)
+                app_logger.error(f"{log_prefix} Resend {'owner email' if is_owner else 'customer email'} failed: {err_str}")
+                raise
+
+        # -------------------------------------------------------------
+        # 2. SMTP DISPATCH (Standard SMTP with Resend failover)
+        # -------------------------------------------------------------
+        elif provider == "smtp":
+            if not has_smtp:
+                if has_resend:
+                    app_logger.warning(f"{log_prefix} SMTP credentials missing; auto-routing via Resend API.")
+                    app_logger.info(f"{log_prefix} Sending {msg_type} via Resend to {to_emails}")
+                    res = cls._dispatch_resend_email(to_emails, subject, html_content, config, attachments)
+                    app_logger.info(f"{log_prefix} {msg_type.capitalize()} sent successfully to {to_emails}")
+                    return res
+                err = "SMTP credentials missing. Please set SMTP username/password or RESEND_API_KEY."
+                app_logger.error(f"{log_prefix} SMTP {'owner email' if is_owner else 'customer email'} failed: {err}")
+                raise ValueError(err)
+
+            app_logger.info(f"{log_prefix} Sending {msg_type} via SMTP to {to_emails}")
+            try:
+                res = cls._dispatch_smtp_flow(to_emails, subject, html_content, config, attachments, is_owner, qr_bytes)
+                app_logger.info(f"{log_prefix} {msg_type.capitalize()} sent successfully to {to_emails}")
+                return res
+            except Exception as e:
+                err_str = str(e)
+                app_logger.error(f"{log_prefix} SMTP {'owner email' if is_owner else 'customer email'} failed: {err_str}")
+                if has_resend:
+                    app_logger.warning(f"{log_prefix} Outbound SMTP failed ({err_str}); initiating failover to Resend API...")
+                    try:
+                        res = cls._dispatch_resend_email(to_emails, subject, html_content, config, attachments)
+                        app_logger.info(f"{log_prefix} {msg_type.capitalize()} sent successfully via Resend API fallback to {to_emails}")
+                        return res
+                    except Exception as fb_err:
+                        app_logger.error(f"{log_prefix} Resend API fallback also failed: {fb_err}")
+                raise
+
+        # -------------------------------------------------------------
+        # 3. CONSOLE DISPATCH (Development / Offline test mode)
+        # -------------------------------------------------------------
+        elif provider == "console":
+            app_logger.info(f"{log_prefix} Sending {msg_type} via Console to {to_emails}")
+            att_names = [a.get("filename", "attachment") for a in (attachments or [])]
+            app_logger.info(
+                f"\n"
+                f"--------------------------------------------------------------------------------\n"
+                f"{log_prefix} [CONSOLE EMAIL LOG]\n"
+                f"To: {', '.join(to_emails)}\n"
+                f"From: {config.get('smtp_from_name')} <{config.get('smtp_from_email')}>\n"
+                f"Subject: {subject}\n"
+                f"Attachments: {att_names}\n"
+                f"Body length: {len(html_content)} characters\n"
+                f"--------------------------------------------------------------------------------"
+            )
+            app_logger.info(f"{log_prefix} {msg_type.capitalize()} sent successfully to {to_emails}")
+            return {"success": True, "provider": "console", "to": to_emails, "subject": subject}
+
+        else:
+            raise ValueError(f"Unsupported EMAIL_PROVIDER: {provider}. Supported: resend, smtp, console.")
+
     @staticmethod
-    def render_confirmation_html(booking: Booking, event_setting: EventSetting, qr_base64: str) -> str:
+    def render_confirmation_html(booking: Booking, event_setting: EventSetting, qr_base64: str, provider: str = "resend") -> str:
         primary_ticket = booking.tickets[0] if booking.tickets else None
         ticket_view_url = f"{settings.FRONTEND_URL}/ticket/{primary_ticket.qr_token_raw}" if primary_ticket else f"{settings.FRONTEND_URL}/success/{booking.booking_id}"
         pass_text = f"{booking.ticket_count} Official Admission Pass{'es' if booking.ticket_count > 1 else ''}"
         
-        # We display the inline CID image; fallback to data URI if CID is not rendered by client
-        qr_src = "cid:qrcode_ticket" if primary_ticket else qr_base64
+        # We display the inline CID image for SMTP; base64 data URI for Resend and console
+        if provider == "smtp":
+            qr_src = "cid:qrcode_ticket" if primary_ticket else qr_base64
+        else:
+            qr_src = qr_base64
 
         is_group = bool((getattr(booking, "group_discount", 0.0) or 0.0) > 0 or booking.ticket_count == 10)
         reg_amt = getattr(booking, "regular_amount", 0.0) or round(booking.ticket_count * booking.ticket_price, 2)
@@ -703,42 +879,12 @@ class EmailService:
         """Sends confirmation email to the ticket customer with attached PDF passes and inline QR code."""
         booking = db.query(Booking).filter(Booking.booking_id == booking_id).first()
         if not booking:
-            app_logger.error(f"Cannot send customer email: Booking {booking_id} not found.")
+            app_logger.error(f"[EMAIL] Cannot send customer confirmation: Booking {booking_id} not found.")
             return False
 
         event_setting = db.query(EventSetting).first() or EventSetting()
         config = cls.get_email_config(db)
-
-        provider = config.get("email_provider", "smtp")
-        has_resend = bool(config.get("resend_api_key"))
-        has_smtp = bool(config.get("smtp_username") and config.get("smtp_password"))
-
-        # Determine effective provider
-        if provider == "resend" and not has_resend:
-            if has_smtp:
-                provider = "smtp"
-            else:
-                app_logger.warning(
-                    f"[EMAIL NOTICE] Cannot dispatch email to customer {booking.email}: "
-                    f"Resend API Key is missing. Please configure your Resend API Key in Admin Settings or RESEND_API_KEY environment variable."
-                )
-                booking.email_status = "NOT_CONFIGURED"
-                booking.email_error = "Resend API Key is missing. Please configure Resend API Key in Admin Settings or RESEND_API_KEY."
-                db.commit()
-                return False
-
-        if provider == "smtp" and not has_smtp:
-            if has_resend:
-                provider = "resend"
-            else:
-                app_logger.warning(
-                    f"[EMAIL NOTICE] Cannot dispatch email to customer {booking.email}: "
-                    f"Email credentials missing. Please configure your Resend API Key or Gmail App Password in Admin Settings."
-                )
-                booking.email_status = "NOT_CONFIGURED"
-                booking.email_error = "Email credentials missing. Please configure your Resend API Key or Gmail App Password in Admin Settings."
-                db.commit()
-                return False
+        provider = config.get("email_provider", "resend")
 
         try:
             primary_ticket = booking.tickets[0] if booking.tickets else None
@@ -751,7 +897,7 @@ class EmailService:
                 except Exception as qr_err:
                     app_logger.warning(f"Could not generate QR bytes for inline image: {qr_err}")
 
-            html_content = cls.render_confirmation_html(booking, event_setting, qr_base64)
+            html_content = cls.render_confirmation_html(booking, event_setting, qr_base64, provider=provider)
             is_group = bool((getattr(booking, "group_discount", 0.0) or 0.0) > 0 or booking.ticket_count == 10)
             if is_group:
                 subject = f"🎉 GROUP BOOKING CONFIRMED (BUY 10, PAY FOR 9) — {event_setting.event_name} (#{booking.booking_id})"
@@ -762,71 +908,27 @@ class EmailService:
             pdf_bytes = ticket_service.generate_booking_bundle_pdf(booking, event_setting)
             event_slug = re.sub(r'[^a-zA-Z0-9]', '', event_setting.event_name) or "Tickets"
             pdf_filename = f"{event_slug}_{booking.booking_id}_Tickets.pdf"
+            attachments = [{"filename": pdf_filename, "content_bytes": pdf_bytes}]
 
-            if provider == "resend":
-                attachments = [{"filename": pdf_filename, "content_bytes": pdf_bytes}]
-                cls._dispatch_resend_email([booking.email], subject, html_content, config, attachments)
-                app_logger.info(f"Confirmation email successfully sent via Resend API (HTTPS port 443) to customer {booking.email}")
-                booking.email_status = "SENT"
-                booking.email_sent_at = datetime.utcnow()
-                booking.email_error = None
-                db.commit()
-                return True
+            # Dispatch provider-aware message (Resend / SMTP / Console)
+            cls._dispatch_message(
+                to_emails=[booking.email],
+                subject=subject,
+                html_content=html_content,
+                config=config,
+                attachments=attachments,
+                is_owner=False,
+                qr_bytes=qr_bytes,
+            )
 
-            # Standard SMTP delivery
-            msg = MIMEMultipart("related")
-            msg["Subject"] = subject
-            msg["From"] = f"{config['smtp_from_name']} <{config['smtp_from_email']}>"
-            msg["To"] = booking.email
-
-            # Attach HTML body
-            msg_alt = MIMEMultipart("alternative")
-            msg_alt.attach(MIMEText(html_content, "html"))
-            msg.attach(msg_alt)
-
-            # Embed inline QR code image if bytes are available
-            if qr_bytes:
-                try:
-                    qr_image = MIMEImage(qr_bytes, "png")
-                    qr_image.add_header("Content-ID", "<qrcode_ticket>")
-                    qr_image.add_header("Content-Disposition", "inline", filename="qrcode.png")
-                    msg.attach(qr_image)
-                except Exception as img_err:
-                    app_logger.warning(f"Could not attach inline QR image: {img_err}")
-
-            # Attach PDF ticket bundle
-            try:
-                part = MIMEApplication(pdf_bytes, Name=pdf_filename)
-                part["Content-Disposition"] = f'attachment; filename="{pdf_filename}"'
-                msg.attach(part)
-            except Exception as pdf_err:
-                app_logger.warning(f"Could not attach PDF tickets: {pdf_err}")
-
-            try:
-                cls._dispatch_smtp_message(msg, config)
-                app_logger.info(f"Confirmation email successfully sent via SMTP to customer {booking.email}")
-                booking.email_status = "SENT"
-                booking.email_sent_at = datetime.utcnow()
-                booking.email_error = None
-                db.commit()
-                return True
-            except Exception as smtp_err:
-                # If SMTP failed with cloud port block and Resend is available, auto failover to Resend
-                if has_resend:
-                    app_logger.warning(f"SMTP dispatch failed ({smtp_err}); initiating failover to Resend API...")
-                    attachments = [{"filename": pdf_filename, "content_bytes": pdf_bytes}]
-                    cls._dispatch_resend_email([booking.email], subject, html_content, config, attachments)
-                    app_logger.info(f"Confirmation email successfully dispatched via Resend API fallback to {booking.email}")
-                    booking.email_status = "SENT"
-                    booking.email_sent_at = datetime.utcnow()
-                    booking.email_error = None
-                    db.commit()
-                    return True
-                raise
+            booking.email_status = "SENT"
+            booking.email_sent_at = datetime.utcnow()
+            booking.email_error = None
+            db.commit()
+            return True
 
         except Exception as e:
             err_msg = str(e)
-            app_logger.error(f"Failed to send customer confirmation email for booking {booking_id}: {err_msg}")
             booking.email_status = "FAILED"
             booking.email_error = err_msg[:500]
             db.commit()
@@ -837,7 +939,7 @@ class EmailService:
         """Sends immediate booking notification message to the event owner/organizer with realtime inventory."""
         booking = db.query(Booking).filter(Booking.booking_id == booking_id).first()
         if not booking:
-            app_logger.error(f"Cannot send owner alert: Booking {booking_id} not found.")
+            app_logger.error(f"[OWNER EMAIL] Cannot send owner alert: Booking {booking_id} not found.")
             return False
 
         event_setting = db.query(EventSetting).first() or EventSetting()
@@ -881,18 +983,18 @@ class EmailService:
             f"\n"
             f"================================================================================\n"
             f"📢 [OWNER INSTANT NOTIFICATION MESSAGE • REALTIME INVENTORY]\n"
-            f"Target Owner Email: {config['owner_email']} | Owner Phone: {config['owner_phone']}\n"
+            f"Target Owner Email: {config.get('owner_email') or '(not set)'} | Owner Phone: {config.get('owner_phone') or '(not set)'}\n"
             f"Alert: {sms_text}\n"
             f"================================================================================"
         )
 
         # 2. Check if owner notification is enabled
-        if not config["owner_enabled"]:
-            app_logger.info("Owner notifications are disabled in settings.")
+        if not config.get("owner_enabled", True):
+            app_logger.info("[OWNER EMAIL] Owner notifications are disabled in settings.")
             return True
 
         # 3. Optional Webhook dispatch (Discord / Slack / Telegram)
-        if config["owner_webhook"]:
+        if config.get("owner_webhook"):
             try:
                 webhook_payload = json.dumps({
                     "content": f"🚨 **New Booking Alert!** {booking.customer_name} booked **{booking.ticket_count} ticket(s)** for **₹{int(booking.amount):,}**! (ID: `{booking.booking_id}`) [Time: {booking_ist}]\n📊 **Realtime Inventory:** {total_sold_tickets}/{total_capacity} sold ({occupancy_pct}% full) | **{remaining_capacity} passes left** | Total Revenue: **₹{int(total_revenue):,}**",
@@ -920,17 +1022,18 @@ class EmailService:
             except Exception as hook_err:
                 app_logger.warning(f"Owner webhook dispatch error: {hook_err}")
 
-        # 4. Email Alert to Owner
-        provider = config.get("email_provider", "smtp")
-        has_resend = bool(config.get("resend_api_key"))
-        has_smtp = bool(config.get("smtp_username") and config.get("smtp_password"))
+        # 4. Check recipient owner email(s)
+        recipients = []
+        if config.get("owner_email"):
+            for em in config["owner_email"].replace(";", ",").split(","):
+                c = em.strip()
+                if c and "@" in c and c.lower() not in [r.lower() for r in recipients]:
+                    recipients.append(c)
 
-        if not has_smtp and not has_resend:
-            app_logger.info(
-                f"[OWNER EMAIL PENDING] Owner email alert to {config['owner_email']} awaiting credentials."
-            )
+        if not recipients:
+            app_logger.warning("[OWNER EMAIL] Owner notification skipped: OWNER_NOTIFICATION_EMAIL is not configured.")
             booking.owner_notified = False
-            booking.owner_notify_error = "Email credentials missing in .env / Admin Settings"
+            booking.owner_notify_error = "OWNER_NOTIFICATION_EMAIL is not configured."
             db.commit()
             return False
 
@@ -946,35 +1049,15 @@ class EmailService:
                 pending_orders=pending_orders,
             )
 
-            # Build list of all recipient emails
-            recipients = []
-            if config.get("owner_email"):
-                for em in config["owner_email"].replace(";", ",").split(","):
-                    c = em.strip()
-                    if c and "@" in c and c.lower() not in [r.lower() for r in recipients]:
-                        recipients.append(c)
-
             subject = f"⚡ {event_setting.event_name.upper()}: {booking.ticket_count} Pass{'es' if booking.ticket_count > 1 else ''} Booked by {booking.customer_name} (₹{int(booking.amount):,}) [Sold: {total_sold_tickets}/{total_capacity}]"
 
-            if provider == "resend" or (has_resend and not has_smtp):
-                cls._dispatch_resend_email(recipients, subject, owner_html, config)
-                app_logger.info(f"Owner instant booking notification sent via Resend API to {recipients}")
-            else:
-                for recipient in recipients:
-                    try:
-                        msg = MIMEMultipart()
-                        msg["Subject"] = subject
-                        msg["From"] = f"{config['smtp_from_name']} Alerts <{config['smtp_from_email']}>"
-                        msg["To"] = recipient
-                        msg.attach(MIMEText(owner_html, "html"))
-                        cls._dispatch_smtp_message(msg, config)
-                        app_logger.info(f"Owner instant booking notification sent via SMTP to {recipient}")
-                    except Exception as rec_err:
-                        if has_resend:
-                            cls._dispatch_resend_email([recipient], subject, owner_html, config)
-                            app_logger.info(f"Owner notification sent via Resend API fallback to {recipient}")
-                        else:
-                            app_logger.error(f"Error dispatching owner alert to {recipient}: {rec_err}")
+            cls._dispatch_message(
+                to_emails=recipients,
+                subject=subject,
+                html_content=owner_html,
+                config=config,
+                is_owner=True,
+            )
 
             booking.owner_notified = True
             booking.owner_notified_at = datetime.utcnow()
@@ -984,7 +1067,6 @@ class EmailService:
 
         except Exception as e:
             err_msg = str(e)
-            app_logger.error(f"Failed to send owner notification email: {err_msg}")
             booking.owner_notified = False
             booking.owner_notify_error = err_msg[:500]
             db.commit()
@@ -1000,11 +1082,15 @@ class EmailService:
         event_setting = db.query(EventSetting).first() or EventSetting()
         config = cls.get_email_config(db)
 
-        has_resend = bool(config.get("resend_api_key"))
-        has_smtp = bool(config.get("smtp_username") and config.get("smtp_password"))
+        recipients = []
+        if config.get("owner_email"):
+            for em in config["owner_email"].replace(";", ",").split(","):
+                c = em.strip()
+                if c and "@" in c and c.lower() not in [r.lower() for r in recipients]:
+                    recipients.append(c)
 
-        if not has_smtp and not has_resend:
-            app_logger.info(f"[PAYMENT VERIFICATION ALERT PENDING] Email credentials not configured for booking {booking_id}")
+        if not recipients:
+            app_logger.info(f"[PAYMENT VERIFICATION ALERT PENDING] OWNER_NOTIFICATION_EMAIL not configured for booking {booking_id}")
             return False
 
         try:
@@ -1056,62 +1142,45 @@ class EmailService:
 </body>
 </html>"""
 
-            recipients = []
-            if config.get("owner_email"):
-                for em in config["owner_email"].replace(";", ",").split(","):
-                    c = em.strip()
-                    if c and "@" in c and c.lower() not in [r.lower() for r in recipients]:
-                        recipients.append(c)
-
             subject = f"⚠️ [ACTION REQUIRED] Payment Verification for {booking.customer_name} (₹{int(booking.amount):,}) — UTR: {booking.utr_number or 'N/A'}"
-            provider = config.get("email_provider", "smtp")
-
-            if provider == "resend" or (has_resend and not has_smtp):
-                cls._dispatch_resend_email(recipients, subject, alert_html, config)
-                app_logger.info(f"Payment submission verification alert sent via Resend API to {recipients}")
-            else:
-                for recipient in recipients:
-                    try:
-                        msg = MIMEMultipart()
-                        msg["Subject"] = subject
-                        msg["From"] = f"{config['smtp_from_name']} Alerts <{config['smtp_from_email']}>"
-                        msg["To"] = recipient
-                        msg.attach(MIMEText(alert_html, "html"))
-                        cls._dispatch_smtp_message(msg, config)
-                        app_logger.info(f"Payment submission verification alert sent via SMTP to {recipient}")
-                    except Exception as alert_err:
-                        if has_resend:
-                            cls._dispatch_resend_email([recipient], subject, alert_html, config)
-                            app_logger.info(f"Verification alert sent via Resend API fallback to {recipient}")
-                        else:
-                            app_logger.error(f"Error dispatching verification alert to {recipient}: {alert_err}")
-
+            cls._dispatch_message(
+                to_emails=recipients,
+                subject=subject,
+                html_content=alert_html,
+                config=config,
+                is_owner=True,
+            )
             return True
         except Exception as e:
             app_logger.error(f"Failed to send payment verification alert: {e}")
             return False
 
     @classmethod
-    def test_connection(cls, to_email: Optional[str], db: Session) -> Dict[str, Any]:
-        """Tests email delivery via Resend API (HTTPS port 443) or SMTP based on active configuration."""
+    def test_email_connection(cls, to_email: Optional[str], db: Session) -> Dict[str, Any]:
+        """Tests email delivery via currently selected email provider (Resend API, SMTP, or Console)."""
         config = cls.get_email_config(db)
-        target_email = (to_email or "").strip() or config["owner_email"]
+        target_email = (to_email or "").strip() or config.get("owner_email") or "test@example.com"
         event_setting = db.query(EventSetting).first() or EventSetting()
-        provider = config.get("email_provider", "smtp")
+        provider = config.get("email_provider", "resend").lower()
+        sender = f"{config['smtp_from_name']} <{config['smtp_from_email']}>"
 
-        # 1. Test Resend API if configured
-        if provider == "resend" or (not config["smtp_username"] and config.get("resend_api_key")):
+        # -------------------------------------------------------------
+        # RESEND TEST
+        # -------------------------------------------------------------
+        if provider == "resend":
             if not config.get("resend_api_key"):
                 return {
                     "success": False,
-                    "error_code": "MISSING_RESEND_KEY",
+                    "provider": "resend",
+                    "recipient": target_email,
+                    "sender": config["smtp_from_email"],
+                    "error": "MISSING_RESEND_KEY",
                     "message": (
                         "Resend API Key is missing!\n\n"
-                        "To send emails on Railway without SMTP port blocks:\n"
-                        "1. Go to https://resend.com and sign up for free (takes 30 seconds).\n"
+                        "To send emails via Resend:\n"
+                        "1. Go to https://resend.com and sign up.\n"
                         "2. Create an API Key (starts with re_).\n"
-                        "3. Paste the key in 'Resend API Key' in Admin Settings and click 'Save Event Settings'.\n"
-                        "4. Click 'Send Test Email Now' again."
+                        "3. Set RESEND_API_KEY in Railway or Admin Settings.\n"
                     ),
                     "diagnostics": {
                         "provider": "resend",
@@ -1131,11 +1200,11 @@ class EmailService:
       Email Delivery <span style="color: #34d399;">Active</span>
     </h2>
     <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin: 0 0 20px;">
-      This test message confirms that your email engine is operational via <strong style="color: #34d399;">Resend API (HTTPS Port 443)</strong> for <strong style="color: #f3e4b2;">{event_setting.event_name}</strong>. Cloud SMTP restrictions bypassed!
+      This test message confirms that your email engine is operational via <strong style="color: #34d399;">Resend API (HTTPS Port 443)</strong> for <strong style="color: #f3e4b2;">{event_setting.event_name}</strong>.
     </p>
     <div style="background: #111422; border: 1px solid #23293e; padding: 16px; border-radius: 12px; font-size: 13px; text-align: left; margin: 20px 0; color: #94a3b8; line-height: 1.8;">
       <div><strong style="color: #cbd5e1;">Transport:</strong> Resend REST API (HTTPS / Port 443)</div>
-      <div><strong style="color: #cbd5e1;">Sender:</strong> {config['smtp_from_name']} &lt;{config['smtp_from_email']}&gt;</div>
+      <div><strong style="color: #cbd5e1;">Sender:</strong> {sender}</div>
       <div><strong style="color: #cbd5e1;">Recipient:</strong> {target_email}</div>
       <div><strong style="color: #cbd5e1;">Timestamp:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}</div>
     </div>
@@ -1149,7 +1218,11 @@ class EmailService:
                 res = cls._dispatch_resend_email([target_email], subject, test_html, config)
                 return {
                     "success": True,
-                    "message": f"Test email successfully dispatched via Resend API (HTTPS port 443) to {target_email}! Please check your inbox (and spam folder).",
+                    "provider": "resend",
+                    "recipient": target_email,
+                    "sender": config["smtp_from_email"],
+                    "error": None,
+                    "message": f"Test email successfully dispatched via Resend API to {target_email}! Please check your inbox (and spam folder).",
                     "diagnostics": {
                         "provider": "resend",
                         "port": 443,
@@ -1159,112 +1232,136 @@ class EmailService:
                     }
                 }
             except Exception as resend_err:
+                err_msg = str(resend_err)
                 return {
                     "success": False,
-                    "error_code": "RESEND_FAILED",
-                    "message": f"Resend API dispatch failed: {str(resend_err)}",
-                    "details": str(resend_err)
+                    "provider": "resend",
+                    "recipient": target_email,
+                    "sender": config["smtp_from_email"],
+                    "error": err_msg,
+                    "message": f"Resend API dispatch failed: {err_msg}",
+                    "diagnostics": {
+                        "provider": "resend",
+                        "recipient": target_email,
+                        "sender": config["smtp_from_email"],
+                        "success": False
+                    }
                 }
 
-        # 2. Test SMTP credentials
-        if not config["smtp_username"] or not config["smtp_password"]:
-            return {
-                "success": False,
-                "error_code": "MISSING_CREDENTIALS",
-                "message": (
-                    "Email credentials are not configured! Please configure Resend API Key (recommended for Railway) "
-                    "or enter your SMTP Username & 16-character Google App Password in Admin Settings."
-                ),
-                "diagnostics": {
-                    "host": config["smtp_host"],
-                    "port": config["smtp_port"],
-                    "username_present": bool(config["smtp_username"]),
-                    "password_present": bool(config["smtp_password"])
+        # -------------------------------------------------------------
+        # SMTP TEST
+        # -------------------------------------------------------------
+        elif provider == "smtp":
+            if not config.get("smtp_username") or not config.get("smtp_password"):
+                return {
+                    "success": False,
+                    "provider": "smtp",
+                    "recipient": target_email,
+                    "sender": config["smtp_from_email"],
+                    "error": "MISSING_CREDENTIALS",
+                    "message": (
+                        "SMTP credentials are not configured! Please configure Resend API Key (recommended for Railway) "
+                        "or enter your SMTP Username & App Password in Admin Settings."
+                    ),
+                    "diagnostics": {
+                        "host": config["smtp_host"],
+                        "port": config["smtp_port"],
+                        "username_present": bool(config.get("smtp_username")),
+                        "password_present": bool(config.get("smtp_password"))
+                    }
                 }
-            }
 
-        try:
-            msg = MIMEMultipart()
-            msg["Subject"] = f"✨ {event_setting.event_name} — SMTP Mail Delivery Verified"
-            msg["From"] = f"{config['smtp_from_name']} <{config['smtp_from_email']}>"
-            msg["To"] = target_email
+            try:
+                msg = MIMEMultipart()
+                msg["Subject"] = f"✨ {event_setting.event_name} — SMTP Mail Delivery Verified"
+                msg["From"] = f"{config['smtp_from_name']} <{config['smtp_from_email']}>"
+                msg["To"] = target_email
 
-            test_html = f"""<!DOCTYPE html>
+                test_html = f"""<!DOCTYPE html>
 <html>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #06070c; color: #e2e8f0; padding: 32px 12px; margin: 0;">
   <div style="max-width: 520px; margin: 0 auto; background-color: #0d0f18; border: 1px solid #1f2335; border-top: 4px solid #d4af37; border-radius: 16px; padding: 28px; text-align: center; box-shadow: 0 15px 35px rgba(0,0,0,0.6);">
-    <div style="display: inline-block; padding: 5px 14px; background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 9999px; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #f3e4b2; margin-bottom: 12px;">
-      ✦ SYSTEM VERIFICATION ✦
+    <h2 style="color: #ffffff; margin: 0 0 8px; font-size: 22px; font-weight: 900;">SMTP Mail Delivery Active</h2>
+    <p style="font-size: 14px; color: #94a3b8;">This test confirms that your SMTP mail server is operational for {event_setting.event_name}.</p>
+    <div style="background: #111422; border: 1px solid #23293e; padding: 16px; border-radius: 12px; font-size: 13px; text-align: left; margin: 20px 0;">
+      <div><strong>Host:</strong> {config['smtp_host']}:{config['smtp_port']}</div>
+      <div><strong>Sender:</strong> {config['smtp_from_name']} &lt;{config['smtp_from_email']}&gt;</div>
+      <div><strong>Recipient:</strong> {target_email}</div>
     </div>
-    <h2 style="color: #ffffff; margin: 0 0 8px; font-size: 22px; font-weight: 900; text-transform: uppercase;">
-      SMTP Mail Delivery <span style="color: #34d399;">Active</span>
-    </h2>
-    <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin: 0 0 20px;">
-      This test message confirms that your SMTP mail server is operational for <strong style="color: #f3e4b2;">{event_setting.event_name}</strong>.
-    </p>
-    <div style="background: #111422; border: 1px solid #23293e; padding: 16px; border-radius: 12px; font-size: 13px; text-align: left; margin: 20px 0; color: #94a3b8; line-height: 1.8;">
-      <div><strong style="color: #cbd5e1;">Host:</strong> {config['smtp_host']}:{config['smtp_port']}</div>
-      <div><strong style="color: #cbd5e1;">Sender:</strong> {config['smtp_from_name']} &lt;{config['smtp_from_email']}&gt;</div>
-      <div><strong style="color: #cbd5e1;">Recipient:</strong> {target_email}</div>
-      <div><strong style="color: #cbd5e1;">Timestamp:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}</div>
-    </div>
-    <p style="font-size: 12px; color: #34d399; font-weight: bold; margin: 0;">
-      ✓ Automated customer QR ticket emails & owner notifications are ready!
-    </p>
   </div>
 </body>
 </html>"""
-            msg.attach(MIMEText(test_html, "html"))
-            cls._dispatch_smtp_message(msg, config)
+                msg.attach(MIMEText(test_html, "html"))
+                cls._dispatch_smtp_message(msg, config)
 
+                return {
+                    "success": True,
+                    "provider": "smtp",
+                    "recipient": target_email,
+                    "sender": config["smtp_from_email"],
+                    "error": None,
+                    "message": f"Test email successfully dispatched to {target_email}! Please check your inbox.",
+                    "diagnostics": {
+                        "host": config["smtp_host"],
+                        "port": config["smtp_port"],
+                        "recipient": target_email,
+                        "sender": config["smtp_from_email"]
+                    }
+                }
+            except Exception as e:
+                err_str = str(e)
+                return {
+                    "success": False,
+                    "provider": "smtp",
+                    "recipient": target_email,
+                    "sender": config["smtp_from_email"],
+                    "error": err_str,
+                    "message": f"Failed to connect or send email: {err_str}",
+                    "diagnostics": {
+                        "host": config["smtp_host"],
+                        "port": config["smtp_port"],
+                        "recipient": target_email,
+                        "sender": config["smtp_from_email"]
+                    }
+                }
+
+        # -------------------------------------------------------------
+        # CONSOLE TEST
+        # -------------------------------------------------------------
+        elif provider == "console":
+            app_logger.info(f"[EMAIL] [TEST] Console mode test email to {target_email} from {sender}")
             return {
                 "success": True,
-                "message": f"Test email successfully dispatched to {target_email}! Please check your inbox (and spam folder).",
+                "provider": "console",
+                "recipient": target_email,
+                "sender": config["smtp_from_email"],
+                "error": None,
+                "message": f"Test email logged to console (EMAIL_PROVIDER=console) for recipient {target_email}.",
                 "diagnostics": {
-                    "host": config["smtp_host"],
-                    "port": config["smtp_port"],
+                    "provider": "console",
                     "recipient": target_email,
                     "sender": config["smtp_from_email"]
                 }
             }
-        except smtplib.SMTPAuthenticationError as auth_err:
-            return {
-                "success": False,
-                "error_code": "AUTH_FAILED",
-                "message": (
-                    "SMTP Authentication Failed! If you are using Gmail, standard account passwords are NOT accepted. "
-                    "You MUST generate a 16-character 'App Password' from Google Account Security."
-                ),
-                "details": str(auth_err)
-            }
-        except Exception as e:
-            err_str = str(e)
-            if "101" in err_str or "unreachable" in err_str.lower() or "110" in err_str or "timed out" in err_str.lower():
-                return {
-                    "success": False,
-                    "error_code": "RAILWAY_SMTP_BLOCKED",
-                    "message": (
-                        "Failed to connect: [Errno 101] Network is unreachable.\n\n"
-                        "WHY THIS HAPPENS: Railway and cloud container platforms block outbound SMTP ports (587 & 465) to prevent spam abuse.\n\n"
-                        "HOW TO FIX IN 60 SECONDS:\n"
-                        "1. Switch 'Email Provider' to 'Resend API (HTTPS Port 443)' in Admin Settings.\n"
-                        "2. Get a free API key at https://resend.com (100 free emails/day, no credit card required).\n"
-                        "3. Paste your Resend API Key and click 'Save Event Settings'.\n"
-                        "4. Resend transmits securely over port 443 which is 100% open and never blocked on Railway!"
-                    ),
-                    "details": err_str
-                }
-            return {
-                "success": False,
-                "error_code": "CONNECTION_FAILED",
-                "message": f"Failed to connect or send email: {err_str}",
-                "details": err_str
-            }
+
+        return {
+            "success": False,
+            "provider": provider,
+            "recipient": target_email,
+            "sender": config["smtp_from_email"],
+            "error": f"Unknown provider: {provider}",
+            "message": f"Unknown email provider: {provider}"
+        }
+
+    @classmethod
+    def test_connection(cls, to_email: Optional[str], db: Session) -> Dict[str, Any]:
+        """Backward compatible alias for test_email_connection."""
+        return cls.test_email_connection(to_email, db)
 
     @classmethod
     def test_smtp_connection(cls, to_email: Optional[str], db: Session) -> Dict[str, Any]:
-        """Backward compatible alias for test_connection."""
-        return cls.test_connection(to_email, db)
+        """Backward compatible alias for test_email_connection."""
+        return cls.test_email_connection(to_email, db)
 
     @staticmethod
     def _dispatch_smtp_message(msg: MIMEMultipart, config: Dict[str, Any]):

@@ -27,13 +27,13 @@ class EventSetting(Base):
     rules_text = Column(Text, default="1. Traditional festive attire (Chaniya Choli / Kurta Pajama) mandatory.\n2. Entry valid only with authentic QR code.\n3. Outside food, alcohol, and weapons strictly prohibited.\n4. Dandiya sticks available inside venue.\n5. Non-transferable ticket; duplicate entry forbidden.", nullable=False)
 
     # Owner Instant Notification Settings
-    owner_notification_email = Column(String(255), default="Samaymadhyastha2005@gmail.com", nullable=False)
-    owner_notification_phone = Column(String(50), default="7483139146", nullable=False)
+    owner_notification_email = Column(String(255), default="", nullable=False)
+    owner_notification_phone = Column(String(50), default="", nullable=False)
     owner_notification_enabled = Column(Boolean, default=True, nullable=False)
     owner_webhook_url = Column(String(500), nullable=True)
 
     # Dynamic SMTP & Resend API Credentials (Editable via Admin Settings)
-    email_provider = Column(String(50), default="smtp", nullable=False) # "resend" or "smtp"
+    email_provider = Column(String(50), default="resend", nullable=False) # "resend", "smtp", or "console"
     resend_api_key = Column(String(255), nullable=True)
     smtp_host = Column(String(255), default="smtp.gmail.com", nullable=False)
     smtp_port = Column(Integer, default=587, nullable=False)

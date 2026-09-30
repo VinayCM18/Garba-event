@@ -518,7 +518,7 @@ def get_settings(current_user: User = Depends(require_admin), db: Session = Depe
     rzp_secret_present = bool((event_setting.razorpay_key_secret or "").strip() or (settings.RAZORPAY_KEY_SECRET and "placeholder" not in settings.RAZORPAY_KEY_SECRET))
     rzp_webhook_present = bool((event_setting.razorpay_webhook_secret or "").strip() or (settings.RAZORPAY_WEBHOOK_SECRET and "placeholder" not in settings.RAZORPAY_WEBHOOK_SECRET))
 
-    eff_email_provider = getattr(event_setting, "email_provider", None) or ("resend" if resend_key_present else "smtp")
+    eff_email_provider = getattr(event_setting, "email_provider", None) or settings.EMAIL_PROVIDER or ("resend" if resend_key_present else "smtp")
 
     return EventSettingResponse(
         event_name=event_setting.event_name,
@@ -542,8 +542,8 @@ def get_settings(current_user: User = Depends(require_admin), db: Session = Depe
         group_offer_discount=round(float(event_setting.ticket_price) * getattr(event_setting, "group_offer_free_tickets", 1), 2),
         email_provider=eff_email_provider,
         resend_api_key_set=resend_key_present,
-        owner_notification_email=getattr(event_setting, "owner_notification_email", None) or settings.OWNER_NOTIFICATION_EMAIL or "vinay18744@gmail.com",
-        owner_notification_phone=getattr(event_setting, "owner_notification_phone", None) or settings.OWNER_NOTIFICATION_PHONE or "+91 98765 43210",
+        owner_notification_email=getattr(event_setting, "owner_notification_email", None) or settings.OWNER_NOTIFICATION_EMAIL or "",
+        owner_notification_phone=getattr(event_setting, "owner_notification_phone", None) or settings.OWNER_NOTIFICATION_PHONE or "",
         owner_notification_enabled=getattr(event_setting, "owner_notification_enabled", True),
         owner_webhook_url=getattr(event_setting, "owner_webhook_url", None) or settings.OWNER_WEBHOOK_URL,
         smtp_host=getattr(event_setting, "smtp_host", None) or settings.SMTP_HOST or "smtp.gmail.com",
@@ -604,7 +604,7 @@ def update_settings(
     rzp_secret_present = bool((event_setting.razorpay_key_secret or "").strip() or (settings.RAZORPAY_KEY_SECRET and "placeholder" not in settings.RAZORPAY_KEY_SECRET))
     rzp_webhook_present = bool((event_setting.razorpay_webhook_secret or "").strip() or (settings.RAZORPAY_WEBHOOK_SECRET and "placeholder" not in settings.RAZORPAY_WEBHOOK_SECRET))
 
-    eff_email_provider = getattr(event_setting, "email_provider", None) or ("resend" if resend_key_present else "smtp")
+    eff_email_provider = getattr(event_setting, "email_provider", None) or settings.EMAIL_PROVIDER or ("resend" if resend_key_present else "smtp")
 
     return EventSettingResponse(
         event_name=event_setting.event_name,
@@ -628,8 +628,8 @@ def update_settings(
         group_offer_discount=round(float(event_setting.ticket_price) * getattr(event_setting, "group_offer_free_tickets", 1), 2),
         email_provider=eff_email_provider,
         resend_api_key_set=resend_key_present,
-        owner_notification_email=getattr(event_setting, "owner_notification_email", None) or settings.OWNER_NOTIFICATION_EMAIL or "vinay18744@gmail.com",
-        owner_notification_phone=getattr(event_setting, "owner_notification_phone", None) or settings.OWNER_NOTIFICATION_PHONE or "+91 98765 43210",
+        owner_notification_email=getattr(event_setting, "owner_notification_email", None) or settings.OWNER_NOTIFICATION_EMAIL or "",
+        owner_notification_phone=getattr(event_setting, "owner_notification_phone", None) or settings.OWNER_NOTIFICATION_PHONE or "",
         owner_notification_enabled=getattr(event_setting, "owner_notification_enabled", True),
         owner_webhook_url=getattr(event_setting, "owner_webhook_url", None) or settings.OWNER_WEBHOOK_URL,
         smtp_host=getattr(event_setting, "smtp_host", None) or settings.SMTP_HOST or "smtp.gmail.com",
