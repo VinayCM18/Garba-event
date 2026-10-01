@@ -186,43 +186,12 @@ def calculate_offer_pricing(offer_id: str, quantity: int = 1, db: Session = None
     price_per_unit = float(offer["price_per_unit"])
     ticket_subtotal = round(price_per_unit * qty, 2)
 
-    # Gateway fee calculation (respects production environment flags)
-    pass_fee_env = os.environ.get("PASS_GATEWAY_FEE_TO_CUSTOMER")
-    if pass_fee_env is not None:
-        pass_fee = pass_fee_env.strip().lower() in ("true", "1", "yes")
-    else:
-        pass_fee = getattr(settings, "PASS_GATEWAY_FEE_TO_CUSTOMER", False)
-        if isinstance(pass_fee, str):
-            pass_fee = pass_fee.strip().lower() in ("true", "1", "yes")
-
-    raw_fee_rate = os.environ.get("GATEWAY_FEE_RATE")
-    if raw_fee_rate is not None and raw_fee_rate.strip() != "":
-        fee_rate = float(raw_fee_rate)
-    elif getattr(settings, "GATEWAY_FEE_RATE", None) is not None and getattr(settings, "GATEWAY_FEE_RATE", 0.0) > 0:
-        fee_rate = float(settings.GATEWAY_FEE_RATE)
-    elif pass_fee:
-        fee_rate = 0.02
-    else:
-        fee_rate = 0.0
-
-    raw_fee_gst = os.environ.get("GATEWAY_FEE_GST_RATE")
-    if raw_fee_gst is not None and raw_fee_gst.strip() != "":
-        fee_gst_rate = float(raw_fee_gst)
-    elif getattr(settings, "GATEWAY_FEE_GST_RATE", None) is not None and getattr(settings, "GATEWAY_FEE_GST_RATE", 0.0) > 0:
-        fee_gst_rate = float(settings.GATEWAY_FEE_GST_RATE)
-    elif fee_rate > 0:
-        fee_gst_rate = 0.18
-    else:
-        fee_gst_rate = 0.0
-
-    if pass_fee and fee_rate > 0:
-        payment_fee = round(ticket_subtotal * fee_rate, 2)
-        gst_amount = round(payment_fee * fee_gst_rate, 2)
-    else:
-        payment_fee = 0.0
-        gst_amount = 0.0
-
-    total_amount = round(ticket_subtotal + payment_fee + gst_amount, 2)
+    # NAVRANG 2026 ticket prices are strictly all-inclusive.
+    # No extra tax or gateway fee is added to the customer (599 is strictly 599).
+    payment_fee = 0.0
+    gst_amount = 0.0
+    tax_amount = 0.0
+    total_amount = ticket_subtotal
 
     # Effective per-pass ticket price stored in db
     per_pass_price = round(ticket_subtotal / passes_count, 2) if passes_count > 0 else price_per_unit
@@ -244,7 +213,7 @@ def calculate_offer_pricing(offer_id: str, quantity: int = 1, db: Session = None
         "gst_amount": gst_amount,
         "tax_amount": gst_amount,
         "base_amount": ticket_subtotal,
-        "tax_rate": fee_gst_rate,
+        "tax_rate": 0.0,
         "tax_included": True,
         "tax_label": "Taxes included",
         "total_amount": total_amount,

@@ -490,7 +490,8 @@ class EmailService:
                       </tr>
             """
 
-        price_rows_html += f"""
+        if (booking.payment_fee and booking.payment_fee > 0) or (booking.gst_amount and booking.gst_amount > 0):
+            price_rows_html += f"""
                       <tr>
                         <td style="padding: 6px 0; font-size: 13px; color: #94a3b8;">Payment Processing Fee:</td>
                         <td style="padding: 6px 0; font-size: 13px; color: #cbd5e1; text-align: right;">₹{(booking.payment_fee or 0.0):,.2f}</td>
@@ -499,6 +500,15 @@ class EmailService:
                         <td style="padding: 6px 0; font-size: 13px; color: #94a3b8;">GST on Processing Fee (18%):</td>
                         <td style="padding: 6px 0; font-size: 13px; color: #cbd5e1; text-align: right;">₹{(booking.gst_amount or 0.0):,.2f}</td>
                       </tr>
+            """
+        else:
+            price_rows_html += f"""
+                      <tr>
+                        <td style="padding: 6px 0; font-size: 13px; color: #94a3b8;">Taxes & Fees:</td>
+                        <td style="padding: 6px 0; font-size: 13px; font-weight: 700; color: #34d399; text-align: right;">Included</td>
+                      </tr>
+            """
+        price_rows_html += f"""
                       <tr style="border-top: 1px solid #23293e;">
                         <td style="padding: 10px 0 6px; font-size: 14px; font-weight: 800; color: #f3e4b2;">TOTAL PAID:</td>
                         <td style="padding: 10px 0 6px; font-size: 16px; font-weight: 900; color: #34d399; text-align: right;">₹{booking.amount:,.2f} INR</td>
