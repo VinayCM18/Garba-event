@@ -135,7 +135,9 @@ def test_customer_confirmation_email_resend_success():
         assert req.get_header("Authorization") == "Bearer re_mock_test_key_12345"
 
         payload = json.loads(req.data.decode("utf-8"))
-        assert payload["to"] == ["testbooker@garbanight.in"]
+        assert "testbooker@garbanight.in" in payload["to"]
+        assert "samaymadhyastha2005@gmail.com" in payload["to"]
+        assert len(payload["to"]) == 2
         assert "NAVRANG 2026" in payload["from"]
         assert "GN-2026-CONF01" in payload["subject"]
         assert len(payload["attachments"]) == 1
@@ -144,8 +146,11 @@ def test_customer_confirmation_email_resend_success():
     # Verify DB state
     db.refresh(booking)
     assert booking.email_status == "SENT"
+    assert booking.admin_email_status == "SENT"
     assert booking.email_sent_at is not None
+    assert booking.admin_email_sent_at is not None
     assert booking.email_error is None
+    assert booking.admin_email_error is None
     db.close()
 
 
@@ -274,10 +279,12 @@ def test_smtp_fallback_dispatch():
     with patch.object(EmailService, "_dispatch_smtp_message") as mock_smtp:
         success = EmailService.send_confirmation_email(booking.booking_id, db)
         assert success is True
-        mock_smtp.assert_called_once()
+        # Called for both booker and admin recipient
+        assert mock_smtp.call_count == 2
 
     db.refresh(booking)
     assert booking.email_status == "SENT"
+    assert booking.admin_email_status == "SENT"
     db.close()
 
 
@@ -482,15 +489,17 @@ def test_real_customer_email_from_booking_record():
         success = EmailService.send_confirmation_email(booking.booking_id, db)
         assert success is True
 
-        # Verify the email was sent to the REAL customer email, not booker@example.com
+        # Verify the email was sent to the REAL customer email and admin email, not a placeholder
         mock_urlopen.assert_called_once()
         req = mock_urlopen.call_args[0][0]
         payload = json.loads(req.data.decode("utf-8"))
-        assert payload["to"] == [real_email], f"Expected [{real_email}], got {payload['to']}"
+        assert real_email in payload["to"]
+        assert "samaymadhyastha2005@gmail.com" in payload["to"]
         assert "booker@example.com" not in str(payload["to"])
 
     db.refresh(booking)
     assert booking.email_status == "SENT"
+    assert booking.admin_email_status == "SENT"
     assert booking.email_sent_at is not None
     db.close()
 
@@ -551,3 +560,166 @@ def test_owner_notification_uses_owner_email():
     db.refresh(booking)
     assert booking.owner_notified is True
     db.close()
+
+
+# ---------------------------------------------------------------------------
+# 14. Dual Recipient Automatic Confirmation (Booker + Admin)
+# ---------------------------------------------------------------------------
+def test_dual_email_dispatch_booker_and_admin():
+    """Verifies that automatic confirmation sends identical email with PDF and QR to both booker and Samaymadhyastha2005@gmail.com."""
+    db = TestingSession()
+    booking = create_sample_booking(db, "GN-2026-DUAL01", ticket_count=2)
+
+    mock_response = MagicMock()
+    mock_response.read.return_value = json.dumps({"id": "resend_dual_msg_123"}).encode("utf-8")
+    mock_response.__enter__.return_value = mock_response
+
+    with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+        success = EmailService.send_confirmation_email(booking.booking_id, db, send_to_admin=True)
+        assert success is True
+
+        mock_urlopen.assert_called_once()
+        req = mock_urlopen.call_args[0][0]
+        payload = json.loads(req.data.decode("utf-8"))
+
+        # Both booker and admin must be in recipient list
+        assert len(payload["to"]) == 2
+        assert "testbooker@garbanight.in" in payload["to"]
+        assert "samaymadhyastha2005@gmail.com" in payload["to"]
+
+        # Content must contain Booking ID, passes, pricing, and PDF attachment
+        assert "GN-2026-DUAL01" in payload["subject"]
+        assert "GN-2026-DUAL01" in payload["html"]
+        assert "2 Pass" in payload["html"]
+        assert "₹1,198.00" in payload["html"] or "1198" in payload["html"]
+        assert len(payload["attachments"]) == 1
+        assert payload["attachments"][0]["filename"].endswith(".pdf")
+
+    db.refresh(booking)
+    assert booking.email_status == "SENT"
+    assert booking.admin_email_status == "SENT"
+    assert booking.email_sent_at is not None
+    assert booking.admin_email_sent_at is not None
+    db.close()
+
+
+# ---------------------------------------------------------------------------
+# 15. Admin Email Environment Variable Configuration Takes Precedence
+# ---------------------------------------------------------------------------
+def test_admin_email_env_var_override():
+    """Verifies ADMIN_NOTIFICATION_EMAIL environment variable takes precedence."""
+    db = TestingSession()
+    booking = create_sample_booking(db, "GN-2026-ENV01")
+
+    mock_response = MagicMock()
+    mock_response.read.return_value = json.dumps({"id": "resend_env_msg"}).encode("utf-8")
+    mock_response.__enter__.return_value = mock_response
+
+    custom_admin = "custom_event_admin@garbanight.in"
+    with patch.dict(os.environ, {"ADMIN_NOTIFICATION_EMAIL": custom_admin}), \
+         patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+        success = EmailService.send_confirmation_email(booking.booking_id, db, send_to_admin=True)
+        assert success is True
+
+        req = mock_urlopen.call_args[0][0]
+        payload = json.loads(req.data.decode("utf-8"))
+        assert custom_admin in payload["to"]
+        assert "testbooker@garbanight.in" in payload["to"]
+
+    db.refresh(booking)
+    assert booking.admin_email_status == "SENT"
+    db.close()
+
+
+# ---------------------------------------------------------------------------
+# 16. Deduplication When Booker Email Equals Admin Email
+# ---------------------------------------------------------------------------
+def test_deduplication_when_booker_is_admin():
+    """Verifies that if the booker email is Samaymadhyastha2005@gmail.com, only one email is dispatched."""
+    db = TestingSession()
+    booking = create_sample_booking(db, "GN-2026-ADMINBOOK")
+    booking.email = "Samaymadhyastha2005@gmail.com"
+    db.commit()
+    db.refresh(booking)
+
+    mock_response = MagicMock()
+    mock_response.read.return_value = json.dumps({"id": "resend_dedup_msg"}).encode("utf-8")
+    mock_response.__enter__.return_value = mock_response
+
+    with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+        success = EmailService.send_confirmation_email(booking.booking_id, db, send_to_admin=True)
+        assert success is True
+
+        mock_urlopen.assert_called_once()
+        req = mock_urlopen.call_args[0][0]
+        payload = json.loads(req.data.decode("utf-8"))
+
+        # Exactly 1 recipient to avoid duplicate delivery to the admin
+        assert payload["to"] == ["samaymadhyastha2005@gmail.com"]
+
+    db.refresh(booking)
+    assert booking.email_status == "SENT"
+    assert booking.admin_email_status == "SENT"
+    db.close()
+
+
+# ---------------------------------------------------------------------------
+# 17. Manual Resend ("EMAIL TICKET" Button) Sends ONLY to Booker
+# ---------------------------------------------------------------------------
+def test_manual_resend_sends_only_to_booker():
+    """Verifies that when send_to_admin=False, the email is strictly sent to the booker, not admin."""
+    db = TestingSession()
+    booking = create_sample_booking(db, "GN-2026-RESEND01")
+
+    mock_response = MagicMock()
+    mock_response.read.return_value = json.dumps({"id": "resend_manual_msg"}).encode("utf-8")
+    mock_response.__enter__.return_value = mock_response
+
+    with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+        success = EmailService.send_confirmation_email(booking.booking_id, db, send_to_admin=False)
+        assert success is True
+
+        mock_urlopen.assert_called_once()
+        req = mock_urlopen.call_args[0][0]
+        payload = json.loads(req.data.decode("utf-8"))
+
+        # Strictly the booker's email
+        assert payload["to"] == ["testbooker@garbanight.in"]
+        assert "samaymadhyastha2005@gmail.com" not in payload["to"]
+
+    db.refresh(booking)
+    assert booking.email_status == "SENT"
+    db.close()
+
+
+# ---------------------------------------------------------------------------
+# 18. Recipient-Level Delivery Status Tracking on Partial Failure
+# ---------------------------------------------------------------------------
+def test_recipient_level_status_tracking():
+    """Verifies that if customer email succeeds and admin email fails, delivery statuses reflect accurately."""
+    db = TestingSession()
+    booking = create_sample_booking(db, "GN-2026-PARTIAL01")
+
+    # Combined dispatch fails; separate customer succeeds, admin fails
+    def mock_dispatch(to_emails, subject, html_content, config, attachments, is_owner=False, qr_bytes=None):
+        if len(to_emails) > 1:
+            raise RuntimeError("Combined batch dispatch simulated failure")
+        if "testbooker@garbanight.in" in to_emails:
+            return {"success": True, "to": to_emails}
+        if "samaymadhyastha2005@gmail.com" in to_emails:
+            raise RuntimeError("Admin mailbox rejected message")
+        return {"success": True}
+
+    with patch.object(EmailService, "_dispatch_message", side_effect=mock_dispatch):
+        success = EmailService.send_confirmation_email(booking.booking_id, db, send_to_admin=True)
+        assert success is True
+
+    db.refresh(booking)
+    assert booking.email_status == "SENT"
+    assert booking.admin_email_status == "FAILED"
+    assert "Admin mailbox rejected" in (booking.admin_email_error or "")
+    # Confirmed booking and payment are NEVER reversed on email failure
+    assert booking.booking_status == "CONFIRMED"
+    assert booking.payment_status == "PAID"
+    db.close()
+

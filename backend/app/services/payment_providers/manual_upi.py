@@ -385,15 +385,15 @@ class ManualUPIPaymentProvider(BasePaymentProvider):
         db.commit()
         db.refresh(booking)
 
-        # Send confirmation email with PDF tickets attached
+        # Send confirmation email with PDF tickets attached to booker and admin
         try:
-            email_service.send_confirmation_email(booking.booking_id, db)
+            email_service.send_confirmation_email(booking.booking_id, db, send_to_admin=True)
             db.add(AuditLog(
                 user_id=admin_user.id,
                 action="CONFIRMATION_EMAIL_SENT",
                 entity_type="booking",
                 entity_id=booking.booking_id,
-                details=json.dumps({"recipient": booking.email})
+                details=json.dumps({"recipient": booking.email, "admin_notified": True})
             ))
             db.commit()
         except Exception as e:

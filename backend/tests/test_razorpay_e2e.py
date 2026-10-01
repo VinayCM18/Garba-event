@@ -42,6 +42,11 @@ def run_e2e_tests():
         db.add(setting)
     setting.payment_method = "RAZORPAY"
     setting.ticket_price = 599.0
+    from app.models.ticket_phase import TicketPhase
+    phase = db.query(TicketPhase).filter(TicketPhase.phase_code == "EARLY_BIRD").first()
+    if phase:
+        phase.status = "ACTIVE"
+        phase.sold_count = 0
     db.commit()
     # Clean up any previous test runs
     db.query(Ticket).filter(Ticket.booking_id.in_(
@@ -257,13 +262,15 @@ def run_e2e_tests():
             "currency": "INR",
             "status": "created"
         }
+        unique_fail_idemp = f"idemp_fail_test_{int(time.time()*1000)}"
         res_f = client.post("/api/payments/create-order", json={
             "customer_name": "Failed Pay Test",
             "email": "fail@example.com",
             "phone": "9876543212",
             "ticket_count": 1,
-            "idempotency_key": "idemp_fail_test"
+            "idempotency_key": unique_fail_idemp
         })
+        assert res_f.status_code == 200, f"Create order failed: {res_f.text}"
         b_failed_id = res_f.json()["booking_id"]
 
         webhook_payload_failed = {

@@ -52,20 +52,24 @@ class Booking(Base):
     idempotency_key = Column(String(100), unique=True, nullable=True, index=True)
     reservation_expires_at = Column(DateTime, nullable=True, index=True)
     
-    # Email Delivery Tracking
+    # Email Delivery Tracking (Customer / Booker)
     email_status = Column(String(50), default="PENDING", nullable=False) # PENDING, SENT, FAILED, NOT_CONFIGURED
     email_sent_at = Column(DateTime, nullable=True)
     email_error = Column(Text, nullable=True)
+
+    # Admin Email Delivery Tracking (Samaymadhyastha2005@gmail.com)
+    admin_email_status = Column(String(50), default="PENDING", nullable=True) # PENDING, SENT, FAILED, SKIPPED, NOT_CONFIGURED
+    admin_email_sent_at = Column(DateTime, nullable=True)
+    admin_email_error = Column(Text, nullable=True)
     
     # Owner Notification Tracking
     owner_notified = Column(Boolean, default=False, nullable=False)
     owner_notified_at = Column(DateTime, nullable=True)
     owner_notify_error = Column(Text, nullable=True)
 
-    # Admin Confirmation Email Tracking (full QR+PDF confirmation to admin)
-    admin_email_sent = Column(Boolean, default=False, nullable=False)
-    admin_email_sent_at = Column(DateTime, nullable=True)
-    admin_email_error = Column(Text, nullable=True)
+    @property
+    def customer_email(self) -> str:
+        return self.email
 
     created_at = Column(DateTime, default=datetime.utcnow, index=True, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

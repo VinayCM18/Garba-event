@@ -46,6 +46,9 @@ class BookingDetailResponse(BaseModel):
     email_status: str
     email_sent_at: Optional[datetime] = None
     email_error: Optional[str] = None
+    admin_email_status: Optional[str] = "PENDING"
+    admin_email_sent_at: Optional[datetime] = None
+    admin_email_error: Optional[str] = None
     owner_notified: bool = False
     owner_notified_at: Optional[datetime] = None
     owner_notify_error: Optional[str] = None

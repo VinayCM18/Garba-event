@@ -427,10 +427,10 @@ class BookingService:
         db.commit()
         db.refresh(booking)
 
-        # 1. Send customer ticket confirmation email safely (idempotent: avoid re-sending)
-        if booking.email_status != "SENT":
+        # 1. Send customer & admin ticket confirmation email safely (idempotent: avoid re-sending)
+        if booking.email_status != "SENT" or booking.admin_email_status != "SENT":
             try:
-                email_service.send_confirmation_email(booking.booking_id, db)
+                email_service.send_confirmation_email(booking.booking_id, db, send_to_admin=True)
             except Exception as e:
                 app_logger.error(f"Error dispatching confirmation email: {e}")
 
@@ -440,13 +440,6 @@ class BookingService:
                 email_service.send_owner_notification(booking.booking_id, db)
             except Exception as e:
                 app_logger.error(f"Error dispatching owner notification: {e}")
-
-        # 3. Send admin a copy of the full confirmation email with QR passes + PDF tickets (idempotent)
-        if not getattr(booking, "admin_email_sent", False):
-            try:
-                email_service.send_admin_confirmation_email(booking.booking_id, db)
-            except Exception as e:
-                app_logger.error(f"Error dispatching admin confirmation email: {e}")
 
         return booking
 

@@ -259,3 +259,100 @@ def test_webhook_and_payment_signatures():
     assert verify_razorpay_webhook_signature(body, valid_wh_sig, webhook_secret=wh_secret) is True
     assert verify_razorpay_webhook_signature(body, "tampered_wh_sig", webhook_secret=wh_secret) is False
     assert verify_razorpay_webhook_signature(b'{"different":"body"}', valid_wh_sig, webhook_secret=wh_secret) is False
+
+
+def test_razorpay_verified_payment_dual_email_dispatch():
+    """Verifies that verifying a Razorpay payment automatically emails both booker and Samaymadhyastha2005@gmail.com with PDF and QR."""
+    import json
+    from app.services.email_service import EmailService
+    client = TestClient(app)
+
+    db = SessionLocal()
+    setting = db.query(EventSetting).first()
+    setting.email_provider = "resend"
+    setting.resend_api_key = "re_mock_test_key"
+    setting.payment_method = "RAZORPAY"
+    db.commit()
+
+    order_id = f"order_test_{uuid.uuid4().hex[:8]}"
+    payment_id = f"pay_test_{uuid.uuid4().hex[:8]}"
+    secret = "rzp_test_secret_for_flow"
+
+    # Create test booking
+    booking = Booking(
+        booking_id=f"GN-2026-RZP-{uuid.uuid4().hex[:6]}",
+        customer_name="Verified Attendee",
+        email="attendee@garbanight.in",
+        phone="+91 91234 56789",
+        ticket_count=1,
+        ticket_price=599.0,
+        regular_amount=599.0,
+        group_discount=0.0,
+        ticket_subtotal=599.0,
+        amount=599.0,
+        currency="INR",
+        payment_method="RAZORPAY",
+        razorpay_order_id=order_id,
+        payment_status="PENDING",
+        booking_status="PAYMENT_PENDING",
+        email_status="PENDING",
+        admin_email_status="PENDING",
+    )
+    db.add(booking)
+    db.commit()
+    db.refresh(booking)
+
+    # Compute valid signature
+    msg = f"{order_id}|{payment_id}".encode("utf-8")
+    sig = hmac.new(secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps({"id": "resend_rzp_msg_123"}).encode("utf-8")
+    mock_resp.__enter__.return_value = mock_resp
+
+    with patch.object(payment_service, "verify_payment", return_value=True), \
+         patch("urllib.request.urlopen", return_value=mock_resp) as mock_urlopen:
+
+        res = client.post("/api/payments/verify", json={
+            "booking_id": booking.booking_id,
+            "razorpay_order_id": order_id,
+            "razorpay_payment_id": payment_id,
+            "razorpay_signature": sig
+        })
+        assert res.status_code == 200
+        data = res.json()
+        assert data["success"] is True
+
+        # Verify confirmation email was dispatched to BOTH booker and admin
+        assert mock_urlopen.call_count >= 1
+        req = mock_urlopen.call_args_list[0][0][0]
+        payload = json.loads(req.data.decode("utf-8"))
+
+        assert "attendee@garbanight.in" in payload["to"]
+        assert "samaymadhyastha2005@gmail.com" in payload["to"]
+        assert len(payload["to"]) == 2
+        assert booking.booking_id in payload["subject"]
+        assert len(payload["attachments"]) == 1
+        assert payload["attachments"][0]["filename"].endswith(".pdf")
+
+    # Verify database status
+    db.refresh(booking)
+    assert booking.payment_status in ["PAID", "CAPTURED"]
+    assert booking.booking_status == "CONFIRMED"
+    assert booking.email_status == "SENT"
+    assert booking.admin_email_status == "SENT"
+    assert booking.email_sent_at is not None
+    assert booking.admin_email_sent_at is not None
+
+    # Verify idempotency: duplicate verify call does NOT send another email
+    with patch("urllib.request.urlopen") as mock_urlopen_dup:
+        res_dup = client.post("/api/payments/verify", json={
+            "booking_id": booking.booking_id,
+            "razorpay_order_id": order_id,
+            "razorpay_payment_id": payment_id,
+            "razorpay_signature": sig
+        })
+        assert res_dup.status_code == 200
+        mock_urlopen_dup.assert_not_called()
+
+    db.close()

@@ -344,7 +344,7 @@ def resend_email(
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found.")
 
-    success = email_service.send_confirmation_email(booking_id, db)
+    success = email_service.send_confirmation_email(booking_id, db, send_to_admin=False)
     db.refresh(booking)
     if not success:
         return {

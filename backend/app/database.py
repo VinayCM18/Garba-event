@@ -112,7 +112,7 @@ def sync_database_schema():
                 ("offer_title", "VARCHAR(100) DEFAULT NULL"),
                 ("child_name", "VARCHAR(255) DEFAULT NULL"),
                 ("child_age", "INTEGER DEFAULT NULL"),
-                ("admin_email_sent", "BOOLEAN DEFAULT 0"),
+                ("admin_email_status", "VARCHAR(50) DEFAULT 'PENDING'"),
                 ("admin_email_sent_at", "DATETIME DEFAULT NULL"),
                 ("admin_email_error", "TEXT DEFAULT NULL"),
             ]

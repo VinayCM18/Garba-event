@@ -247,7 +247,7 @@ def resend_booking_email(booking_id: str, db: Session = Depends(get_db)):
             )
 
     from app.services.email_service import EmailService
-    dispatched = EmailService.send_confirmation_email(booking.booking_id, db)
+    dispatched = EmailService.send_confirmation_email(booking.booking_id, db, send_to_admin=False)
     db.refresh(booking)
 
     if booking.email_status == "SENT":

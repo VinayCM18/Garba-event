@@ -790,8 +790,15 @@ export const SuccessPage: React.FC = () => {
             <div className="mt-5 flex items-start gap-3 p-4 rounded-xl bg-black/40 border border-white/[0.06] text-xs text-slate-300">
               <Mail className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
               <div>
-                Official confirmation email with entry QR passes and attached printable PDF tickets has been dispatched to{' '}
-                <strong className="text-white">{booking.email}</strong>.
+                {booking.email_status === 'FAILED' ? (
+                  <span>
+                    We encountered an issue dispatching the confirmation email to <strong className="text-white">{booking.email}</strong>. Please download your PDF tickets below or click <strong>EMAIL TICKET</strong> to retry.
+                  </span>
+                ) : (
+                  <span>
+                    Your confirmation email with QR passes and printable PDF tickets has been sent to your registered email address (<strong className="text-white">{booking.email}</strong>) and the event administration team.
+                  </span>
+                )}
               </div>
             </div>
 
