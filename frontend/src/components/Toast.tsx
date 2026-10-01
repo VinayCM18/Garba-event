@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useRef, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, AlertTriangle, XCircle, Info, X } from 'lucide-react';
 
@@ -23,12 +23,21 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const lastToastRef = useRef<{ key: string; time: number }>({ key: '', time: 0 });
 
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
   const showToast = (type: ToastType, title: string, message?: string) => {
+    const now = Date.now();
+    const key = `${type}:${title}:${message || ''}`;
+    // Deduplicate identical notifications fired within 1.8 seconds
+    if (lastToastRef.current.key === key && now - lastToastRef.current.time < 1800) {
+      return;
+    }
+    lastToastRef.current = { key, time: now };
+
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, type, title, message }]);
     setTimeout(() => {

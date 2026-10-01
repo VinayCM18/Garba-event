@@ -54,6 +54,9 @@ export const AdminScannerPage: React.FC = () => {
   const animationFrameIdRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastScannedTimeRef = useRef<number>(0);
+  const isVerifyingRef = useRef<boolean>(false);
+  const lastVerifiedTokenRef = useRef<string>('');
+  const lastVerifiedTimeRef = useRef<number>(0);
   const barcodeDetectorRef = useRef<any>(null);
 
   // Play crisp audio beep on successful detection
@@ -125,8 +128,8 @@ export const AdminScannerPage: React.FC = () => {
     stopCamera();
 
     const videoConstraints: MediaTrackConstraints = selectedDeviceId
-      ? { deviceId: { exact: selectedDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
-      : { facingMode: cameraFacing, width: { ideal: 1280 }, height: { ideal: 720 } };
+      ? { deviceId: { exact: selectedDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60, min: 30 } }
+      : { facingMode: cameraFacing, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60, min: 30 } };
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -203,13 +206,20 @@ export const AdminScannerPage: React.FC = () => {
       cleanToken = cleanToken.split('/success/')[1].split('?')[0].split('#')[0];
     }
 
-    // Debounce duplicate scans within 2 seconds
+    // Debounce duplicate scans with synchronous lock and 3.5s cooldown
     const now = Date.now();
-    if (verifying || (cleanToken === scannedToken && now - lastScannedTimeRef.current < 2000)) {
+    if (isVerifyingRef.current) {
       return;
     }
 
-    lastScannedTimeRef.current = now;
+    if (cleanToken === lastVerifiedTokenRef.current && now - lastVerifiedTimeRef.current < 3500) {
+      return;
+    }
+
+    isVerifyingRef.current = true;
+    lastVerifiedTokenRef.current = cleanToken;
+    lastVerifiedTimeRef.current = now;
+
     playBeep();
     setVerifying(true);
     setScannedToken(cleanToken);
@@ -232,6 +242,9 @@ export const AdminScannerPage: React.FC = () => {
       error('Verification Error', err.response?.data?.detail || 'Failed to verify pass with server.');
     } finally {
       setVerifying(false);
+      setTimeout(() => {
+        isVerifyingRef.current = false;
+      }, 500);
     }
   };
 
@@ -435,6 +448,9 @@ export const AdminScannerPage: React.FC = () => {
     setScannedToken('');
     setCheckinSuccessInfo(null);
     setManualInput('');
+    isVerifyingRef.current = false;
+    lastVerifiedTokenRef.current = '';
+    lastVerifiedTimeRef.current = 0;
   };
 
   return (
@@ -542,7 +558,7 @@ export const AdminScannerPage: React.FC = () => {
         <div className="flex items-center justify-between mt-3 text-xs text-slate-400 px-1">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Dual-engine scanner (30 FPS) active</span>
+            <span>Dual-engine scanner (60 FPS) active</span>
           </span>
 
           {/* Upload file button for photos / screenshots */}

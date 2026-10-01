@@ -52,8 +52,10 @@ export const StaffScannerPage: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const animationFrameIdRef = useRef<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastScannedTimeRef = useRef<number>(0);
+  const isVerifyingRef = useRef<boolean>(false);
+  const lastVerifiedTokenRef = useRef<string>('');
+  const lastVerifiedTimeRef = useRef<number>(0);
   const barcodeDetectorRef = useRef<any>(null);
 
   // Play crisp audio tone on detection
@@ -120,12 +122,17 @@ export const StaffScannerPage: React.FC = () => {
     try {
       const constraints: MediaStreamConstraints = {
         video: selectedDeviceId
-          ? { deviceId: { exact: selectedDeviceId } }
+          ? {
+              deviceId: { exact: selectedDeviceId },
+              width: { ideal: 1920, min: 640 },
+              height: { ideal: 1080, min: 480 },
+              frameRate: { ideal: 60, min: 30 }
+            }
           : {
               facingMode: cameraFacing,
               width: { ideal: 1920, min: 640 },
               height: { ideal: 1080, min: 480 },
-              frameRate: { ideal: 30, max: 60 }
+              frameRate: { ideal: 60, min: 30 }
             },
         audio: false
       };
@@ -189,7 +196,7 @@ export const StaffScannerPage: React.FC = () => {
     }, 200);
   };
 
-  // Continuous Camera Frame Scanner
+  // Continuous Camera Frame Scanner (High-speed 60 FPS)
   const scanVideoFrame = async () => {
     if (!videoRef.current || videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) {
       animationFrameIdRef.current = requestAnimationFrame(scanVideoFrame);
@@ -199,54 +206,75 @@ export const StaffScannerPage: React.FC = () => {
     const video = videoRef.current;
     const now = Date.now();
 
-    // 250ms throttle between scan attempts
-    if (now - lastScannedTimeRef.current > 250) {
-      let detectedCode: string | null = null;
+    // High-speed 60 FPS sampling (~16ms between evaluations)
+    if (now - lastScannedTimeRef.current >= 16) {
+      lastScannedTimeRef.current = now;
 
-      if (barcodeDetectorRef.current) {
-        try {
-          const barcodes = await barcodeDetectorRef.current.detect(video);
-          if (barcodes.length > 0) {
-            detectedCode = barcodes[0].rawValue;
-          }
-        } catch {}
-      }
+      // Skip detection if a ticket verification is actively in flight
+      if (!isVerifyingRef.current) {
+        let detectedCode: string | null = null;
 
-      if (!detectedCode && canvasRef.current) {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        if (ctx) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const qr = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'attemptBoth'
-          });
-          if (qr && qr.data) {
-            detectedCode = qr.data;
+        if (barcodeDetectorRef.current) {
+          try {
+            const barcodes = await barcodeDetectorRef.current.detect(video);
+            if (barcodes.length > 0) {
+              detectedCode = barcodes[0].rawValue;
+            }
+          } catch {}
+        }
+
+        if (!detectedCode && canvasRef.current) {
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (ctx) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const qr = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: 'attemptBoth'
+            });
+            if (qr && qr.data) {
+              detectedCode = qr.data;
+            }
           }
         }
-      }
 
-      if (detectedCode && detectedCode.trim() !== '') {
-        lastScannedTimeRef.current = now;
-        playBeep(1046);
-        triggerHaptic([60, 40, 60]);
-        handleScannedPayload(detectedCode);
+        if (detectedCode && detectedCode.trim() !== '') {
+          handleScannedPayload(detectedCode);
+        }
       }
     }
 
     animationFrameIdRef.current = requestAnimationFrame(scanVideoFrame);
   };
 
-  // Handle scanned QR payload
+  // Handle scanned QR payload with atomic lock and deduplication
   const handleScannedPayload = useCallback(
     async (rawCode: string) => {
       let cleaned = rawCode.trim();
       if (cleaned.includes('/ticket/')) {
         cleaned = cleaned.split('/ticket/')[1].split('?')[0].split('#')[0].trim();
       }
+
+      const now = Date.now();
+
+      // Immediate synchronous lock: prevent multiple notifications firing at the same time
+      if (isVerifyingRef.current) {
+        return;
+      }
+
+      // Suppress re-verification if the exact same QR code is held in camera within 3.5s
+      if (cleaned === lastVerifiedTokenRef.current && now - lastVerifiedTimeRef.current < 3500) {
+        return;
+      }
+
+      isVerifyingRef.current = true;
+      lastVerifiedTokenRef.current = cleaned;
+      lastVerifiedTimeRef.current = now;
+
+      playBeep(1046);
+      triggerHaptic([60, 40, 60]);
 
       setScannedToken(cleaned);
       setVerifying(true);
@@ -279,6 +307,9 @@ export const StaffScannerPage: React.FC = () => {
         error('Verification Error', msg);
       } finally {
         setVerifying(false);
+        setTimeout(() => {
+          isVerifyingRef.current = false;
+        }, 500);
       }
     },
     [error, success, warning]
@@ -326,20 +357,21 @@ export const StaffScannerPage: React.FC = () => {
       );
     } catch (err: any) {
       const msg = err.response?.data?.detail || 'Check-in failed or ticket already checked in.';
-      error('Check-in Rejected', msg);
       if (err.response?.status === 409) {
         warning('Already Checked In', msg);
-        setScanResult((prev) =>
-          prev
-            ? {
-                ...prev,
-                status: 'USED',
-                checkin_status: true,
-                message: msg
-              }
-            : null
-        );
+      } else {
+        error('Check-in Rejected', msg);
       }
+      setScanResult((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: 'USED',
+              checkin_status: true,
+              message: msg
+            }
+          : null
+      );
     } finally {
       setCheckingIn(false);
     }
@@ -350,6 +382,9 @@ export const StaffScannerPage: React.FC = () => {
     setScannedToken('');
     setCheckinSuccessInfo(null);
     setManualInput('');
+    isVerifyingRef.current = false;
+    lastVerifiedTokenRef.current = '';
+    lastVerifiedTimeRef.current = 0;
   };
 
   return (
@@ -359,7 +394,7 @@ export const StaffScannerPage: React.FC = () => {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
             <Zap className="w-3.5 h-3.5" />
-            <span>Turnstile Mode • 30 FPS Scanner</span>
+            <span>Turnstile Mode • 60 FPS Scanner</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white font-['Outfit']">
             Staff Gate Scanner
