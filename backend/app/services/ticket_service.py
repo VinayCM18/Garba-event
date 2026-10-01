@@ -327,36 +327,43 @@ class TicketService:
         story.append(main_table)
         story.append(Spacer(1, 10))
 
-        # 3. High-Contrast Centered Scannable QR Code
-        qr_img_bytes = qr_service.generate_qr_bytes(ticket.qr_token_raw)
+        # 3. High-Contrast Scannable QR Code and Important Venue Instructions Box
+        qr_token = getattr(ticket, "qr_token_raw", None) or getattr(ticket, "ticket_id", None) or getattr(booking, "booking_id", "NAV2026")
+        qr_img_bytes = qr_service.generate_qr_bytes(qr_token)
         qr_stream = io.BytesIO(qr_img_bytes)
-        qr_image = Image(qr_stream, width=1.85 * inch, height=1.85 * inch)
-        qr_notice = Paragraph("Scan this barcode at security turnstiles for gate admission", ParagraphStyle("QRN", fontName="Helvetica", fontSize=8, textColor=colors.HexColor("#64748B"), alignment=1))
-        qr_table = Table([[qr_image], [qr_notice]], colWidths=[540])
-        qr_table.setStyle(TableStyle([
+        qr_image = Image(qr_stream, width=1.45 * inch, height=1.45 * inch)
+
+        qr_box = Table([
+            [qr_image],
+            [Paragraph("Scan at Security", ParagraphStyle("QS", fontName="Helvetica-Bold", fontSize=8, textColor=colors.HexColor("#B45309"), alignment=1))]
+        ], colWidths=[140])
+        qr_box.setStyle(TableStyle([
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-            ("TOPPADDING", (0, 0), (-1, -1), 2),
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
+            ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#CBD5E1")),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ]))
-        story.append(qr_table)
-        story.append(Spacer(1, 10))
 
-        # 4. Important Venue Instructions Box
-        guidelines_header = Paragraph("<b>IMPORTANT VENUE INSTRUCTIONS</b>", ParagraphStyle("GH", fontName="Helvetica-Bold", fontSize=9, textColor=colors.HexColor("#B45309")))
+        inst_style = ParagraphStyle("IT", fontName="Helvetica", fontSize=8.5, leading=13, textColor=colors.HexColor("#334155"))
         guidelines_text = Paragraph(
+            "<b><font color='#B45309'>IMPORTANT VENUE INSTRUCTIONS</font></b><br/>"
             "• Gates open promptly at 06:30 PM. Show this barcode or digital pass at turnstiles.<br/>"
             "• Event Timings: 06:30 PM onwards till 10:00 PM. Gates close at 10:00 PM.<br/>"
             "• Entry will be granted only after successful QR scanning at security.<br/>"
             "• Each QR code is uniquely encrypted and admits exactly one person once.<br/>"
             "• Traditional festive attire is celebrated and recommended.<br/>"
             "• Carry valid Government photo ID matching the attendee name.",
-            sub_val_style
+            inst_style
         )
-        rules_table = Table([[guidelines_header], [guidelines_text]], colWidths=[540])
+
+        rules_table = Table([[guidelines_text, qr_box]], colWidths=[380, 160])
         rules_table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFDF5")),
             ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#FDE68A")),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (1, 0), (1, 0), "CENTER"),
             ("PADDING", (0, 0), (-1, -1), 8),
         ]))
         story.append(rules_table)
@@ -514,36 +521,43 @@ class TicketService:
             story.append(main_table)
             story.append(Spacer(1, 10))
 
-            # 3. High-Contrast Centered Scannable QR Code
-            qr_img_bytes = qr_service.generate_qr_bytes(ticket.qr_token_raw)
+            # 3. High-Contrast Scannable QR Code and Important Venue Instructions Box
+            qr_token = getattr(ticket, "qr_token_raw", None) or getattr(ticket, "ticket_id", None) or getattr(booking, "booking_id", "NAV2026")
+            qr_img_bytes = qr_service.generate_qr_bytes(qr_token)
             qr_stream = io.BytesIO(qr_img_bytes)
-            qr_image = Image(qr_stream, width=1.85 * inch, height=1.85 * inch)
-            qr_notice = Paragraph("Scan this barcode at security turnstiles for gate admission", ParagraphStyle("QRN2", fontName="Helvetica", fontSize=8, textColor=colors.HexColor("#64748B"), alignment=1))
-            qr_table = Table([[qr_image], [qr_notice]], colWidths=[540])
-            qr_table.setStyle(TableStyle([
+            qr_image = Image(qr_stream, width=1.45 * inch, height=1.45 * inch)
+
+            qr_box = Table([
+                [qr_image],
+                [Paragraph("Scan at Security", ParagraphStyle("QS2", fontName="Helvetica-Bold", fontSize=8, textColor=colors.HexColor("#B45309"), alignment=1))]
+            ], colWidths=[140])
+            qr_box.setStyle(TableStyle([
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-                ("TOPPADDING", (0, 0), (-1, -1), 2),
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
+                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#CBD5E1")),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
             ]))
-            story.append(qr_table)
-            story.append(Spacer(1, 10))
 
-            # 4. Important Venue Instructions Box
-            guidelines_header = Paragraph("<b>IMPORTANT VENUE INSTRUCTIONS</b>", ParagraphStyle("GH", fontName="Helvetica-Bold", fontSize=9, textColor=colors.HexColor("#B45309")))
+            inst_style = ParagraphStyle("IT2", fontName="Helvetica", fontSize=8.5, leading=13, textColor=colors.HexColor("#334155"))
             guidelines_text = Paragraph(
+                "<b><font color='#B45309'>IMPORTANT VENUE INSTRUCTIONS</font></b><br/>"
                 "• Gates open promptly at 06:30 PM. Show this barcode or digital pass at turnstiles.<br/>"
                 "• Event Timings: 06:30 PM onwards till 10:00 PM. Gates close at 10:00 PM.<br/>"
                 "• Entry will be granted only after successful QR scanning at security.<br/>"
                 "• Each QR code is uniquely encrypted and admits exactly one person once.<br/>"
                 "• Traditional festive attire is celebrated and recommended.<br/>"
                 "• Carry valid Government photo ID matching the attendee name.",
-                sub_val_style
+                inst_style
             )
-            rules_table = Table([[guidelines_header], [guidelines_text]], colWidths=[540])
+
+            rules_table = Table([[guidelines_text, qr_box]], colWidths=[380, 160])
             rules_table.setStyle(TableStyle([
                 ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFDF5")),
                 ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#FDE68A")),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("ALIGN", (1, 0), (1, 0), "CENTER"),
                 ("PADDING", (0, 0), (-1, -1), 8),
             ]))
             story.append(rules_table)

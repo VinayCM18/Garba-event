@@ -182,35 +182,41 @@ export const TicketPage: React.FC = () => {
           </div>
         </div>
 
-        {/* QR Code Presentation */}
-        <div className="p-6 bg-slate-50 border-b border-slate-200 text-center flex flex-col items-center justify-center">
-          {ticket.qr_code_base64 && (
-            <div className="p-3 bg-white rounded-xl shadow-md border border-slate-300 inline-block">
-              <img
-                src={ticket.qr_code_base64.startsWith('data:') ? ticket.qr_code_base64 : `data:image/png;base64,${ticket.qr_code_base64}`}
-                alt="Entry QR Code"
-                className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
-              />
-            </div>
-          )}
-          <p className="text-xs text-slate-500 mt-2 font-medium">
-            Scan this barcode at security turnstiles for gate admission
-          </p>
-        </div>
-
-        {/* Important Venue Instructions Box - Cream #FFFDF5, Amber border #FDE68A */}
+        {/* Important Venue Instructions Box with Integrated QR Code - Cream #FFFDF5, Amber border #FDE68A */}
         <div className="m-4 sm:m-6 p-4 rounded-xl bg-[#FFFDF5] border border-[#FDE68A] text-left">
-          <div className="text-xs font-bold text-[#B45309] uppercase tracking-wider mb-2">
-            IMPORTANT VENUE INSTRUCTIONS
+          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-5">
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold text-[#B45309] uppercase tracking-wider mb-2">
+                IMPORTANT VENUE INSTRUCTIONS
+              </div>
+              <ul className="text-xs text-slate-700 space-y-1.5 list-disc list-inside">
+                <li>Gates open promptly at 06:30 PM. Show this barcode or digital pass at turnstiles.</li>
+                <li>Event Timings: 06:30 PM onwards till 10:00 PM. Gates close at 10:00 PM.</li>
+                <li>Entry will be granted only after successful QR scanning at security.</li>
+                <li>Each QR code is uniquely encrypted and admits exactly one person once.</li>
+                <li>Traditional festive attire is celebrated and recommended.</li>
+                <li>Carry valid Government photo ID matching the attendee name.</li>
+              </ul>
+            </div>
+
+            {/* High-Contrast QR Code Card */}
+            <div className="shrink-0 flex flex-col items-center">
+              <div className="p-2.5 bg-white rounded-xl shadow-md border border-slate-300 inline-block">
+                <img
+                  src={
+                    ticket.qr_code_base64
+                      ? (ticket.qr_code_base64.startsWith('data:') ? ticket.qr_code_base64 : `data:image/png;base64,${ticket.qr_code_base64}`)
+                      : `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(ticket.qr_token_raw || ticket.ticket_id)}&color=0f0c20&bgcolor=ffffff`
+                  }
+                  alt="Entry QR Code"
+                  className="w-32 h-32 sm:w-36 sm:h-36 object-contain block"
+                />
+              </div>
+              <span className="text-[10px] font-bold text-[#B45309] uppercase tracking-wider mt-1.5">
+                Scan at Security
+              </span>
+            </div>
           </div>
-          <ul className="text-xs text-slate-700 space-y-1.5 list-disc list-inside">
-            <li>Gates open promptly at 06:30 PM. Show this barcode or digital pass at turnstiles.</li>
-            <li>Event Timings: 06:30 PM onwards till 10:00 PM. Gates close at 10:00 PM.</li>
-            <li>Entry will be granted only after successful QR scanning at security.</li>
-            <li>Each QR code is uniquely encrypted and admits exactly one person once.</li>
-            <li>Traditional festive attire is celebrated and recommended.</li>
-            <li>Carry valid Government photo ID matching the attendee name.</li>
-          </ul>
         </div>
 
         {/* Footer info line */}

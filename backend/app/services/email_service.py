@@ -432,11 +432,17 @@ class EmailService:
         ticket_view_url = f"{settings.FRONTEND_URL}/ticket/{primary_ticket.qr_token_raw}" if primary_ticket else f"{settings.FRONTEND_URL}/success/{booking.booking_id}"
         pass_text = f"{booking.ticket_count} Official Admission Pass{'es' if booking.ticket_count > 1 else ''}"
         
-        # We display the inline CID image for SMTP; base64 data URI for Resend and console
+        # Resolve scannable QR image source:
+        # Note: Gmail, Outlook.com, and Yahoo strip base64 data: URIs in email bodies.
+        # We generate a high-contrast public CDN QR code URL that Gmail's image proxy renders immediately,
+        # with fallback to CID for offline SMTP readers.
+        raw_qr_token = primary_ticket.qr_token_raw if (primary_ticket and primary_ticket.qr_token_raw) else (getattr(booking, "booking_id", None) or "NAV2026")
+        cdn_qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={raw_qr_token}&color=0f0c20&bgcolor=ffffff"
+
         if provider == "smtp":
-            qr_src = "cid:qrcode_ticket" if primary_ticket else qr_base64
+            qr_src = "cid:qrcode_ticket" if (primary_ticket and primary_ticket.qr_token_raw) else cdn_qr_url
         else:
-            qr_src = qr_base64
+            qr_src = cdn_qr_url
 
         is_group = bool((getattr(booking, "group_discount", 0.0) or 0.0) > 0 or booking.ticket_count == 10)
         reg_amt = getattr(booking, "regular_amount", 0.0) or round(booking.ticket_count * booking.ticket_price, 2)
@@ -683,38 +689,38 @@ class EmailService:
               </td>
             </tr>
 
-            <!-- 3. High-Contrast Centered QR Code Block -->
-            <tr>
-              <td align="center" style="background: #FAFAFA; padding: 20px 14px 16px; border-bottom: 1px solid #E2E8F0;">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="background: #ffffff; padding: 10px; border-radius: 12px; border: 1px solid #CBD5E1; box-shadow: 0 4px 14px rgba(0,0,0,0.1);">
-                  <tr>
-                    <td align="center">
-                      <img src="{qr_src}" alt="Turnstile Admission Barcode" width="180" height="180" style="display: block; width: 180px; height: 180px; border: none;" />
-                    </td>
-                  </tr>
-                </table>
-                <div style="font-size: 11px; color: #64748B; margin-top: 10px; font-weight: 500;">
-                  Scan this barcode at security turnstiles for gate admission
-                </div>
-              </td>
-            </tr>
-
-            <!-- 4. Important Venue Instructions Box (Cream #FFFDF5, Border #FDE68A) -->
+            <!-- 3. Important Venue Instructions Box with Integrated QR Code -->
             <tr>
               <td style="padding: 16px 18px; background: #ffffff;">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #FFFDF5; border: 1px solid #FDE68A; border-radius: 8px; padding: 14px 16px;">
                   <tr>
-                    <td>
+                    <!-- Left: Instructions -->
+                    <td style="vertical-align: middle; padding-right: 14px;">
                       <div style="font-size: 11px; font-weight: 800; color: #B45309; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
                         IMPORTANT VENUE INSTRUCTIONS
                       </div>
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 12px; color: #334155; line-height: 1.6;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 11px; color: #334155; line-height: 1.55;">
                         <tr><td style="padding: 2px 0;">&bull; Gates open promptly at 06:30 PM. Show this barcode or digital pass at turnstiles.</td></tr>
                         <tr><td style="padding: 2px 0;">&bull; Event Timings: 06:30 PM onwards till 10:00 PM. Gates close at 10:00 PM.</td></tr>
                         <tr><td style="padding: 2px 0;">&bull; Entry will be granted only after successful QR scanning at security.</td></tr>
                         <tr><td style="padding: 2px 0;">&bull; Each QR code is uniquely encrypted and admits exactly one person once.</td></tr>
                         <tr><td style="padding: 2px 0;">&bull; Traditional festive attire is celebrated and recommended.</td></tr>
                         <tr><td style="padding: 2px 0;">&bull; Carry valid Government photo ID matching the attendee name.</td></tr>
+                      </table>
+                    </td>
+                    <!-- Right: High-Contrast QR Code Card -->
+                    <td width="150" align="center" style="vertical-align: middle;">
+                      <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="background: #ffffff; padding: 8px; border-radius: 8px; border: 1px solid #CBD5E1; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                        <tr>
+                          <td align="center">
+                            <img src="{qr_src}" alt="Entry QR Code" width="130" height="130" style="display: block; width: 130px; height: 130px; border: none;" />
+                          </td>
+                        </tr>
+                        <tr>
+                          <td align="center" style="padding-top: 6px; font-size: 10px; font-weight: 800; color: #B45309; text-transform: uppercase; letter-spacing: 0.5px;">
+                            Scan at Security
+                          </td>
+                        </tr>
                       </table>
                     </td>
                   </tr>

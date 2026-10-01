@@ -894,6 +894,8 @@ export const SuccessPage: React.FC = () => {
                   ? ticket.qr_code_base64
                   : ticket.qr_code_base64
                   ? `data:image/png;base64,${ticket.qr_code_base64}`
+                  : (ticket.qr_token_raw || ticket.ticket_id)
+                  ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(ticket.qr_token_raw || ticket.ticket_id)}&color=0f0c20&bgcolor=ffffff`
                   : null;
 
                 const isFreeTicket = idx === 9 && isGroupOffer;
