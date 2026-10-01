@@ -197,12 +197,14 @@ export const HomePage: React.FC = () => {
             <div className="flex items-center justify-center gap-4 sm:gap-8">
               {/* Logo 1: Heritage Productions */}
               <div className="flex flex-col items-center group">
-                <div className="relative w-24 h-24 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full p-1 bg-gradient-to-b from-[#f3e4b2] via-[#d4af37] to-[#1a1528] shadow-[0_0_30px_rgba(212,175,55,0.3)] transition-transform duration-500 group-hover:scale-105 bg-black flex items-center justify-center overflow-hidden">
-                  <img
-                    src="/heritage_productions.jpg"
-                    alt="Heritage Productions"
-                    className="w-full h-full object-cover rounded-full"
-                  />
+                <div className="relative w-24 h-24 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full p-1 bg-gradient-to-b from-[#f3e4b2] via-[#d4af37] to-[#1a1528] shadow-[0_0_30px_rgba(212,175,55,0.3)] transition-transform duration-500 group-hover:scale-105 flex items-center justify-center">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-black flex items-center justify-center">
+                    <img
+                      src="/heritage_productions.jpg"
+                      alt="Heritage Productions"
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  </div>
                 </div>
                 <span className="mt-2.5 text-[10px] sm:text-xs font-black tracking-[0.2em] uppercase text-[#f7e8c3] font-['Outfit']">
                   HERITAGE PRODUCTIONS
@@ -218,12 +220,14 @@ export const HomePage: React.FC = () => {
 
               {/* Logo 2: The Happy Circle */}
               <div className="flex flex-col items-center group">
-                <div className="relative w-24 h-24 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full p-1 bg-gradient-to-b from-[#f3e4b2] via-[#d4af37] to-[#1a1528] shadow-[0_0_30px_rgba(212,175,55,0.3)] transition-transform duration-500 group-hover:scale-105 bg-black flex items-center justify-center overflow-hidden">
-                  <img
-                    src="/images/happy-circle-logo.png"
-                    alt="The Happy Circle Official Collaboration Logo"
-                    className="w-full h-full object-contain rounded-full"
-                  />
+                <div className="relative w-24 h-24 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full p-1 bg-gradient-to-b from-[#f3e4b2] via-[#d4af37] to-[#1a1528] shadow-[0_0_30px_rgba(212,175,55,0.3)] transition-transform duration-500 group-hover:scale-105 flex items-center justify-center">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-black flex items-center justify-center">
+                    <img
+                      src="/images/happy-circle-logo.png"
+                      alt="The Happy Circle Official Collaboration Logo"
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  </div>
                 </div>
                 <span className="mt-2.5 text-[10px] sm:text-xs font-black tracking-[0.2em] uppercase text-[#f7e8c3] font-['Outfit']">
                   THE HAPPY CIRCLE

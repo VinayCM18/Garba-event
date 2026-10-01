@@ -183,12 +183,14 @@ export const NavrangIntro: React.FC<NavrangIntroProps> = ({ onComplete }) => {
                     <div className="absolute inset-0 rounded-full bg-gradient-to-b from-[#d4af37]/25 to-transparent blur-2xl scale-125 pointer-events-none" />
 
                     {/* Actual The Happy Circle Logo Asset */}
-                    <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full p-[2.5px] bg-gradient-to-b from-[#f7e8c3] via-[#d4af37] to-[#1a1224] shadow-[0_0_40px_rgba(212,175,55,0.4)] flex items-center justify-center overflow-hidden bg-black">
-                      <img
-                        src="/images/happy-circle-logo.png"
-                        alt="The Happy Circle"
-                        className="w-full h-full object-contain rounded-full"
-                      />
+                    <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full p-[2.5px] bg-gradient-to-b from-[#f7e8c3] via-[#d4af37] to-[#1a1224] shadow-[0_0_40px_rgba(212,175,55,0.4)] flex items-center justify-center">
+                      <div className="w-full h-full rounded-full overflow-hidden bg-black flex items-center justify-center">
+                        <img
+                          src="/images/happy-circle-logo.png"
+                          alt="The Happy Circle"
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      </div>
                       <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-[#d4af37]/40 pointer-events-none" />
                     </div>
                   </div>

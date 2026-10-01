@@ -660,7 +660,7 @@ export const SuccessPage: React.FC = () => {
                   <img
                     src="/images/happy-circle-logo.png"
                     alt="The Happy Circle"
-                    className="w-8 h-8 rounded-full object-contain border border-[#d4af37]/40 p-0.5 bg-black"
+                    className="w-8 h-8 rounded-full object-cover border border-[#d4af37]/40 bg-black"
                   />
                   <span className="text-xs font-black text-white tracking-wider uppercase font-['Outfit']">
                     THE HAPPY CIRCLE

@@ -680,11 +680,11 @@ export const BookingPage: React.FC = () => {
               />
             </div>
             <span className="text-xs text-[#d4af37] font-bold font-mono">×</span>
-            <div className="w-9 h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-md p-0.5 bg-black shrink-0">
+            <div className="w-9 h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-md bg-black shrink-0">
               <img
                 src="/images/happy-circle-logo.png"
                 alt="The Happy Circle Logo"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
               />
             </div>
           </div>

@@ -45,11 +45,11 @@ export const Navbar: React.FC = () => {
             </div>
             <span className="text-[11px] sm:text-xs text-[#d4af37] font-black font-mono">×</span>
             {/* Logo 2: The Happy Circle */}
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-[0_0_10px_rgba(212,175,55,0.3)] group-hover:scale-105 transition-transform bg-black flex items-center justify-center shrink-0 p-0.5">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-[0_0_10px_rgba(212,175,55,0.3)] group-hover:scale-105 transition-transform bg-black flex items-center justify-center shrink-0">
               <img
                 src="/images/happy-circle-logo.png"
                 alt="The Happy Circle"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
               />
             </div>
           </div>

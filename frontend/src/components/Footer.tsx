@@ -19,11 +19,11 @@ export const Footer: React.FC = () => {
                   />
                 </div>
                 <span className="text-xs text-[#d4af37] font-bold font-mono">×</span>
-                <div className="w-8 h-8 rounded-full overflow-hidden border border-[#d4af37]/50 shadow-md bg-black flex items-center justify-center p-0.5 shrink-0">
+                <div className="w-8 h-8 rounded-full overflow-hidden border border-[#d4af37]/50 shadow-md bg-black flex items-center justify-center shrink-0">
                   <img
                     src="/images/happy-circle-logo.png"
                     alt="The Happy Circle"
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover"
                   />
                 </div>
               </div>
