@@ -115,6 +115,30 @@ export const HomePage: React.FC = () => {
       icon: Camera,
       color: 'text-emerald-400',
       bg: 'bg-emerald-500/15'
+    },
+    {
+      title: '🍽️ FOOD',
+      badge: 'EVERY PASS',
+      desc: 'Complimentary food voucher',
+      icon: '🍽️',
+      color: 'text-amber-400',
+      bg: 'bg-amber-500/15'
+    },
+    {
+      title: '🥤 WELCOME DRINK',
+      badge: 'EVERY PASS',
+      desc: 'Complimentary welcome drink / mocktail',
+      icon: '🥤',
+      color: 'text-rose-400',
+      bg: 'bg-rose-500/15'
+    },
+    {
+      title: '🪄 DANDIYA STICKS',
+      badge: 'EVERY PASS',
+      desc: 'Dandiya sticks provided',
+      icon: '🪄',
+      color: 'text-[#d4af37]',
+      bg: 'bg-[#d4af37]/15'
     }
   ];
 
@@ -416,7 +440,11 @@ export const HomePage: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <div className={`w-12 h-12 rounded-xl ${item.bg} flex items-center justify-center ${item.color} group-hover:scale-105 transition-transform`}>
-                      <Icon className="w-6 h-6" />
+                      {typeof Icon === 'string' ? (
+                        <span className="text-2xl">{Icon}</span>
+                      ) : (
+                        <Icon className="w-6 h-6" />
+                      )}
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-slate-300">
                       {item.badge}
@@ -433,86 +461,9 @@ export const HomePage: React.FC = () => {
             );
           })}
         </div>
-      </section>
 
-      {/* ✨ EVERY PASS INCLUDES ✨ Section Styled Just Like Above Containers */}
-      <section id="inclusions" className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#d4af37] px-3.5 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/25 mb-3">
-            ✦ All-Inclusive Festival Perks ✦
-          </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white font-['Outfit']">
-            ✨ EVERY PASS INCLUDES ✨
-          </h2>
-          <p className="mt-3 text-sm text-slate-400">
-            Every pass includes complimentary food voucher, welcome drink and dandiya sticks will be provided.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Container 1: Food */}
-          <div className="p-6 rounded-2xl glass-card-interactive group flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-amber-500/15 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform">
-                  🍽️
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-slate-300">
-                  FOOD
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2 font-['Outfit']">
-                🍽️ FOOD
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Complimentary food voucher
-              </p>
-            </div>
-          </div>
-
-          {/* Container 2: Welcome Drink */}
-          <div className="p-6 rounded-2xl glass-card-interactive group flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-rose-500/15 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform">
-                  🥤
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-slate-300">
-                  WELCOME DRINK
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2 font-['Outfit']">
-                🥤 WELCOME DRINK
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Complimentary welcome drink / mocktail
-              </p>
-            </div>
-          </div>
-
-          {/* Container 3: Dandiya Sticks */}
-          <div className="p-6 rounded-2xl glass-card-interactive group flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-[#d4af37]/15 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform">
-                  🪄
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-slate-300">
-                  DANDIYA STICKS
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2 font-['Outfit']">
-                🪄 DANDIYA STICKS
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Dandiya sticks provided
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Supporting Line */}
-        <div className="mt-8 text-center">
+        {/* Supporting Line for Pass Inclusions */}
+        <div className="mt-10 text-center">
           <p className="text-xs sm:text-sm text-[#f3e4b2] font-semibold max-w-xl mx-auto leading-relaxed">
             Every pass includes complimentary food voucher, welcome drink and dandiya sticks will be provided.
           </p>
