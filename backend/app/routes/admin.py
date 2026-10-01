@@ -29,7 +29,8 @@ from app.schemas.admin import (
     TestEmailRequest,
     RecentNotificationItem
 )
-from app.schemas.booking import BookingListResponse, BookingDetailResponse
+import json
+from app.schemas.booking import BookingListResponse, BookingDetailResponse, BookingItemResponse
 from app.schemas.ticket import TicketResponse
 from app.services.email_service import email_service
 from app.services.qr_service import qr_service
@@ -290,6 +291,42 @@ def get_booking_details(
     grp_disc = getattr(booking, "group_discount", 0.0) or 0.0
     is_grp = grp_disc > 0 or (booking.ticket_count == 10 and grp_disc > 0)
 
+    items_data: list[BookingItemResponse] = []
+    if booking.items:
+        for bi in booking.items:
+            items_data.append(BookingItemResponse(
+                id=bi.id,
+                offer_id=bi.offer_id,
+                offer_title=bi.offer_title,
+                quantity=bi.quantity,
+                passes_per_unit=bi.passes_per_unit,
+                total_passes=bi.total_passes,
+                unit_price=bi.unit_price,
+                line_total=bi.line_total
+            ))
+    elif booking.cart_items_json:
+        try:
+            raw_items = json.loads(booking.cart_items_json)
+            for it in raw_items:
+                items_data.append(BookingItemResponse(
+                    offer_id=it.get("offer_id", ""),
+                    offer_title=it.get("offer_title", ""),
+                    quantity=it.get("quantity", 1),
+                    passes_per_unit=it.get("passes_per_unit", 1),
+                    total_passes=it.get("total_passes", 1),
+                    unit_price=it.get("unit_price", 0.0),
+                    line_total=it.get("line_total", 0.0)
+                ))
+        except Exception:
+            pass
+
+    children_data = None
+    if booking.children_details:
+        try:
+            children_data = json.loads(booking.children_details)
+        except Exception:
+            pass
+
     return BookingDetailResponse(
         id=booking.id,
         booking_id=booking.booking_id,
@@ -330,7 +367,9 @@ def get_booking_details(
         owner_notified_at=booking.owner_notified_at,
         owner_notify_error=booking.owner_notify_error,
         created_at=booking.created_at,
-        tickets=tickets_list
+        tickets=tickets_list,
+        items=items_data,
+        children_details=children_data
     )
 
 @router.post("/bookings/{booking_id}/resend-email")

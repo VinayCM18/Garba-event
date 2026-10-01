@@ -1,10 +1,12 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
 from app.models.booking import Booking
+from app.models.booking_item import BookingItem
 from app.models.event_setting import EventSetting
-from app.schemas.booking import BookingDetailResponse
+from app.schemas.booking import BookingDetailResponse, BookingItemResponse
 from app.schemas.ticket import TicketResponse
 from app.services.ticket_service import ticket_service
 from app.services.qr_service import qr_service
@@ -166,6 +168,42 @@ def get_booking(booking_id: str, db: Session = Depends(get_db)):
     grp_disc = getattr(booking, "group_discount", 0.0) or 0.0
     is_grp = grp_disc > 0 or (booking.ticket_count == 10 and grp_disc > 0)
 
+    items_data: list[BookingItemResponse] = []
+    if booking.items:
+        for bi in booking.items:
+            items_data.append(BookingItemResponse(
+                id=bi.id,
+                offer_id=bi.offer_id,
+                offer_title=bi.offer_title,
+                quantity=bi.quantity,
+                passes_per_unit=bi.passes_per_unit,
+                total_passes=bi.total_passes,
+                unit_price=bi.unit_price,
+                line_total=bi.line_total
+            ))
+    elif booking.cart_items_json:
+        try:
+            raw_items = json.loads(booking.cart_items_json)
+            for it in raw_items:
+                items_data.append(BookingItemResponse(
+                    offer_id=it.get("offer_id", ""),
+                    offer_title=it.get("offer_title", ""),
+                    quantity=it.get("quantity", 1),
+                    passes_per_unit=it.get("passes_per_unit", 1),
+                    total_passes=it.get("total_passes", 1),
+                    unit_price=it.get("unit_price", 0.0),
+                    line_total=it.get("line_total", 0.0)
+                ))
+        except Exception:
+            pass
+
+    children_data = None
+    if booking.children_details:
+        try:
+            children_data = json.loads(booking.children_details)
+        except Exception:
+            pass
+
     return BookingDetailResponse(
         id=booking.id,
         booking_id=booking.booking_id,
@@ -203,7 +241,9 @@ def get_booking(booking_id: str, db: Session = Depends(get_db)):
         email_sent_at=booking.email_sent_at,
         email_error=booking.email_error,
         created_at=booking.created_at,
-        tickets=tickets_data
+        tickets=tickets_data,
+        items=items_data,
+        children_details=children_data
     )
 
 @router.get("/{booking_id}/pdf")

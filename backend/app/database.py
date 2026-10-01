@@ -112,6 +112,8 @@ def sync_database_schema():
                 ("offer_title", "VARCHAR(100) DEFAULT NULL"),
                 ("child_name", "VARCHAR(255) DEFAULT NULL"),
                 ("child_age", "INTEGER DEFAULT NULL"),
+                ("cart_items_json", "TEXT DEFAULT NULL"),
+                ("children_details", "TEXT DEFAULT NULL"),
                 ("admin_email_status", "VARCHAR(50) DEFAULT 'PENDING'"),
                 ("admin_email_sent_at", "DATETIME DEFAULT NULL"),
                 ("admin_email_error", "TEXT DEFAULT NULL"),
@@ -184,11 +186,12 @@ def sync_database_schema():
             except Exception as e:
                 logger.warning(f"Could not migrate event_settings payment_method: {e}")
 
-    # Ensure ticket_phases table exists
+    # Ensure ticket_phases and booking_items tables exist
     try:
         from app.models.ticket_phase import TicketPhase
-        Base.metadata.create_all(bind=engine, tables=[TicketPhase.__table__])
+        from app.models.booking_item import BookingItem
+        Base.metadata.create_all(bind=engine, tables=[TicketPhase.__table__, BookingItem.__table__])
     except Exception as e:
-        logger.warning(f"Could not ensure ticket_phases table: {e}")
+        logger.warning(f"Could not ensure ticket_phases / booking_items tables: {e}")
 
 

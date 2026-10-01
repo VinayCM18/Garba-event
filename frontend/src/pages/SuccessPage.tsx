@@ -743,7 +743,45 @@ export const SuccessPage: React.FC = () => {
 
           {/* Confirmation Summary Card */}
           <div className="glass-panel-gold rounded-3xl p-6 sm:p-8 border border-[#d4af37]/30 shadow-2xl mb-8">
-            {booking.offer_title && (
+            {booking.items && booking.items.length > 0 ? (
+              <div className="mb-6 p-4 rounded-2xl bg-black/40 border border-[#d4af37]/30 space-y-3">
+                <div className="text-[11px] uppercase font-bold text-[#d4af37] tracking-wider">
+                  Booked Items ({booking.items.length})
+                </div>
+                <div className="space-y-2">
+                  {booking.items.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs py-1 border-b border-white/[0.06] last:border-0">
+                      <div>
+                        <div className="font-bold text-white text-sm">
+                          {item.quantity} × {item.offer_title}
+                        </div>
+                        <div className="text-[11px] text-emerald-400 font-medium mt-0.5">
+                          {item.total_passes} Entry Pass{item.total_passes > 1 ? 'es' : ''} ({item.passes_per_unit} per unit)
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-mono font-bold text-[#f3e4b2] text-sm">
+                          ₹{item.line_total.toLocaleString('en-IN')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {booking.children_details && booking.children_details.length > 0 && (
+                  <div className="pt-2 border-t border-white/10 mt-2">
+                    <div className="text-[10px] text-slate-400 uppercase font-bold">Child Attendees:</div>
+                    <div className="text-xs text-emerald-400 font-semibold mt-1 flex flex-wrap gap-2">
+                      {booking.children_details.map((c, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+                          {c.name} ({c.age} years)
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : booking.offer_title ? (
               <div className="mb-4 pb-4 border-b border-white/[0.08] flex items-center justify-between">
                 <div>
                   <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">OFFER SELECTED</div>
@@ -756,7 +794,7 @@ export const SuccessPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center pb-6 border-b border-white/[0.08]">
               <div>
                 <div className="text-[11px] text-slate-400 uppercase font-bold tracking-wider">Booking ID</div>

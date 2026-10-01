@@ -28,6 +28,8 @@ class Booking(Base):
     offer_title = Column(String(100), nullable=True)
     child_name = Column(String(255), nullable=True)
     child_age = Column(Integer, nullable=True)
+    cart_items_json = Column(Text, nullable=True)
+    children_details = Column(Text, nullable=True)
     
     # Payment & Provider Details
     payment_method = Column(String(50), default="UPI_MANUAL", nullable=False) # UPI_MANUAL, RAZORPAY
@@ -77,3 +79,4 @@ class Booking(Base):
     # Relationships
     tickets = relationship("Ticket", back_populates="booking", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="booking", cascade="all, delete-orphan")
+    items = relationship("BookingItem", back_populates="booking", cascade="all, delete-orphan", order_by="BookingItem.id")

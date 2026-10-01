@@ -485,6 +485,51 @@ class EmailService:
               </div>
             """
 
+        # Check for cart items breakdown
+        cart_items_list = []
+        if booking.items:
+            for bi in booking.items:
+                cart_items_list.append({
+                    "title": bi.offer_title,
+                    "quantity": bi.quantity,
+                    "passes": bi.total_passes,
+                    "line_total": bi.line_total
+                })
+        elif getattr(booking, "cart_items_json", None):
+            try:
+                raw_c = json.loads(booking.cart_items_json)
+                for it in raw_c:
+                    cart_items_list.append({
+                        "title": it.get("offer_title", ""),
+                        "quantity": it.get("quantity", 1),
+                        "passes": it.get("total_passes", 1),
+                        "line_total": it.get("line_total", 0.0)
+                    })
+            except Exception:
+                pass
+
+        cart_breakdown_html = ""
+        if cart_items_list:
+            cart_breakdown_html = """
+                      <tr style="border-top: 1px solid #23293e;">
+                        <td colspan="2" style="padding: 10px 0 4px; font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #d4af37; text-transform: uppercase;">
+                          TICKET ORDER BREAKDOWN:
+                        </td>
+                      </tr>
+            """
+            for itm in cart_items_list:
+                cart_breakdown_html += f"""
+                      <tr>
+                        <td style="padding: 6px 0; font-size: 13px; color: #cbd5e1;">
+                          <strong>{itm['quantity']} × {itm['title']}</strong><br/>
+                          <span style="font-size: 11px; color: #94a3b8;">({itm['passes']} Admission Pass{'es' if itm['passes'] > 1 else ''})</span>
+                        </td>
+                        <td style="padding: 6px 0; font-size: 13px; font-weight: 800; color: #f3e4b2; text-align: right; vertical-align: top;">
+                          ₹{itm['line_total']:,.2f}
+                        </td>
+                      </tr>
+                """
+
         price_rows_html = f"""
                       <tr>
                         <td style="padding: 6px 0; font-size: 13px; color: #94a3b8; width: 45%;">Selected Offer:</td>
@@ -495,6 +540,7 @@ class EmailService:
                         <td style="padding: 6px 0; font-size: 13px; font-weight: 700; color: #ffffff; text-align: right;">{booking.ticket_count} Pass{'es' if booking.ticket_count > 1 else ''}</td>
                       </tr>
                       {child_row_html}
+                      {cart_breakdown_html}
         """
         if is_group:
             price_rows_html += f"""
@@ -826,6 +872,49 @@ class EmailService:
                 </tr>
             """
 
+        owner_cart_breakdown_html = ""
+        cart_items = []
+        if booking.items:
+            for bi in booking.items:
+                cart_items.append({
+                    "title": bi.offer_title,
+                    "quantity": bi.quantity,
+                    "passes": bi.total_passes,
+                    "line_total": bi.line_total
+                })
+        elif getattr(booking, "cart_items_json", None):
+            try:
+                raw_c = json.loads(booking.cart_items_json)
+                for it in raw_c:
+                    cart_items.append({
+                        "title": it.get("offer_title", ""),
+                        "quantity": it.get("quantity", 1),
+                        "passes": it.get("total_passes", 1),
+                        "line_total": it.get("line_total", 0.0)
+                    })
+            except Exception:
+                pass
+
+        if cart_items:
+            owner_cart_breakdown_html = """
+                <tr>
+                  <td colspan="2" style="padding: 10px 18px 4px; font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #d4af37; text-transform: uppercase; border-bottom: 1px solid #1a1e30; background: #0f121d;">
+                    Cart Items Breakdown:
+                  </td>
+                </tr>
+            """
+            for itm in cart_items:
+                owner_cart_breakdown_html += f"""
+                <tr>
+                  <td style="padding: 8px 18px; font-size: 13px; color: #cbd5e1; border-bottom: 1px solid #1a1e30;">
+                    {itm['quantity']} × {itm['title']} ({itm['passes']} Passes)
+                  </td>
+                  <td style="padding: 8px 18px; font-size: 13px; font-weight: 800; color: #f3e4b2; border-bottom: 1px solid #1a1e30; text-align: right;">
+                    ₹{itm['line_total']:,.2f}
+                  </td>
+                </tr>
+                """
+
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -981,6 +1070,7 @@ class EmailService:
                     {offer_title_display}
                   </td>
                 </tr>
+                {owner_cart_breakdown_html}
                 {child_alert_row}
                 <tr>
                   <td style="padding: 11px 18px; font-size: 13px; color: #94a3b8; border-bottom: 1px solid #1a1e30;">Passes Purchased:</td>

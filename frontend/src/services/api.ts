@@ -72,6 +72,16 @@ export const fetchPublicConfig = async (): Promise<EventConfig> => {
   return res.data;
 };
 
+export interface FeeCalculationItem {
+  offer_id: string;
+  offer_title: string;
+  quantity: number;
+  passes_per_unit: number;
+  total_passes: number;
+  unit_price: number;
+  line_total: number;
+}
+
 export interface FeeCalculation {
   ticket_phase?: string;
   phase_name?: string;
@@ -95,14 +105,20 @@ export interface FeeCalculation {
   offer_title?: string;
   passes_count?: number;
   free_tickets?: number;
+  items?: FeeCalculationItem[];
 }
 
 export const calculatePaymentFee = async (
   ticketCount: number = 1,
   ticketPhase: string = 'EARLY_BIRD',
   offerId?: string,
-  quantity?: number
+  quantity?: number,
+  items?: Array<{ offer_id: string; quantity: number }>
 ): Promise<FeeCalculation> => {
+  if (items && items.length > 0) {
+    const res = await api.post('/api/payments/calculate', { items });
+    return res.data;
+  }
   const params: Record<string, any> = { ticket_count: ticketCount, ticket_phase: ticketPhase };
   if (offerId) params.offer_id = offerId;
   if (quantity) params.quantity = quantity;
@@ -118,6 +134,8 @@ export const createPaymentOrder = async (payload: {
   ticket_phase?: string;
   offer_id?: string;
   quantity?: number;
+  items?: Array<{ offer_id: string; quantity: number }>;
+  children?: Array<{ name: string; age: number }>;
   child_name?: string;
   child_age?: number;
   idempotency_key?: string;

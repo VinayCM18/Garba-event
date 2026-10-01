@@ -1,9 +1,20 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional, List, Dict, Any
+
+class CartItemInput(BaseModel):
+    offer_id: str
+    quantity: int = Field(1, ge=1, le=50)
+
+class ChildInput(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    age: int = Field(..., ge=5, le=12)
 
 class CalculateFeeRequest(BaseModel):
-    ticket_count: int = Field(..., ge=1, le=10)
+    ticket_count: Optional[int] = Field(default=1, ge=1, le=500)
     ticket_phase: Optional[str] = "EARLY_BIRD"
+    offer_id: Optional[str] = None
+    quantity: Optional[int] = Field(default=1, ge=1, le=50)
+    items: Optional[List[CartItemInput]] = None
 
 class CalculateFeeResponse(BaseModel):
     ticket_price: float
@@ -32,18 +43,23 @@ class CalculateFeeResponse(BaseModel):
     unit_price: Optional[float] = None
     is_kids: bool = False
     id_proof_note: Optional[str] = None
+    items: Optional[List[Dict[str, Any]]] = None
+    total_passes: Optional[int] = None
+    is_mixed_cart: bool = False
 
 class CreateOrderRequest(BaseModel):
     customer_name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
     phone: str = Field(..., min_length=10, max_length=15)
-    ticket_count: Optional[int] = Field(default=None, ge=1, le=50)
+    ticket_count: Optional[int] = Field(default=None, ge=1, le=500)
     ticket_phase: Optional[str] = "EARLY_BIRD"
     idempotency_key: Optional[str] = None
     offer_id: Optional[str] = None
-    quantity: Optional[int] = Field(default=1, ge=1, le=10)
+    quantity: Optional[int] = Field(default=1, ge=1, le=50)
     child_name: Optional[str] = None
     child_age: Optional[int] = None
+    items: Optional[List[CartItemInput]] = None
+    children: Optional[List[ChildInput]] = None
 
 class CreateOrderResponse(BaseModel):
     payment_method: str = "RAZORPAY" # "RAZORPAY" or "UPI_MANUAL"
@@ -75,6 +91,10 @@ class CreateOrderResponse(BaseModel):
     passes_count: Optional[int] = None
     child_name: Optional[str] = None
     child_age: Optional[int] = None
+    items: Optional[List[Dict[str, Any]]] = None
+    total_passes: Optional[int] = None
+    is_mixed_cart: bool = False
+    children_details: Optional[List[Dict[str, Any]]] = None
     
     # Manual UPI Fields
     payment_id: Optional[str] = None

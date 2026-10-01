@@ -1,4 +1,5 @@
 import os
+import json
 from typing import Optional, Dict, Any, List
 import random
 import string
@@ -8,6 +9,7 @@ from sqlalchemy import func
 from fastapi import HTTPException, status
 from app.config import settings
 from app.models.booking import Booking
+from app.models.booking_item import BookingItem
 from app.models.ticket import Ticket
 from app.models.payment import Payment
 from app.models.event_setting import EventSetting
@@ -124,9 +126,15 @@ class BookingService:
         ticket_count: int = 1,
         ticket_phase: Optional[str] = "EARLY_BIRD",
         offer_id: Optional[str] = None,
-        quantity: Optional[int] = 1
+        quantity: Optional[int] = 1,
+        items: Optional[List[Dict[str, Any]]] = None
     ) -> dict:
-        """Calculates exact server-side pricing breakdown via payment_service."""
+        """Calculates exact server-side pricing breakdown via payment_service or cart model."""
+        from app.models.offers import calculate_cart_pricing, calculate_offer_pricing
+        if items and len(items) > 0:
+            return calculate_cart_pricing(items, db=db)
+        if offer_id:
+            return calculate_offer_pricing(offer_id=offer_id, quantity=quantity or 1, db=db)
         from app.services.payment_service import payment_service
         return payment_service.calculate_pricing(
             db=db,
@@ -150,8 +158,10 @@ class BookingService:
         quantity: Optional[int] = 1,
         child_name: Optional[str] = None,
         child_age: Optional[int] = None,
+        items: Optional[List[Any]] = None,
+        children: Optional[List[Any]] = None,
     ) -> tuple[Booking, dict]:
-        """Validates capacity, initializes pending booking, and returns payment checkout info."""
+        """Validates capacity, initializes pending booking with cart/items, and returns payment checkout info."""
         event_setting = db.query(EventSetting).first()
         if not event_setting:
             event_setting = EventSetting()
@@ -161,37 +171,23 @@ class BookingService:
         from app.services.payment_service import payment_service
         provider = payment_service.get_provider(db)
 
-        # Calculate exact server-side pricing for requested ticket offer or phase
-        if offer_id:
-            from app.models.offers import calculate_offer_pricing
-            pricing = calculate_offer_pricing(offer_id=offer_id, quantity=quantity or 1, db=db)
-            resolved_ticket_count = pricing["passes_count"]
+        # Normalize items if provided
+        normalized_items: List[Dict[str, Any]] = []
+        if items and len(items) > 0:
+            for it in items:
+                if hasattr(it, "offer_id"):
+                    normalized_items.append({"offer_id": it.offer_id, "quantity": getattr(it, "quantity", 1)})
+                elif isinstance(it, dict):
+                    normalized_items.append({"offer_id": it.get("offer_id") or it.get("id"), "quantity": it.get("quantity", 1)})
+        elif offer_id:
+            normalized_items.append({"offer_id": offer_id, "quantity": quantity or 1})
+
+        # Calculate exact server-side pricing for requested ticket offer, cart, or phase
+        if normalized_items:
+            from app.models.offers import calculate_cart_pricing
+            pricing = calculate_cart_pricing(items=normalized_items, db=db)
+            resolved_ticket_count = pricing["total_passes"]
             resolved_phase = pricing["ticket_phase"]
-            
-            # Validation for kids offer
-            if pricing.get("is_kids"):
-                if not child_name or not child_name.strip():
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Child's full name is required for Kids ticket."
-                    )
-                if child_age is None or str(child_age).strip() == "":
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Child's age is required for Kids ticket (ages 5 to 12)."
-                    )
-                try:
-                    c_age = int(child_age)
-                    if c_age < 5 or c_age > 12:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Kids ticket is only applicable for children aged 5 to 12 years."
-                        )
-                except (ValueError, TypeError):
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Invalid child age specified. Must be an integer between 5 and 12."
-                    )
         else:
             resolved_ticket_count = ticket_count or 1
             resolved_phase = ticket_phase or "EARLY_BIRD"
@@ -204,7 +200,73 @@ class BookingService:
 
         total_amount = pricing["total_amount"]
 
-        # Check venue capacity
+        # Kids Offer Validation (collect & validate each child record independently)
+        kids_count = pricing.get("kids_count", 0)
+        validated_children: List[Dict[str, Any]] = []
+        if kids_count > 0:
+            if children and len(children) > 0:
+                if len(children) != kids_count:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Please provide details for all {kids_count} children. Received {len(children)} record(s)."
+                    )
+                for idx, c in enumerate(children, 1):
+                    c_name = c.get("name") if isinstance(c, dict) else getattr(c, "name", None)
+                    c_age = c.get("age") if isinstance(c, dict) else getattr(c, "age", None)
+                    if not c_name or not str(c_name).strip():
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Child #{idx} full name is required."
+                        )
+                    try:
+                        c_age_int = int(c_age)
+                        if c_age_int < 5 or c_age_int > 12:
+                            raise HTTPException(
+                                status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"Child #{idx} ({c_name}) age must be between 5 and 12 years (got {c_age_int}). Valid ID proof required at entry."
+                            )
+                    except (ValueError, TypeError):
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Invalid child age for Child #{idx} ({c_name}). Must be an integer between 5 and 12."
+                        )
+                    validated_children.append({"name": str(c_name).strip(), "age": c_age_int})
+            elif child_name is not None or child_age is not None:
+                if kids_count > 1:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Please provide name and age (5–12) for all {kids_count} children."
+                    )
+                if not child_name or not str(child_name).strip():
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Child's full name is required for Kids ticket."
+                    )
+                if child_age is None or str(child_age).strip() == "":
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Child's age is required for Kids ticket (ages 5 to 12)."
+                    )
+                try:
+                    c_age_int = int(child_age)
+                    if c_age_int < 5 or c_age_int > 12:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Kids ticket is only applicable for children aged 5 to 12 years."
+                        )
+                except (ValueError, TypeError):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid child age specified. Must be an integer between 5 and 12."
+                    )
+                validated_children.append({"name": str(child_name).strip(), "age": c_age_int})
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Child's full name is required for Kids ticket. Please provide details for all {kids_count} kids ticket(s)."
+                )
+
+        # Check venue capacity in terms of passes
         is_avail, remaining, _ = cls.check_capacity(db, requested_tickets=resolved_ticket_count)
         if not is_avail:
             raise HTTPException(
@@ -236,6 +298,24 @@ class BookingService:
                 method = existing_booking.payment_method or provider.provider_code
                 is_razorpay = (method == "RAZORPAY")
 
+                existing_items = []
+                if existing_booking.items:
+                    for bi in existing_booking.items:
+                        existing_items.append({
+                            "offer_id": bi.offer_id,
+                            "offer_title": bi.offer_title,
+                            "quantity": bi.quantity,
+                            "passes_per_unit": bi.passes_per_unit,
+                            "total_passes": bi.total_passes,
+                            "unit_price": bi.unit_price,
+                            "line_total": bi.line_total
+                        })
+                elif existing_booking.cart_items_json:
+                    try:
+                        existing_items = json.loads(existing_booking.cart_items_json)
+                    except Exception:
+                        pass
+
                 return existing_booking, {
                     "payment_method": method,
                     "payment_id": existing_payment.payment_id if existing_payment else f"PAY-{existing_booking.booking_id}",
@@ -258,6 +338,9 @@ class BookingService:
                     "passes_count": existing_booking.ticket_count,
                     "child_name": existing_booking.child_name,
                     "child_age": existing_booking.child_age,
+                    "items": existing_items if existing_items else pricing.get("items"),
+                    "total_passes": existing_booking.ticket_count,
+                    "is_mixed_cart": len(existing_items) > 1,
                     "upi_id": None if is_razorpay else upi_id,
                     "upi_qr_image_url": None if is_razorpay else "/api/payments/qr-image",
                     "upi_payment_instructions": None if is_razorpay else upi_instructions,
@@ -269,7 +352,7 @@ class BookingService:
 
         booking_id = cls.generate_booking_id(db)
 
-        # Create Pending Booking with reservation expiration, offer and fee breakdown
+        # Create Pending Booking with reservation expiration, offer, cart items, and children records
         new_booking = Booking(
             booking_id=booking_id,
             customer_name=customer_name.strip(),
@@ -293,13 +376,30 @@ class BookingService:
             reservation_expires_at=reservation_expires,
             offer_id=pricing.get("offer_id"),
             offer_title=pricing.get("offer_title"),
-            child_name=child_name.strip() if child_name else None,
-            child_age=int(child_age) if child_age is not None else None
+            child_name=validated_children[0]["name"] if validated_children else (child_name.strip() if child_name else None),
+            child_age=validated_children[0]["age"] if validated_children else (int(child_age) if child_age is not None else None),
+            cart_items_json=json.dumps(pricing.get("items", [])),
+            children_details=json.dumps(validated_children) if validated_children else None
         )
         db.add(new_booking)
         db.flush()
 
-        # Delegate checkout initialization to the active payment provider
+        # Create BookingItem rows for each item in the cart
+        for it in pricing.get("items", []):
+            b_item = BookingItem(
+                booking_id=new_booking.id,
+                offer_id=it["offer_id"],
+                offer_title=it["offer_title"],
+                quantity=it["quantity"],
+                passes_per_unit=it["passes_per_unit"],
+                total_passes=it["total_passes"],
+                unit_price=it["unit_price"],
+                line_total=it["line_total"]
+            )
+            db.add(b_item)
+        db.flush()
+
+        # Delegate checkout initialization to the active payment provider (creates 1 Razorpay order for cart amount)
         order_info = payment_service.initiate_payment_order(
             booking=new_booking,
             db=db,
@@ -319,6 +419,10 @@ class BookingService:
             "amount": total_amount,
             "currency": "INR",
             "is_group_offer": pricing.get("is_group_offer", False),
+            "is_mixed_cart": pricing.get("is_mixed_cart", False),
+            "items": pricing.get("items"),
+            "total_passes": resolved_ticket_count,
+            "children_details": validated_children if validated_children else None,
             "offer_name": pricing.get("offer_name"),
             "offer_id": pricing.get("offer_id"),
             "offer_title": pricing.get("offer_title"),
@@ -396,14 +500,40 @@ class BookingService:
             event_name = event_setting.event_name if event_setting else "NAVRANG 2026"
             clean_booking_num = booking.booking_id.replace("GN-2026-", "").replace("GN", "")
 
+            # Build list of attendee names based on cart items & children
+            pass_attendees = []
+            booking_items = db.query(BookingItem).filter(BookingItem.booking_id == booking.id).order_by(BookingItem.id.asc()).all()
+
+            children_list = []
+            if booking.children_details:
+                try:
+                    children_list = json.loads(booking.children_details)
+                except Exception:
+                    pass
+
+            if booking_items:
+                child_idx = 0
+                for b_item in booking_items:
+                    for _ in range(b_item.total_passes):
+                        if b_item.offer_id == "KIDS_5_12" and child_idx < len(children_list):
+                            ch = children_list[child_idx]
+                            child_idx += 1
+                            pass_attendees.append(f"{ch['name']} (Kids Pass, Age {ch['age']})")
+                        else:
+                            pass_attendees.append(booking.customer_name)
+            elif booking.child_name and (booking.offer_id == "KIDS_5_12" or "KIDS" in (booking.offer_id or "")):
+                pass_attendees.append(f"{booking.child_name} (Kids Pass, Age {booking.child_age})")
+
             for i in range(1, booking.ticket_count + 1):
                 ticket_code = f"GN26-TKT-{clean_booking_num.zfill(6)}-{str(i).zfill(2)}"
                 raw_token, token_hash = qr_service.generate_token_pair()
 
+                att_name = pass_attendees[i - 1] if i - 1 < len(pass_attendees) else booking.customer_name
+
                 ticket = Ticket(
                     ticket_id=ticket_code,
                     booking_id=booking.id,
-                    customer_name=booking.customer_name,
+                    customer_name=att_name,
                     event_name=event_name,
                     qr_token_hash=token_hash,
                     qr_token_raw=raw_token,

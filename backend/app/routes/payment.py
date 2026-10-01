@@ -13,6 +13,7 @@ from app.database import get_db
 from app.config import settings
 from app.models.event_setting import EventSetting
 from app.schemas.payment import (
+    CalculateFeeRequest,
     CalculateFeeResponse,
     CreateOrderRequest,
     CreateOrderResponse,
@@ -31,10 +32,10 @@ QR_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "up
 
 @router.get("/calculate", response_model=CalculateFeeResponse)
 def calculate_fee(
-    ticket_count: Optional[int] = Query(None, ge=1, le=50),
+    ticket_count: Optional[int] = Query(None, ge=1, le=500),
     ticket_phase: Optional[str] = Query("EARLY_BIRD"),
     offer_id: Optional[str] = Query(None),
-    quantity: Optional[int] = Query(1, ge=1, le=10),
+    quantity: Optional[int] = Query(1, ge=1, le=50),
     db: Session = Depends(get_db)
 ):
     """Calculates server-side ticket pricing breakdown using the active payment provider, ticket phase, or offer."""
@@ -44,6 +45,18 @@ def calculate_fee(
         ticket_phase=ticket_phase,
         offer_id=offer_id,
         quantity=quantity or 1
+    )
+
+@router.post("/calculate", response_model=CalculateFeeResponse)
+def calculate_fee_post(payload: CalculateFeeRequest, db: Session = Depends(get_db)):
+    """Calculates server-side ticket pricing breakdown for a mixed cart or single offer via POST."""
+    return booking_service.calculate_pricing(
+        db=db,
+        ticket_count=payload.ticket_count or 1,
+        ticket_phase=payload.ticket_phase,
+        offer_id=payload.offer_id,
+        quantity=payload.quantity or 1,
+        items=payload.items
     )
 
 @router.get("/create-order")
@@ -82,7 +95,9 @@ def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_
         offer_id=payload.offer_id,
         quantity=payload.quantity or 1,
         child_name=payload.child_name,
-        child_age=payload.child_age
+        child_age=payload.child_age,
+        items=payload.items,
+        children=payload.children
     )
 
     active_method = order_info.get("payment_method", getattr(booking, "payment_method", "RAZORPAY"))
@@ -124,6 +139,10 @@ def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_
         child_name=booking.child_name,
         child_age=booking.child_age,
         free_tickets=order_info.get("free_tickets", 0),
+        items=order_info.get("items"),
+        total_passes=order_info.get("total_passes", booking.ticket_count),
+        is_mixed_cart=order_info.get("is_mixed_cart", False),
+        children_details=order_info.get("children_details"),
         # UPI Manual details (strictly suppressed for Razorpay orders)
         upi_id=None if is_razorpay else order_info.get("upi_id"),
         upi_qr_image_url=None if is_razorpay else order_info.get("upi_qr_image_url", "/api/payments/qr-image"),

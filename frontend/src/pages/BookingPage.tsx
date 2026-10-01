@@ -25,7 +25,9 @@ import {
   Check,
   ChevronLeft,
   ShieldCheck,
-  Info
+  Info,
+  Trash2,
+  ShoppingCart
 } from 'lucide-react';
 import {
   fetchPublicConfig,
@@ -33,7 +35,8 @@ import {
   verifyPaymentSignature,
   failPaymentOrder,
   calculatePaymentFee,
-  FeeCalculation
+  FeeCalculation,
+  FeeCalculationItem
 } from '../services/api';
 import { EventConfig, TicketOffer } from '../types';
 import { useToast } from '../components/Toast';
@@ -154,18 +157,20 @@ const DEFAULT_OFFERS: OfferItem[] = [
   }
 ];
 
-const bookingSchema = z.object({
+const contactSchema = z.object({
   customer_name: z.string().min(2, 'Please enter your full name (minimum 2 characters)'),
   email: z.string().email('Please enter a valid email address'),
   phone: z
     .string()
-    .regex(/^(?:\+91|91)?[6-9]\d{9}$/, 'Please enter a valid 10-digit Indian phone number (starting 6-9)'),
-  quantity: z.number().min(1, 'Minimum quantity is 1').max(10, 'Maximum quantity is 10'),
-  child_name: z.string().optional(),
-  child_age: z.string().optional()
+    .regex(/^(?:\+91|91)?[6-9]\d{9}$/, 'Please enter a valid 10-digit Indian phone number (starting 6-9)')
 });
 
-type BookingFormData = z.infer<typeof bookingSchema>;
+type ContactFormData = z.infer<typeof contactSchema>;
+
+interface ChildRecord {
+  name: string;
+  age: string;
+}
 
 declare global {
   interface Window {
@@ -180,13 +185,21 @@ export const BookingPage: React.FC = () => {
 
   const [config, setConfig] = useState<EventConfig | null>(null);
   const [offersList, setOffersList] = useState<OfferItem[]>(DEFAULT_OFFERS);
-  const [selectedOfferId, setSelectedOfferId] = useState<string>('EARLY_BIRD_STAG');
-  const [bookingStep, setBookingStep] = useState<'OFFERS' | 'DETAILS'>('OFFERS');
 
+  // Cart state: Record<offer_id, quantity>
+  const [cart, setCart] = useState<Record<string, number>>({
+    EARLY_BIRD_STAG: 1
+  });
+
+  const [bookingStep, setBookingStep] = useState<'OFFERS' | 'DETAILS'>('OFFERS');
   const [submitting, setSubmitting] = useState(false);
   const [loadingStatusText, setLoadingStatusText] = useState('Initializing order...');
   const [pricing, setPricing] = useState<FeeCalculation | null>(null);
   const [calculatingFee, setCalculatingFee] = useState(false);
+
+  // Kids records: 1 per child in cart
+  const [childrenList, setChildrenList] = useState<ChildRecord[]>([]);
+  const [childValidationErrors, setChildValidationErrors] = useState<Record<number, { name?: string; age?: string }>>({});
 
   // Modal states
   const [simulatorOpen, setSimulatorOpen] = useState(false);
@@ -196,25 +209,15 @@ export const BookingPage: React.FC = () => {
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
-    setError,
     formState: { errors }
-  } = useForm<BookingFormData>({
-    resolver: zodResolver(bookingSchema),
+  } = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
     defaultValues: {
       customer_name: '',
       email: '',
-      phone: '',
-      quantity: 1,
-      child_name: '',
-      child_age: ''
+      phone: ''
     }
   });
-
-  const quantity = watch('quantity') || 1;
-  const childNameValue = watch('child_name');
-  const childAgeValue = watch('child_age');
 
   // Load public event config and offer definitions from backend
   useEffect(() => {
@@ -268,28 +271,41 @@ export const BookingPage: React.FC = () => {
     if (offerParam) {
       const match = DEFAULT_OFFERS.find((o) => o.id === offerParam.toUpperCase());
       if (match && match.is_purchasable) {
-        setSelectedOfferId(match.id);
-        setBookingStep('DETAILS');
+        setCart({ [match.id]: 1 });
       }
     } else {
       const countParam = searchParams.get('count');
       if (countParam === '10') {
-        setSelectedOfferId('EARLY_BIRD_GROUP_10');
-        setBookingStep('DETAILS');
+        setCart({ EARLY_BIRD_GROUP_10: 1 });
       }
     }
   }, [searchParams]);
 
-  // Selected Offer reference
-  const selectedOffer = offersList.find((o) => o.id === selectedOfferId) || DEFAULT_OFFERS[0];
-  const isKidsOffer = selectedOffer.type === 'KIDS';
-  const isGroupOffer = selectedOffer.type === 'GROUP';
-  const isCoupleOffer = selectedOffer.type === 'COUPLE';
+  // Keep children list synchronized with kids ticket quantity
+  const kidsOffer = offersList.find((o) => o.type === 'KIDS');
+  const kidsOfferId = kidsOffer ? kidsOffer.id : 'KIDS_5_12';
+  const kidsQuantity = cart[kidsOfferId] || 0;
 
-  // Trigger celebratory confetti when group offer is chosen
-  const prevOfferRef = useRef(selectedOfferId);
   useEffect(() => {
-    if (selectedOfferId === 'EARLY_BIRD_GROUP_10' && prevOfferRef.current !== 'EARLY_BIRD_GROUP_10') {
+    setChildrenList((prev) => {
+      if (prev.length === kidsQuantity) return prev;
+      const next = [...prev];
+      if (next.length < kidsQuantity) {
+        while (next.length < kidsQuantity) {
+          next.push({ name: '', age: '7' });
+        }
+      } else {
+        next.splice(kidsQuantity);
+      }
+      return next;
+    });
+  }, [kidsQuantity]);
+
+  // Celebrate when group offer added to cart
+  const prevGroupQty = useRef(cart['EARLY_BIRD_GROUP_10'] || 0);
+  useEffect(() => {
+    const currentGroupQty = cart['EARLY_BIRD_GROUP_10'] || 0;
+    if (currentGroupQty > 0 && prevGroupQty.current === 0) {
       try {
         confetti({
           particleCount: 50,
@@ -301,19 +317,43 @@ export const BookingPage: React.FC = () => {
         // confetti fallback
       }
     }
-    prevOfferRef.current = selectedOfferId;
-  }, [selectedOfferId]);
+    prevGroupQty.current = currentGroupQty;
+  }, [cart]);
 
-  // Authoritatively recalculate fee whenever offer or quantity changes
+  // Active cart items (non-zero quantities)
+  const cartEntries = Object.entries(cart)
+    .filter(([_, qty]) => qty > 0)
+    .map(([offerId, qty]) => {
+      const offer = offersList.find((o) => o.id === offerId) || DEFAULT_OFFERS.find((o) => o.id === offerId);
+      const title = offer?.title || offerId;
+      const price = offer?.price || 0;
+      const perUnitPasses = offer?.per_unit_passes || 1;
+      return {
+        offer_id: offerId,
+        quantity: qty,
+        title,
+        price,
+        perUnitPasses,
+        totalPasses: perUnitPasses * qty,
+        subtotal: price * qty
+      };
+    });
+
+  // Calculate Authoritative Backend Pricing
   useEffect(() => {
     let isCurrent = true;
+    if (cartEntries.length === 0) {
+      setPricing(null);
+      return;
+    }
+
     setCalculatingFee(true);
-    calculatePaymentFee(
-      selectedOffer.per_unit_passes * quantity,
-      selectedOffer.phase_code,
-      selectedOffer.id,
-      quantity
-    )
+    const cartPayload = cartEntries.map((e) => ({
+      offer_id: e.offer_id,
+      quantity: e.quantity
+    }));
+
+    calculatePaymentFee(undefined, undefined, undefined, undefined, cartPayload)
       .then((res) => {
         if (isCurrent) {
           setPricing(res);
@@ -328,52 +368,94 @@ export const BookingPage: React.FC = () => {
     return () => {
       isCurrent = false;
     };
-  }, [selectedOfferId, quantity, selectedOffer.per_unit_passes, selectedOffer.phase_code, selectedOffer.id]);
+  }, [cart]);
 
-  const ticketSubtotal = pricing?.ticket_subtotal ?? selectedOffer.price * quantity;
-  const totalPayable = pricing?.total_amount ?? ticketSubtotal;
-  const totalPasses = pricing?.passes_count ?? selectedOffer.per_unit_passes * quantity;
+  // Totals: prioritize authoritative backend values, fallback to optimistic UI
+  const totalPasses = pricing?.passes_count ?? cartEntries.reduce((sum, e) => sum + e.totalPasses, 0);
+  const totalAmount = pricing?.total_amount ?? cartEntries.reduce((sum, e) => sum + e.subtotal, 0);
 
-  const handleSelectOffer = (offer: OfferItem) => {
-    if (!offer.is_purchasable) {
+  // Cart manipulation handlers
+  const handleSetQuantity = (offerId: string, nextQty: number) => {
+    const offer = offersList.find((o) => o.id === offerId);
+    if (offer && !offer.is_purchasable) {
       info('Coming Soon', `${offer.title} is not active yet. Please select an available Early Bird offer.`);
       return;
     }
-    setSelectedOfferId(offer.id);
-    setValue('quantity', 1);
+
+    const maxQty = offer?.type === 'GROUP' ? 5 : offer?.type === 'COUPLE' ? 10 : 10;
+    const clampedQty = Math.max(0, Math.min(maxQty, nextQty));
+
+    setCart((prev) => {
+      const copy = { ...prev };
+      if (clampedQty === 0) {
+        delete copy[offerId];
+      } else {
+        copy[offerId] = clampedQty;
+      }
+      return copy;
+    });
+  };
+
+  const handleStepQuantity = (offerId: string, delta: number) => {
+    const current = cart[offerId] || 0;
+    handleSetQuantity(offerId, current + delta);
   };
 
   const handleProceedToDetails = () => {
-    if (!selectedOffer.is_purchasable) {
-      error('Offer Locked', 'Please select an available Early Bird offer.');
+    if (cartEntries.length === 0) {
+      error('Empty Cart', 'Please add at least one ticket offer to your cart to proceed.');
       return;
     }
     setBookingStep('DETAILS');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleStepQuantity = (delta: number) => {
-    const current = quantity || 1;
-    const maxQty = isGroupOffer ? 2 : isCoupleOffer ? 3 : 5;
-    const next = Math.max(1, Math.min(maxQty, current + delta));
-    setValue('quantity', next, { shouldValidate: true });
+  const handleUpdateChild = (index: number, field: 'name' | 'age', value: string) => {
+    setChildrenList((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+    // Clear validation error when typing
+    if (childValidationErrors[index]?.[field]) {
+      setChildValidationErrors((prev) => ({
+        ...prev,
+        [index]: { ...prev[index], [field]: undefined }
+      }));
+    }
   };
 
-  const onSubmit = async (data: BookingFormData) => {
-    if (!selectedOffer.is_purchasable) {
-      error('Offer Inactive', 'The selected ticket phase is currently locked.');
+  // Form submission: Validate and launch Razorpay
+  const onSubmit = async (data: ContactFormData) => {
+    if (cartEntries.length === 0) {
+      error('Empty Cart', 'Please select at least one offer to proceed.');
       return;
     }
 
-    // Kids Offer Validation
-    if (isKidsOffer) {
-      if (!data.child_name || data.child_name.trim().length < 2) {
-        setError('child_name', { message: "Please enter the child's full name" });
-        return;
-      }
-      const ageNum = parseInt(data.child_age || '0', 10);
-      if (isNaN(ageNum) || ageNum < 5 || ageNum > 12) {
-        setError('child_age', { message: 'Child age must be between 5 and 12 years' });
+    // Validate each child record if kids tickets are in cart
+    if (kidsQuantity > 0) {
+      const validationErrs: Record<number, { name?: string; age?: string }> = {};
+      let hasError = false;
+
+      childrenList.forEach((child, idx) => {
+        const itemErr: { name?: string; age?: string } = {};
+        if (!child.name || child.name.trim().length < 2) {
+          itemErr.name = "Enter child's full name (min 2 chars)";
+          hasError = true;
+        }
+        const ageNum = parseInt(child.age || '0', 10);
+        if (isNaN(ageNum) || ageNum < 5 || ageNum > 12) {
+          itemErr.age = 'Age must be 5 to 12';
+          hasError = true;
+        }
+        if (Object.keys(itemErr).length > 0) {
+          validationErrs[idx] = itemErr;
+        }
+      });
+
+      if (hasError) {
+        setChildValidationErrors(validationErrs);
+        error('Child Details Required', 'Please enter valid name and age (5–12) for all child passes.');
         return;
       }
     }
@@ -383,34 +465,53 @@ export const BookingPage: React.FC = () => {
       setLoadingStatusText('Reserving inventory & generating Razorpay order...');
 
       const idempotencyKey = `order_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      const cartItemsPayload = cartEntries.map((e) => ({
+        offer_id: e.offer_id,
+        quantity: e.quantity
+      }));
+
+      const childPayload = kidsQuantity > 0
+        ? childrenList.map((c) => ({
+            name: c.name.trim(),
+            age: parseInt(c.age, 10)
+          }))
+        : undefined;
 
       const orderPayload: any = {
         customer_name: data.customer_name,
         email: data.email,
         phone: data.phone,
-        offer_id: selectedOffer.id,
-        quantity: data.quantity,
-        ticket_phase: selectedOffer.phase_code,
+        items: cartItemsPayload,
+        children: childPayload,
         idempotency_key: idempotencyKey
       };
 
-      if (isKidsOffer) {
-        orderPayload.child_name = data.child_name?.trim();
-        orderPayload.child_age = parseInt(data.child_age || '5', 10);
+      // Compatibility fallback for single items
+      if (cartItemsPayload.length === 1) {
+        orderPayload.offer_id = cartItemsPayload[0].offer_id;
+        orderPayload.quantity = cartItemsPayload[0].quantity;
+      }
+      if (childPayload && childPayload.length > 0) {
+        orderPayload.child_name = childPayload[0].name;
+        orderPayload.child_age = childPayload[0].age;
       }
 
       const orderResponse = await createPaymentOrder(orderPayload);
       setCurrentOrder(orderResponse);
       setSubmitting(false);
 
-      // Real Razorpay Live/Test Checkout Flow
+      // Launch Razorpay standard checkout modal
       const launchRazorpay = () => {
+        const itemSummaryDescription = cartEntries
+          .map((e) => `${e.quantity}× ${e.title}`)
+          .join(', ');
+
         const options = {
           key: orderResponse.key_id,
           amount: Math.round(orderResponse.amount * 100),
           currency: orderResponse.currency || 'INR',
           name: config?.event_name || 'NAVRANG 2026',
-          description: `${orderResponse.offer_title || selectedOffer.title} • ${totalPasses} Admission Pass${totalPasses > 1 ? 'es' : ''}`,
+          description: `${totalPasses} Admission Pass${totalPasses > 1 ? 'es' : ''} (${itemSummaryDescription})`,
           order_id: orderResponse.razorpay_order_id,
           prefill: {
             name: data.customer_name,
@@ -419,11 +520,9 @@ export const BookingPage: React.FC = () => {
           },
           notes: {
             booking_id: orderResponse.booking_id,
-            offer_id: selectedOffer.id,
-            offer_title: selectedOffer.title,
-            passes_count: String(totalPasses),
-            event: 'NAVRANG 2026 in collaboration with The Happy Circle',
-            phase: selectedOffer.phase_code
+            ticket_count: String(totalPasses),
+            cart_summary: itemSummaryDescription,
+            event: 'NAVRANG 2026 in collaboration with The Happy Circle'
           },
           theme: {
             color: '#d4af37'
@@ -600,11 +699,11 @@ export const BookingPage: React.FC = () => {
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-black text-white font-['Outfit'] mt-2">
-          {bookingStep === 'OFFERS' ? 'Choose Your Offer' : 'Attendee Details & Payment'}
+          {bookingStep === 'OFFERS' ? 'Select Tickets & Quantities' : 'Attendee Details & Payment'}
         </h1>
         <p className="mt-2 text-xs sm:text-sm text-slate-400">
           {bookingStep === 'OFFERS'
-            ? 'Select your preferred pass package below to continue with encrypted instant QR ticketing.'
+            ? 'Choose multiple ticket types or quantities below. Everything combines into one single seamless booking.'
             : 'Enter attendee contact information to generate official cryptographic QR admission passes.'}
         </p>
 
@@ -617,7 +716,7 @@ export const BookingPage: React.FC = () => {
               bookingStep === 'OFFERS' ? 'text-[#d4af37]' : 'text-slate-400 hover:text-white'
             }`}
           >
-            1. Select Offer
+            1. Select Tickets ({cartEntries.length} items • {totalPasses} passes)
           </button>
           <span className="text-slate-600">→</span>
           <span className={`font-bold ${bookingStep === 'DETAILS' ? 'text-[#d4af37]' : 'text-slate-500'}`}>
@@ -627,7 +726,7 @@ export const BookingPage: React.FC = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* STAGE 1: OFFER SELECTION INTERFACE                                        */}
+      {/* STAGE 1: MULTI-OFFER SELECTION & CART EXPERIENCE                           */}
       {/* ========================================================================= */}
       {bookingStep === 'OFFERS' && (
         <div className="space-y-12">
@@ -643,75 +742,110 @@ export const BookingPage: React.FC = () => {
                   EARLY BIRD OFFERS
                 </h2>
               </div>
-              <span className="text-xs text-slate-400">Tax-Inclusive Pricing</span>
+              <span className="text-xs text-slate-400">Tax-Inclusive • Mix & Match Available</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {earlyBirdOffers.map((offer) => {
-                const isSelected = selectedOfferId === offer.id;
+                const qty = cart[offer.id] || 0;
+                const isInCart = qty > 0;
+                const maxAllowed = offer.type === 'GROUP' ? 5 : 10;
+
                 return (
                   <div
                     key={offer.id}
-                    onClick={() => handleSelectOffer(offer)}
-                    className={`relative rounded-3xl p-6 transition-all duration-300 cursor-pointer flex flex-col justify-between ${
-                      isSelected
-                        ? 'glass-panel-gold border-2 border-[#d4af37] shadow-[0_0_35px_rgba(212,175,55,0.35)] scale-[1.02]'
-                        : 'glass-panel border border-white/[0.08] hover:border-white/20 hover:scale-[1.01]'
+                    className={`relative rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between ${
+                      isInCart
+                        ? 'glass-panel-gold border-2 border-[#d4af37] shadow-[0_0_35px_rgba(212,175,55,0.35)] scale-[1.01]'
+                        : 'glass-panel border border-white/[0.08] hover:border-white/20'
                     }`}
                   >
                     {/* Badge */}
                     <div className="flex items-center justify-between mb-4">
                       <span
                         className={`text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full ${
-                          isSelected
+                          isInCart
                             ? 'bg-[#d4af37] text-black shadow-sm'
                             : 'bg-white/10 text-[#f3e4b2] border border-white/10'
                         }`}
                       >
                         {offer.badge}
                       </span>
-                      {isSelected ? (
-                        <span className="w-6 h-6 rounded-full bg-[#d4af37] text-black flex items-center justify-center shadow-md">
+                      {isInCart && (
+                        <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
                           <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          <span>{qty * offer.per_unit_passes} Passes</span>
                         </span>
-                      ) : (
-                        <span className="w-6 h-6 rounded-full border border-white/20" />
                       )}
                     </div>
 
                     <div>
                       <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
-                        {offer.type === 'GROUP' ? 'Group Pass' : offer.type === 'COUPLE' ? 'Couple Pass' : 'Single Pass'}
+                        {offer.type === 'GROUP' ? 'Group Pass (10 People)' : offer.type === 'COUPLE' ? 'Couple Pass (2 People)' : 'Single Pass (1 Person)'}
                       </div>
                       <h3 className="text-xl font-black text-white mt-1 font-['Outfit']">{offer.title}</h3>
                       <p className="text-xs text-slate-300 mt-2 leading-relaxed">{offer.description}</p>
                     </div>
 
                     <div className="mt-6 pt-5 border-t border-white/[0.08]">
-                      <div className="flex items-baseline justify-between">
+                      <div className="flex items-baseline justify-between mb-4">
                         <div>
                           <div className="text-3xl font-black text-white font-mono">
                             ₹{offer.price.toLocaleString('en-IN')}
                           </div>
                           <div className="text-[11px] text-slate-400 mt-0.5">
-                            {offer.per_unit_passes} {offer.per_unit_passes === 1 ? 'person pass' : 'people passes'}
+                            {offer.per_unit_passes} {offer.per_unit_passes === 1 ? 'person pass' : 'people passes'} / unit
                           </div>
                         </div>
+                        {isInCart && (
+                          <div className="text-right">
+                            <div className="text-[10px] text-slate-400 uppercase font-semibold">Subtotal</div>
+                            <div className="text-lg font-bold text-[#f3e4b2] font-mono">
+                              ₹{(offer.price * qty).toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Quantity Stepper or Add Button */}
+                      {isInCart ? (
+                        <div className="flex items-center justify-between p-1.5 rounded-2xl bg-black/60 border border-[#d4af37]/40 shadow-inner">
+                          <button
+                            type="button"
+                            onClick={() => handleStepQuantity(offer.id, -1)}
+                            className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer"
+                            title="Decrease quantity"
+                          >
+                            {qty === 1 ? <Trash2 className="w-4 h-4 text-rose-400" /> : <Minus className="w-4 h-4" />}
+                          </button>
+
+                          <div className="text-center px-3">
+                            <span className="text-lg font-black font-mono text-white">{qty}</span>
+                            <span className="text-[11px] text-slate-400 ml-1.5">
+                              unit{qty > 1 ? 's' : ''}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleStepQuantity(offer.id, 1)}
+                            disabled={qty >= maxAllowed}
+                            className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center disabled:opacity-30 transition-all cursor-pointer"
+                            title="Increase quantity"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectOffer(offer);
-                          }}
-                          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                            isSelected
-                              ? 'bg-[#d4af37] text-black shadow-lg shadow-[#d4af37]/30'
-                              : 'bg-white/10 text-white hover:bg-white/20'
-                          }`}
+                          onClick={() => handleSetQuantity(offer.id, 1)}
+                          className="w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider bg-white/10 hover:bg-[#d4af37] text-white hover:text-black border border-white/10 hover:border-[#d4af37] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
                         >
-                          {isSelected ? 'SELECTED ✓' : 'SELECT'}
+                          <Plus className="w-4 h-4" />
+                          <span>ADD TO BOOKING</span>
                         </button>
-                      </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -719,7 +853,160 @@ export const BookingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* SECTION 2: PHASE 1 (COMING SOON / DISABLED) */}
+          {/* SECTION 2: KIDS (5–12 YEARS) */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+              <div>
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-[#d4af37]">
+                  <Baby className="w-3.5 h-3.5 text-[#d4af37]" />
+                  CHILD ENTRY PASS
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white font-['Cinzel'] tracking-wide mt-0.5">
+                  KIDS ADMISSION (5–12 YEARS)
+                </h2>
+              </div>
+              <span className="text-xs text-slate-400">Under 5 Years Free</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {kidsOffers.map((offer) => {
+                const qty = cart[offer.id] || 0;
+                const isInCart = qty > 0;
+                const maxAllowed = 10;
+
+                return (
+                  <div
+                    key={offer.id}
+                    className={`relative rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between ${
+                      isInCart
+                        ? 'glass-panel-gold border-2 border-[#d4af37] shadow-[0_0_35px_rgba(212,175,55,0.35)] scale-[1.01]'
+                        : 'glass-panel border border-white/[0.08] hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <span
+                        className={`text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full ${
+                          isInCart
+                            ? 'bg-[#d4af37] text-black shadow-sm'
+                            : 'bg-white/10 text-[#f3e4b2] border border-white/10'
+                        }`}
+                      >
+                        {offer.badge}
+                      </span>
+                      {isInCart && (
+                        <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          <span>{qty} Child Pass{qty > 1 ? 'es' : ''}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                        Child Pass • Age 5–12
+                      </div>
+                      <h3 className="text-xl font-black text-white mt-1 font-['Outfit']">
+                        Kids (5–12 years) — ₹{offer.price}
+                      </h3>
+                      <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                        Dedicated admission pass for children between 5 and 12 years of age.
+                      </p>
+                      <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-semibold flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span>Aadhaar card / valid ID proof required at entry.</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 pt-5 border-t border-white/[0.08]">
+                      <div className="flex items-baseline justify-between mb-4">
+                        <div>
+                          <div className="text-3xl font-black text-white font-mono">
+                            ₹{offer.price.toLocaleString('en-IN')}
+                          </div>
+                          <div className="text-[11px] text-slate-400 mt-0.5">Per child pass</div>
+                        </div>
+                        {isInCart && (
+                          <div className="text-right">
+                            <div className="text-[10px] text-slate-400 uppercase font-semibold">Subtotal</div>
+                            <div className="text-lg font-bold text-[#f3e4b2] font-mono">
+                              ₹{(offer.price * qty).toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Stepper */}
+                      {isInCart ? (
+                        <div className="flex items-center justify-between p-1.5 rounded-2xl bg-black/60 border border-[#d4af37]/40 shadow-inner">
+                          <button
+                            type="button"
+                            onClick={() => handleStepQuantity(offer.id, -1)}
+                            className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer"
+                            title="Decrease kids quantity"
+                          >
+                            {qty === 1 ? <Trash2 className="w-4 h-4 text-rose-400" /> : <Minus className="w-4 h-4" />}
+                          </button>
+
+                          <div className="text-center px-3">
+                            <span className="text-lg font-black font-mono text-white">{qty}</span>
+                            <span className="text-[11px] text-slate-400 ml-1.5">
+                              child{qty > 1 ? 'ren' : ''}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleStepQuantity(offer.id, 1)}
+                            disabled={qty >= maxAllowed}
+                            className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center disabled:opacity-30 transition-all cursor-pointer"
+                            title="Increase kids quantity"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSetQuantity(offer.id, 1)}
+                          className="w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider bg-white/10 hover:bg-[#d4af37] text-white hover:text-black border border-white/10 hover:border-[#d4af37] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>ADD KIDS PASS</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Information Card */}
+              <div className="rounded-3xl p-6 glass-panel border border-white/[0.08] flex flex-col justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 text-xs font-bold text-[#d4af37] mb-2 uppercase tracking-wider">
+                    <Info className="w-4 h-4" />
+                    <span>Important Guidelines</span>
+                  </div>
+                  <h4 className="text-base font-bold text-white mb-2">Child & Family Admission Policy</h4>
+                  <ul className="space-y-2 text-xs text-slate-300 leading-relaxed">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                      <span>Children under 5 years enjoy complimentary entry accompanied by parent/guardian.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                      <span>Aadhaar card or school ID required for verification at turnstiles.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                      <span>You can add multiple child passes to your cart alongside group and couple passes.</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: PHASE 1 (COMING SOON / DISABLED) */}
           <div className="space-y-4 opacity-75">
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
               <div>
@@ -777,149 +1064,73 @@ export const BookingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* SECTION 3: KIDS (5–12 YEARS) */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-              <div>
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-[#d4af37]">
-                  <Baby className="w-3.5 h-3.5 text-[#d4af37]" />
-                  CHILD ENTRY PASS
+          {/* Sticky/Prominent Live Cart Order Summary */}
+          <div className="glass-panel-gold rounded-3xl p-6 sm:p-8 border-2 border-[#d4af37]/60 shadow-[0_0_45px_rgba(212,175,55,0.25)] space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.12] pb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-[#d4af37]/20 border border-[#d4af37]/40 flex items-center justify-center shrink-0">
+                  <ShoppingCart className="w-6 h-6 text-[#d4af37]" />
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-white font-['Cinzel'] tracking-wide mt-0.5">
-                  KIDS ADMISSION (5–12 YEARS)
-                </h2>
-              </div>
-              <span className="text-xs text-slate-400">Under 5 Years Free</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {kidsOffers.map((offer) => {
-                const isSelected = selectedOfferId === offer.id;
-                return (
-                  <div
-                    key={offer.id}
-                    onClick={() => handleSelectOffer(offer)}
-                    className={`relative rounded-3xl p-6 transition-all duration-300 cursor-pointer flex flex-col justify-between ${
-                      isSelected
-                        ? 'glass-panel-gold border-2 border-[#d4af37] shadow-[0_0_35px_rgba(212,175,55,0.35)] scale-[1.01]'
-                        : 'glass-panel border border-white/[0.08] hover:border-white/20'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <span
-                        className={`text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full ${
-                          isSelected
-                            ? 'bg-[#d4af37] text-black shadow-sm'
-                            : 'bg-white/10 text-[#f3e4b2] border border-white/10'
-                        }`}
-                      >
-                        {offer.badge}
-                      </span>
-                      {isSelected ? (
-                        <span className="w-6 h-6 rounded-full bg-[#d4af37] text-black flex items-center justify-center shadow-md">
-                          <Check className="w-3.5 h-3.5 stroke-[3]" />
-                        </span>
-                      ) : (
-                        <span className="w-6 h-6 rounded-full border border-white/20" />
-                      )}
-                    </div>
-
-                    <div>
-                      <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
-                        Child Pass • Age 5–12
-                      </div>
-                      <h3 className="text-xl font-black text-white mt-1 font-['Outfit']">
-                        Kids (5–12 years) — ₹{offer.price}
-                      </h3>
-                      <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                        Dedicated admission pass for one child between 5 and 12 years of age.
-                      </p>
-                      <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-semibold flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                        <span>Aadhaar card / valid ID proof required at entry.</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 pt-5 border-t border-white/[0.08]">
-                      <div className="flex items-baseline justify-between">
-                        <div>
-                          <div className="text-3xl font-black text-white font-mono">
-                            ₹{offer.price.toLocaleString('en-IN')}
-                          </div>
-                          <div className="text-[11px] text-slate-400 mt-0.5">Per child pass</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectOffer(offer);
-                          }}
-                          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                            isSelected
-                              ? 'bg-[#d4af37] text-black shadow-lg shadow-[#d4af37]/30'
-                              : 'bg-white/10 text-white hover:bg-white/20'
-                          }`}
-                        >
-                          {isSelected ? 'SELECTED ✓' : 'SELECT'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Information Card */}
-              <div className="rounded-3xl p-6 glass-panel border border-white/[0.08] flex flex-col justify-between">
                 <div>
-                  <div className="inline-flex items-center gap-2 text-xs font-bold text-[#d4af37] mb-2 uppercase tracking-wider">
-                    <Info className="w-4 h-4" />
-                    <span>Important Guidelines</span>
+                  <div className="text-xs uppercase font-extrabold text-[#d4af37] tracking-wider">
+                    YOUR BOOKING CART
                   </div>
-                  <h4 className="text-base font-bold text-white mb-2">Child & Family Admission Policy</h4>
-                  <ul className="space-y-2 text-xs text-slate-300 leading-relaxed">
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                      <span>Children under 5 years enjoy complimentary entry accompanied by parent/guardian.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                      <span>Aadhaar card or school ID required for verification at turnstiles.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                      <span>Child passes do not mix with adult bundle quantities.</span>
-                    </li>
-                  </ul>
+                  <div className="text-xl sm:text-2xl font-black text-white font-['Outfit']">
+                    {cartEntries.length === 0 ? 'No tickets selected' : `${totalPasses} Total Entry Pass${totalPasses > 1 ? 'es' : ''}`}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Sticky/Prominent Bottom Action Bar */}
-          <div className="glass-panel-gold rounded-3xl p-6 sm:p-8 border border-[#d4af37]/50 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#d4af37]/20 border border-[#d4af37]/40 flex items-center justify-center shrink-0">
-                <Ticket className="w-6 h-6 text-[#d4af37]" />
-              </div>
-              <div>
-                <div className="text-xs uppercase font-extrabold text-[#d4af37] tracking-wider">
-                  Selected Package
-                </div>
-                <div className="text-lg sm:text-xl font-black text-white font-['Outfit']">
-                  {selectedOffer.title} • ₹{selectedOffer.price.toLocaleString('en-IN')}
-                </div>
-                <div className="text-xs text-slate-300">
-                  {selectedOffer.per_unit_passes} Admission Pass{selectedOffer.per_unit_passes > 1 ? 'es' : ''} • Taxes Included
+              <div className="text-left sm:text-right">
+                <div className="text-xs text-slate-300 uppercase font-semibold">Total Amount (All-Inclusive)</div>
+                <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-white via-[#f3e4b2] to-[#d4af37] bg-clip-text text-transparent font-mono">
+                  ₹{totalAmount.toLocaleString('en-IN')}
                 </div>
               </div>
             </div>
+
+            {/* Cart Line Items */}
+            {cartEntries.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {cartEntries.map((item) => (
+                  <div
+                    key={item.offer_id}
+                    className="p-3.5 rounded-2xl bg-black/50 border border-white/10 flex items-center justify-between gap-3"
+                  >
+                    <div>
+                      <div className="text-sm font-bold text-white">{item.quantity} × {item.title}</div>
+                      <div className="text-[11px] text-emerald-400 font-medium">
+                        {item.totalPasses} Admission Pass{item.totalPasses > 1 ? 'es' : ''}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-sm font-black text-[#f3e4b2] font-mono">
+                        ₹{item.subtotal.toLocaleString('en-IN')}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleSetQuantity(item.offer_id, 0)}
+                        className="text-[10px] text-rose-400 hover:text-rose-300 font-bold uppercase transition-colors cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-black/30 border border-dashed border-white/20 text-center text-sm text-slate-400">
+                Please select quantity above to add tickets to your cart.
+              </div>
+            )}
 
             <button
               type="button"
               onClick={handleProceedToDetails}
-              className="festive-button w-full sm:w-auto px-10 py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-3 shadow-2xl shadow-[#d4af37]/40 hover:scale-105 transition-all cursor-pointer"
+              disabled={cartEntries.length === 0}
+              className="festive-button w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-3 shadow-2xl shadow-[#d4af37]/40 hover:scale-[1.01] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <span>CONTINUE TO BOOK</span>
+              <span>PROCEED TO ATTENDEE DETAILS • {totalPasses} PASSES</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -933,24 +1144,26 @@ export const BookingPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Booking Form (Left 7 Cols) */}
           <div className="lg:col-span-7 glass-panel rounded-3xl p-6 sm:p-8 border border-white/[0.08] shadow-2xl">
-            {/* Offer banner with Change Offer button */}
+            {/* Cart summary header banner with Edit button */}
             <div className="p-4 rounded-2xl bg-black/40 border border-[#d4af37]/30 flex items-center justify-between mb-6">
               <div>
                 <div className="text-[10px] uppercase font-bold text-[#d4af37] tracking-wider">
-                  SELECTED OFFER
+                  MIXED CART ({cartEntries.length} OFFERS)
                 </div>
-                <div className="text-base font-black text-white">{selectedOffer.title}</div>
+                <div className="text-base font-black text-white">
+                  {totalPasses} Admission Pass{totalPasses > 1 ? 'es' : ''} • ₹{totalAmount.toLocaleString('en-IN')}
+                </div>
                 <div className="text-xs text-slate-400">
-                  {selectedOffer.per_unit_passes} Pass{selectedOffer.per_unit_passes > 1 ? 'es' : ''} per unit • ₹{selectedOffer.price}
+                  {cartEntries.map((e) => `${e.quantity}× ${e.title}`).join(' + ')}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setBookingStep('OFFERS')}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-[#d4af37] border border-[#d4af37]/40 hover:bg-[#d4af37]/10 transition-colors flex items-center gap-1 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-[#d4af37] border border-[#d4af37]/40 hover:bg-[#d4af37]/10 transition-colors flex items-center gap-1 cursor-pointer shrink-0"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Change</span>
+                <span>Edit Cart</span>
               </button>
             </div>
 
@@ -958,7 +1171,7 @@ export const BookingPage: React.FC = () => {
               {/* Full Name */}
               <div>
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 font-['Outfit']">
-                  {isKidsOffer ? 'PARENT / GUARDIAN NAME' : 'PRIMARY ATTENDEE NAME'}
+                  PRIMARY ATTENDEE / BOOKER NAME
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1021,92 +1234,70 @@ export const BookingPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Dedicated Child Details if Kids Offer */}
-              {isKidsOffer && (
-                <div className="p-4 rounded-2xl bg-[#d4af37]/10 border border-[#d4af37]/30 space-y-4">
+              {/* Dedicated Child Attendee Forms for every child in cart */}
+              {kidsQuantity > 0 && (
+                <div className="p-5 rounded-2xl bg-[#d4af37]/10 border border-[#d4af37]/35 space-y-4">
                   <div className="flex items-center gap-2 text-xs font-extrabold text-[#f3e4b2] uppercase tracking-wider">
                     <Baby className="w-4 h-4 text-[#d4af37]" />
-                    <span>Child Attendee Information</span>
+                    <span>Child Attendee Information ({kidsQuantity} Pass{kidsQuantity > 1 ? 'es' : ''})</span>
                   </div>
-                  <p className="text-xs text-slate-300">
-                    Aadhaar card / valid ID proof required at entry for verification.
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Aadhaar card / valid age ID proof required at entry turnstiles for every child pass.
                   </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="sm:col-span-2">
-                      <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">
-                        Child's Full Name
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Child name"
-                        {...register('child_name')}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-[#d4af37]"
-                      />
-                      {errors.child_name && (
-                        <p className="text-xs text-rose-400 mt-1">{errors.child_name.message}</p>
-                      )}
-                    </div>
+                  <div className="space-y-3 pt-2">
+                    {childrenList.map((child, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-2"
+                      >
+                        <div className="text-[11px] font-bold text-[#d4af37] uppercase">
+                          Child #{idx + 1}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="sm:col-span-2">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                              Child's Full Name
+                            </label>
+                            <input
+                              type="text"
+                              placeholder={`Full name for Child #${idx + 1}`}
+                              value={child.name}
+                              onChange={(e) => handleUpdateChild(idx, 'name', e.target.value)}
+                              className="w-full px-3.5 py-2 rounded-xl bg-black/60 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-[#d4af37]"
+                            />
+                            {childValidationErrors[idx]?.name && (
+                              <p className="text-xs text-rose-400 mt-1">
+                                {childValidationErrors[idx]?.name}
+                              </p>
+                            )}
+                          </div>
 
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">
-                        Age (5–12)
-                      </label>
-                      <input
-                        type="number"
-                        min={5}
-                        max={12}
-                        placeholder="Age"
-                        {...register('child_age')}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-[#d4af37]"
-                      />
-                      {errors.child_age && (
-                        <p className="text-xs text-rose-400 mt-1">{errors.child_age.message}</p>
-                      )}
-                    </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                              Age (5–12)
+                            </label>
+                            <input
+                              type="number"
+                              min={5}
+                              max={12}
+                              placeholder="Age"
+                              value={child.age}
+                              onChange={(e) => handleUpdateChild(idx, 'age', e.target.value)}
+                              className="w-full px-3.5 py-2 rounded-xl bg-black/60 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-[#d4af37]"
+                            />
+                            {childValidationErrors[idx]?.age && (
+                              <p className="text-xs text-rose-400 mt-1">
+                                {childValidationErrors[idx]?.age}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
-
-              {/* Quantity Stepper */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    {isGroupOffer ? 'Number of Groups' : isCoupleOffer ? 'Number of Couples' : 'Quantity'}
-                  </label>
-                  <span className="text-xs text-[#d4af37] font-semibold">
-                    {totalPasses} Admission Pass{totalPasses > 1 ? 'es' : ''} total
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 p-2 rounded-2xl bg-black/40 border border-white/[0.08]">
-                  <button
-                    type="button"
-                    onClick={() => handleStepQuantity(-1)}
-                    disabled={quantity <= 1}
-                    className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white disabled:opacity-30 transition-colors cursor-pointer"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <div className="flex-1 text-center">
-                    <span className="text-2xl font-black font-mono text-white">{quantity}</span>
-                    <span className="text-xs text-slate-400 ml-2">
-                      {isGroupOffer
-                        ? `Group${quantity > 1 ? 's' : ''} (10 passes/group)`
-                        : isCoupleOffer
-                        ? `Couple${quantity > 1 ? 's' : ''} (2 passes/couple)`
-                        : `Pass${quantity > 1 ? 'es' : ''}`}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleStepQuantity(1)}
-                    disabled={quantity >= (isGroupOffer ? 2 : isCoupleOffer ? 3 : 5)}
-                    className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white disabled:opacity-30 transition-colors cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
 
               {/* Submit Button */}
               <div className="pt-2">
@@ -1123,7 +1314,7 @@ export const BookingPage: React.FC = () => {
                   ) : (
                     <>
                       <Lock className="w-4 h-4" />
-                      <span>PAY NOW • ₹{totalPayable.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span>PAY NOW • ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       <ArrowRight className="w-4 h-4 ml-1" />
                     </>
                   )}
@@ -1138,10 +1329,10 @@ export const BookingPage: React.FC = () => {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-black text-white font-['Cinzel'] tracking-wide flex items-center gap-2">
                   <Receipt className="w-5 h-5 text-[#d4af37]" />
-                  <span>YOUR SELECTION</span>
+                  <span>YOUR BOOKING</span>
                 </h3>
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-[#d4af37]/15 text-[#f3e4b2] border border-[#d4af37]/30">
-                  {selectedOffer.phase_name}
+                  {totalPasses} Passes
                 </span>
               </div>
 
@@ -1158,27 +1349,31 @@ export const BookingPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Selected Offer Info */}
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 mb-4">
-                <div className="text-xs text-slate-400 uppercase font-semibold">Package</div>
-                <div className="text-base font-black text-white mt-0.5">{selectedOffer.title}</div>
-                <div className="text-xs text-[#34d399] font-bold mt-1">
-                  {totalPasses} Individual QR Admission Pass{totalPasses > 1 ? 'es' : ''}
-                </div>
-                {isKidsOffer && (
-                  <div className="text-[11px] text-amber-300 font-semibold mt-1">
-                    ℹ️ Aadhaar card / valid ID proof required at entry.
+              {/* Cart Itemized Details */}
+              <div className="space-y-2.5 mb-4">
+                {cartEntries.map((item) => (
+                  <div
+                    key={item.offer_id}
+                    className="p-3 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="text-xs font-black text-white">{item.title}</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        {item.quantity} × ₹{item.price.toLocaleString('en-IN')} • {item.totalPasses} pass{item.totalPasses > 1 ? 'es' : ''}
+                      </div>
+                    </div>
+                    <div className="text-sm font-black text-[#f3e4b2] font-mono">
+                      ₹{item.subtotal.toLocaleString('en-IN')}
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
 
               {/* Price Breakdown */}
               <div className="space-y-3 text-xs text-slate-300 pb-5 border-b border-white/20">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-300 font-semibold">Offer Price</span>
-                  <span className="font-mono text-white font-bold">
-                    {quantity} × ₹{selectedOffer.price.toLocaleString('en-IN')}
-                  </span>
+                  <span className="text-slate-400">Total Entry Passes</span>
+                  <span className="font-mono text-emerald-400 font-bold">{totalPasses} Passes</span>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -1204,7 +1399,7 @@ export const BookingPage: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-white via-[#f3e4b2] to-[#d4af37] bg-clip-text text-transparent font-mono">
-                    ₹{totalPayable.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
               </div>

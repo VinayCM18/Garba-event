@@ -103,16 +103,18 @@ class TicketService:
             if off_def:
                 offer_title = off_def.get("title", "")
 
-        off_lower = f"{offer_id} {offer_title}".lower()
-        if "group" in off_lower:
+        cust_name = getattr(ticket, "customer_name", None) or getattr(booking, "customer_name", "ATTENDEE")
+        cust_lower = (cust_name or "").lower()
+
+        if "kid" in off_lower or "kids pass" in cust_lower:
+            plaque_label = "KIDS (5-12)"
+            stub_label = "KIDS PASS"
+        elif "group" in off_lower:
             plaque_label = "GROUP OF 10"
             stub_label = "GROUP OF 10"
         elif "couple" in off_lower:
             plaque_label = "COUPLE ENTRY"
             stub_label = "COUPLE PASS"
-        elif "kid" in off_lower:
-            plaque_label = "KIDS (5-12)"
-            stub_label = "KIDS PASS"
         elif "phase 1" in off_lower or "phase_1" in off_lower:
             plaque_label = "PHASE 1"
             stub_label = "PHASE 1"

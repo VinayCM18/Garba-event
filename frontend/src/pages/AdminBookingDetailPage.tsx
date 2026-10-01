@@ -289,13 +289,23 @@ export const AdminBookingDetailPage: React.FC = () => {
               <div className="text-[10px] text-slate-500 uppercase">Mobile Phone</div>
               <div className="font-mono text-slate-300 mt-0.5">{booking.phone}</div>
             </div>
-            {booking.child_name && (
+            {booking.children_details && booking.children_details.length > 0 ? (
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 space-y-1">
+                <div className="text-[10px] uppercase font-bold text-amber-400">Child Attendees ({booking.children_details.length})</div>
+                {booking.children_details.map((c, i) => (
+                  <div key={i} className="text-xs font-bold text-white">
+                    {c.name} (Age: {c.age})
+                  </div>
+                ))}
+                <div className="text-[10px] text-slate-400 mt-0.5">Aadhaar card / valid ID required at gate.</div>
+              </div>
+            ) : booking.child_name ? (
               <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200">
                 <div className="text-[10px] uppercase font-bold text-amber-400">Child Attendee</div>
                 <div className="font-bold text-white mt-0.5">{booking.child_name} (Age: {booking.child_age || '5–12'})</div>
                 <div className="text-[10px] text-slate-400 mt-0.5">Aadhaar card / valid ID required at gate.</div>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -310,10 +320,26 @@ export const AdminBookingDetailPage: React.FC = () => {
               <div className="text-[10px] text-slate-500 uppercase">Booking Reference</div>
               <div className="text-base font-black text-amber-400 font-mono mt-0.5">{booking.booking_id}</div>
             </div>
-            <div>
-              <div className="text-[10px] text-slate-500 uppercase">Offer Selected</div>
-              <div className="text-sm font-bold text-white mt-0.5">{booking.offer_title || booking.offer_name || 'Standard Pass'}</div>
-            </div>
+
+            {booking.items && booking.items.length > 0 ? (
+              <div className="space-y-1.5 pt-1 border-t border-white/5">
+                <div className="text-[10px] text-slate-500 uppercase font-bold">Items Booked</div>
+                {booking.items.map((it, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-xs">
+                    <span className="text-slate-300 font-medium">
+                      {it.quantity} × {it.offer_title} ({it.total_passes} passes)
+                    </span>
+                    <span className="font-mono text-[#f3e4b2] font-semibold">₹{it.line_total.toLocaleString('en-IN')}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div>
+                <div className="text-[10px] text-slate-500 uppercase">Offer Selected</div>
+                <div className="text-sm font-bold text-white mt-0.5">{booking.offer_title || booking.offer_name || 'Standard Pass'}</div>
+              </div>
+            )}
+
             <div className="flex justify-between">
               <div>
                 <div className="text-[10px] text-slate-500 uppercase">Total Passes</div>

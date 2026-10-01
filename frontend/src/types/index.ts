@@ -113,6 +113,28 @@ export interface Ticket {
   ticket_url?: string;
 }
 
+export interface BookingItem {
+  id?: number;
+  booking_id?: string;
+  offer_id: string;
+  offer_title: string;
+  quantity: number;
+  passes_per_unit: number;
+  total_passes: number;
+  unit_price: number;
+  line_total: number;
+}
+
+export interface ChildDetail {
+  name: string;
+  age: number;
+}
+
+export interface CartItem {
+  offer_id: string;
+  quantity: number;
+}
+
 export interface Booking {
   id: number;
   booking_id: string;
@@ -135,6 +157,8 @@ export interface Booking {
   offer_title?: string;
   child_name?: string;
   child_age?: number;
+  items?: BookingItem[];
+  children_details?: ChildDetail[];
   ticket_phase?: string;
   payment_method?: string;
   utr_number?: string;
@@ -202,6 +226,8 @@ export interface CreateOrderResponse {
   passes_count?: number;
   child_name?: string;
   child_age?: number;
+  items?: BookingItem[];
+  children_details?: ChildDetail[];
   free_tickets: number;
   upi_id?: string;
   upi_qr_image_url?: string;

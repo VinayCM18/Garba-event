@@ -186,80 +186,161 @@ def get_all_offers(db: Session) -> List[Dict[str, Any]]:
 
     return offers_list
 
-def calculate_offer_pricing(offer_id: str, quantity: int = 1, db: Session = None) -> Dict[str, Any]:
+def calculate_cart_pricing(items: List[Dict[str, Any]], db: Session = None) -> Dict[str, Any]:
     """
-    Authoritative server-side price calculation for a selected offer.
-    The frontend cannot modify or manipulate the price.
+    Authoritative server-side price calculation for a cart of multiple offer items.
+    The frontend cannot modify or manipulate prices.
+    Never accepts frontend prices or totals.
     """
-    offer = get_offer_by_id(offer_id)
-    if not offer:
+    if not items or len(items) == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown or invalid offer ID '{offer_id}'."
+            detail="Cart cannot be empty. Please select at least one ticket offer."
         )
 
-    qty = max(1, quantity)
+    # Cache phase statuses
+    phases = db.query(TicketPhase).all() if db else []
+    phase_status_map = {p.phase_code: p.status for p in phases}
 
-    # Check phase status if tied to a specific phase
-    phase_code = offer["phase_code"]
-    phase_name = offer["phase_name"]
-    if phase_code != "ALL":
-        if db:
-            phase = db.query(TicketPhase).filter(TicketPhase.phase_code == phase_code).first()
-            if phase and phase.status != "ACTIVE":
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Ticket phase '{phase.name}' is currently {phase.status.lower()} and cannot be purchased."
-                )
-            elif not phase and offer.get("default_phase_status") != "ACTIVE":
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Ticket phase '{phase_name}' is currently locked and cannot be purchased."
-                )
-        elif offer.get("default_phase_status") != "ACTIVE":
+    event_setting = db.query(EventSetting).first() if db else None
+    booking_open = event_setting.booking_open if event_setting else True
+    if not booking_open:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ticket booking is currently closed."
+        )
+
+    calculated_items: List[Dict[str, Any]] = []
+    total_passes = 0
+    total_amount = 0.0
+    kids_count = 0
+    has_group = False
+
+    for entry in items:
+        # Support dict or pydantic model
+        if hasattr(entry, "offer_id"):
+            raw_id = entry.offer_id
+            raw_qty = getattr(entry, "quantity", 1)
+        elif isinstance(entry, dict):
+            raw_id = entry.get("offer_id") or entry.get("id")
+            raw_qty = entry.get("quantity", 1)
+        else:
+            continue
+
+        if not raw_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Ticket phase '{phase_name}' is currently locked and cannot be purchased."
+                detail="Missing offer_id in cart item."
             )
 
-    passes_count = offer["passes_per_unit"] * qty
-    price_per_unit = float(offer["price_per_unit"])
-    ticket_subtotal = round(price_per_unit * qty, 2)
+        offer = get_offer_by_id(raw_id)
+        if not offer:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unknown or invalid offer ID '{raw_id}'."
+            )
 
-    # NAVRANG 2026 ticket prices are strictly all-inclusive.
-    # No extra tax or gateway fee is added to the customer (599 is strictly 599).
-    payment_fee = 0.0
-    gst_amount = 0.0
-    tax_amount = 0.0
-    total_amount = ticket_subtotal
+        try:
+            qty = int(raw_qty)
+            if qty < 1:
+                raise ValueError()
+            if qty > 50:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Maximum 50 units allowed per offer in a single cart. Requested {qty} for {offer['title']}."
+                )
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid quantity '{raw_qty}' for offer '{offer['title']}'. Must be a positive integer."
+            )
 
-    # Effective per-pass ticket price stored in db
-    per_pass_price = round(ticket_subtotal / passes_count, 2) if passes_count > 0 else price_per_unit
+        # Check phase status
+        phase_code = offer["phase_code"]
+        phase_name = offer["phase_name"]
+        if phase_code != "ALL":
+            phase_status = phase_status_map.get(phase_code, offer.get("default_phase_status", "LOCKED"))
+            if phase_status != "ACTIVE":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Ticket phase '{phase_name}' ({offer['full_title']}) is currently {phase_status.lower()} and cannot be purchased."
+                )
+
+        price_per_unit = float(offer["price_per_unit"])
+        passes_per_unit = int(offer["passes_per_unit"])
+        line_total = round(price_per_unit * qty, 2)
+        item_passes = passes_per_unit * qty
+
+        if offer.get("is_kids"):
+            kids_count += qty
+        if offer["id"] in ("EARLY_BIRD_GROUP_10", "PHASE_1_GROUP_10"):
+            has_group = True
+
+        calculated_items.append({
+            "offer_id": offer["id"],
+            "offer_title": offer["full_title"],
+            "phase_code": phase_code,
+            "phase_name": phase_name,
+            "quantity": qty,
+            "passes_per_unit": passes_per_unit,
+            "total_passes": item_passes,
+            "unit_price": price_per_unit,
+            "line_total": line_total,
+            "unit_name": offer.get("unit_name", "Pass"),
+            "is_kids": bool(offer.get("is_kids", False)),
+            "requires_id_proof": bool(offer.get("requires_id_proof", False)),
+            "id_proof_note": offer.get("id_proof_note")
+        })
+
+        total_passes += item_passes
+        total_amount += line_total
+
+    total_amount = round(total_amount, 2)
+    per_pass_price = round(total_amount / total_passes, 2) if total_passes > 0 else 599.0
+
+    primary_item = calculated_items[0] if calculated_items else {}
+    is_mixed = len(calculated_items) > 1
 
     return {
-        "offer_id": offer["id"],
-        "offer_title": offer["full_title"],
-        "ticket_phase": phase_code if phase_code != "ALL" else "EARLY_BIRD",
-        "phase_name": phase_name,
-        "unit_count": qty,
-        "passes_count": passes_count,
-        "ticket_count": passes_count,
-        "unit_price": price_per_unit,
-        "ticket_price": per_pass_price,
-        "regular_amount": ticket_subtotal,
+        "items": calculated_items,
+        "total_amount": total_amount,
+        "amount": total_amount,
+        "ticket_subtotal": total_amount,
+        "regular_amount": total_amount,
         "group_discount": 0.0,
-        "ticket_subtotal": ticket_subtotal,
-        "payment_fee": payment_fee,
-        "gst_amount": gst_amount,
-        "tax_amount": gst_amount,
-        "base_amount": ticket_subtotal,
+        "payment_fee": 0.0,
+        "gst_amount": 0.0,
+        "tax_amount": 0.0,
+        "base_amount": total_amount,
         "tax_rate": 0.0,
         "tax_included": True,
         "tax_label": "Taxes included",
-        "total_amount": total_amount,
         "currency": "INR",
-        "is_group_offer": offer["id"] in ("EARLY_BIRD_GROUP_10", "PHASE_1_GROUP_10"),
-        "offer_name": offer["full_title"],
-        "is_kids": offer["is_kids"],
-        "id_proof_note": offer.get("id_proof_note")
+        "total_passes": total_passes,
+        "ticket_count": total_passes,
+        "ticket_price": per_pass_price,
+        "passes_count": total_passes,
+        "kids_count": kids_count,
+        "is_group_offer": has_group,
+        "is_mixed_cart": is_mixed,
+        # Legacy/single-offer fields for backward compatibility
+        "offer_id": primary_item.get("offer_id") if not is_mixed else "MIXED_CART",
+        "offer_title": primary_item.get("offer_title") if not is_mixed else f"Mixed Cart ({total_passes} Passes)",
+        "offer_name": primary_item.get("offer_title") if not is_mixed else f"Mixed Cart ({total_passes} Passes)",
+        "ticket_phase": primary_item.get("phase_code") if not is_mixed else "EARLY_BIRD",
+        "phase_name": primary_item.get("phase_name") if not is_mixed else "Early Bird",
+        "unit_count": primary_item.get("quantity") if not is_mixed else len(calculated_items),
+        "unit_price": primary_item.get("unit_price") if not is_mixed else per_pass_price,
+        "is_kids": (kids_count > 0),
+        "id_proof_note": "Aadhaar card / valid ID proof required at entry." if (kids_count > 0) else None
     }
+
+def calculate_offer_pricing(offer_id: str, quantity: int = 1, db: Session = None) -> Dict[str, Any]:
+    """
+    Authoritative server-side price calculation for a single selected offer.
+    Delegates to calculate_cart_pricing to maintain single source of truth.
+    """
+    return calculate_cart_pricing(
+        items=[{"offer_id": offer_id, "quantity": quantity or 1}],
+        db=db
+    )

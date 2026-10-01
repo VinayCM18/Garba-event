@@ -1,7 +1,19 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from app.schemas.ticket import TicketResponse
+
+class BookingItemResponse(BaseModel):
+    id: Optional[int] = None
+    offer_id: str
+    offer_title: str
+    quantity: int
+    passes_per_unit: int
+    total_passes: int
+    unit_price: float
+    line_total: float
+
+    model_config = ConfigDict(from_attributes=True)
 
 class BookingCreateRequest(BaseModel):
     customer_name: str = Field(..., min_length=2, max_length=100)
@@ -54,6 +66,8 @@ class BookingDetailResponse(BaseModel):
     owner_notify_error: Optional[str] = None
     created_at: datetime
     tickets: List[TicketResponse] = []
+    items: List[BookingItemResponse] = []
+    children_details: Optional[List[Dict[str, Any]]] = None
 
     model_config = ConfigDict(from_attributes=True)
 
