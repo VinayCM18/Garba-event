@@ -94,151 +94,128 @@ export const TicketPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Official Concert Ticket Pass (Section 17 Requirement) */}
+      {/* Official Concert Ticket Pass Matching Uploaded Design */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-3xl bg-[#0f0a14] border-2 border-[#d4af37]/50 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden text-slate-100 relative print:border-black print:text-black"
+        className="rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden text-slate-800 relative print:border-black print:text-black"
       >
-        {/* Pass Header Banner */}
-        <div className="bg-gradient-to-b from-[#1f1026] via-[#160a1c] to-[#0f0a14] border-b border-white/[0.08] p-6 sm:p-7 text-center relative">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.25em] px-3 py-1 rounded-full bg-[#d4af37]/15 text-[#f7e8c3] border border-[#d4af37]/35 font-['Cinzel']">
-              Official Concert Entry Pass
-            </span>
-          </div>
-
-          <h1 className="text-3xl sm:text-5xl font-black tracking-[0.06em] uppercase font-['Cinzel'] bg-gradient-to-r from-white via-[#f7e8c3] to-[#d4af37] bg-clip-text text-transparent">
-            NAVRANG 2026
+        {/* Pass Header Banner - Deep Indigo/Navy #1C1949 */}
+        <div className="bg-[#1C1949] p-6 sm:p-7 text-center relative text-white">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-wider uppercase text-[#EA580C] font-['Cinzel'] flex items-center justify-center gap-2">
+            <span>❖</span>
+            <span>{config?.event_name || 'NAVRANG 2026'}</span>
+            <span>❖</span>
           </h1>
 
-          {/* Collaboration Presentation with The Happy Circle */}
-          <div className="mt-3 inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-black/60 border border-[#d4af37]/40 shadow-md">
-            <span className="text-[10px] sm:text-[11px] uppercase tracking-widest text-[#f3e4b2]/90 font-bold">
-              In collaboration with
-            </span>
-            <div className="flex items-center gap-2">
+          <div className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-widest text-[#FBBF24]">
+            IN COLLABORATION WITH THE HAPPY CIRCLE
+          </div>
+
+          <div className="mt-1 text-xs italic text-[#FCD34D] font-serif">
+            {config?.event_tagline || 'Celebrate. Dance. Connect.'}
+          </div>
+
+          <div className="mt-3 text-xs sm:text-sm font-extrabold tracking-wider uppercase text-white">
+            OFFICIAL ENTRY PASS — PASS 1 OF 1
+          </div>
+        </div>
+
+        {/* 4-Column Ticket Metadata Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 bg-white border-b border-slate-200 text-left text-xs divide-x divide-y sm:divide-y-0 divide-slate-200">
+          <div className="p-3 sm:p-3.5">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ATTENDEE NAME</div>
+            <div className="text-sm font-bold text-slate-900 mt-1 truncate">{ticket.customer_name}</div>
+          </div>
+
+          <div className="p-3 sm:p-3.5">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">BOOKING ID</div>
+            <div className="text-sm font-bold text-slate-900 mt-1 font-mono">{ticket.booking_id}</div>
+          </div>
+
+          <div className="p-3 sm:p-3.5">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">TICKET NUMBER</div>
+            <div className="text-sm font-bold text-slate-900 mt-1 font-mono truncate">{ticket.ticket_id}</div>
+          </div>
+
+          <div className="p-3 sm:p-3.5">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">PASS ORDER</div>
+            <div className="text-sm font-bold text-slate-900 mt-1">Pass 1 of 1</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 bg-white border-b border-slate-200 text-left text-xs divide-x divide-y sm:divide-y-0 divide-slate-200">
+          <div className="p-3 sm:p-3.5">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">EVENT DATE & TIME</div>
+            <div className="text-xs font-semibold text-slate-800 mt-1">
+              <div>{config?.event_date || 'October 17, 2026'}</div>
+              <div className="text-slate-500">{config?.event_time || '06:30 PM - 10:00 PM'}</div>
+            </div>
+          </div>
+
+          <div className="p-3 sm:p-3.5">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">VENUE LOCATION</div>
+            <div className="text-xs font-semibold text-slate-800 mt-1">
+              <div className="font-bold">{config?.venue_name || 'Green Acres'}</div>
+              <div className="text-slate-500 text-[11px] truncate">{config?.venue_address || 'Green Acres, Mysuru'}, {config?.venue_city || 'Mysuru'}</div>
+            </div>
+          </div>
+
+          <div className="p-3 sm:p-3.5">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">PAYMENT STATUS</div>
+            <div className="text-sm font-bold text-slate-900 mt-1 flex items-center gap-1">
+              <span>✓ PAID (₹{Math.round(ticket.ticket_price || config?.ticket_price || 599)})</span>
+            </div>
+          </div>
+
+          <div className="p-3 sm:p-3.5">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">TICKET STATUS</div>
+            <div className="text-sm font-bold mt-1 flex items-center gap-1.5">
+              {isUsed ? (
+                <span className="text-amber-600 font-bold">● CHECKED IN</span>
+              ) : isCancelled ? (
+                <span className="text-rose-600 font-bold">● CANCELLED</span>
+              ) : (
+                <span className="text-slate-900 font-bold">● VALID</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* QR Code Presentation */}
+        <div className="p-6 bg-slate-50 border-b border-slate-200 text-center flex flex-col items-center justify-center">
+          {ticket.qr_code_base64 && (
+            <div className="p-3 bg-white rounded-xl shadow-md border border-slate-300 inline-block">
               <img
-                src="/images/happy-circle-logo.png"
-                alt="The Happy Circle"
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-contain border border-[#d4af37]/50 p-0.5 bg-black"
+                src={ticket.qr_code_base64.startsWith('data:') ? ticket.qr_code_base64 : `data:image/png;base64,${ticket.qr_code_base64}`}
+                alt="Entry QR Code"
+                className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
               />
-              <span className="text-xs font-black text-white tracking-wider uppercase font-['Outfit']">
-                THE HAPPY CIRCLE
-              </span>
             </div>
-          </div>
-
-          <div className="mt-2 text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-[#d4af37] font-['Cinzel']">
-            GREEN ACRES • MYSURU
-          </div>
+          )}
+          <p className="text-xs text-slate-500 mt-2 font-medium">
+            Scan this barcode at security turnstiles for gate admission
+          </p>
         </div>
 
-        {/* Perforated Stub Line with Left & Right Notches */}
-        <div className="relative flex items-center justify-between my-1">
-          <div className="w-5 h-10 bg-[#080309] rounded-r-full border-r border-t border-b border-[#d4af37]/50 -ml-1" />
-          <div className="flex-1 border-b-2 border-dashed border-[#d4af37]/40 mx-2" />
-          <div className="w-5 h-10 bg-[#080309] rounded-l-full border-l border-t border-b border-[#d4af37]/50 -mr-1" />
+        {/* Important Venue Instructions Box - Cream #FFFDF5, Amber border #FDE68A */}
+        <div className="m-4 sm:m-6 p-4 rounded-xl bg-[#FFFDF5] border border-[#FDE68A] text-left">
+          <div className="text-xs font-bold text-[#B45309] uppercase tracking-wider mb-2">
+            IMPORTANT VENUE INSTRUCTIONS
+          </div>
+          <ul className="text-xs text-slate-700 space-y-1.5 list-disc list-inside">
+            <li>Gates open promptly at 06:30 PM. Show this barcode or digital pass at turnstiles.</li>
+            <li>Event Timings: 06:30 PM onwards till 10:00 PM. Gates close at 10:00 PM.</li>
+            <li>Entry will be granted only after successful QR scanning at security.</li>
+            <li>Each QR code is uniquely encrypted and admits exactly one person once.</li>
+            <li>Traditional festive attire is celebrated and recommended.</li>
+            <li>Carry valid Government photo ID matching the attendee name.</li>
+          </ul>
         </div>
 
-        {/* Ticket Details & QR Code */}
-        <div className="p-6 sm:p-8 space-y-6">
-          {/* Status Badge */}
-          <div className="text-center">
-            {isUsed ? (
-              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black bg-[#d4af37]/20 text-[#f3e4b2] border border-[#d4af37]/40 tracking-wider">
-                <AlertTriangle className="w-4 h-4 text-[#d4af37]" />
-                ALREADY CHECKED IN
-              </span>
-            ) : isCancelled ? (
-              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black bg-rose-500/20 text-rose-400 border border-rose-500/40 tracking-wider">
-                <XCircle className="w-4 h-4" />
-                INVALID TICKET (CANCELLED)
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-5 py-1.5 rounded-full text-xs sm:text-sm font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 shadow-sm tracking-wider font-['Cinzel']">
-                <CheckCircle2 className="w-4 h-4" />
-                VALID TICKET • ADMIT ONE
-              </span>
-            )}
-          </div>
-
-          {/* Large QR Code Presentation (High Readability) */}
-          <div className="flex flex-col items-center justify-center p-6 rounded-3xl bg-black/60 border border-[#d4af37]/35 shadow-inner">
-            {ticket.qr_code_base64 && (
-              <div className="p-4 bg-white rounded-2xl shadow-2xl border-2 border-slate-300">
-                <img
-                  src={ticket.qr_code_base64.startsWith('data:') ? ticket.qr_code_base64 : `data:image/png;base64,${ticket.qr_code_base64}`}
-                  alt="Entry QR Code"
-                  className="w-52 h-52 sm:w-60 sm:h-60 object-contain"
-                />
-              </div>
-            )}
-            <div className="text-xs font-mono text-[#f3e4b2] font-black mt-4 tracking-wider">
-              TICKET #{ticket.ticket_id}
-            </div>
-            <p className="text-[11px] text-slate-400 text-center mt-1">
-              Present this high-resolution QR barcode at the Mysuru venue turnstiles.
-            </p>
-          </div>
-
-          {/* Pass Meta Grid (Customer Name, Booking ID, Ticket Type, Event Date, Venue) */}
-          <div className="grid grid-cols-2 gap-3.5 text-xs">
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
-              <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider font-['Cinzel']">Customer Name</div>
-              <div className="text-sm font-bold text-white mt-0.5 truncate">{ticket.customer_name}</div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
-              <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider font-['Cinzel']">Booking ID</div>
-              <div className="text-sm font-bold text-[#f3e4b2] font-mono mt-0.5">{ticket.booking_id}</div>
-            </div>
-
-            <div className="col-span-2 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between">
-              <div>
-                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider font-['Cinzel']">Ticket Pass Type</div>
-                <div className="text-xs font-black text-[#d4af37] uppercase tracking-wide mt-0.5">
-                  {ticket.ticket_type || 'EARLY BIRD ENTRY PASS'}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider font-['Cinzel']">Pass #</div>
-                <div className="text-xs font-mono text-white font-bold">{ticket.ticket_id}</div>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
-              <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1 font-['Cinzel']">
-                <Calendar className="w-3 h-3 text-[#d4af37]" /> Event Date
-              </div>
-              <div className="font-semibold text-white mt-0.5">{config?.event_date || 'October 17, 2026'}</div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
-              <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1 font-['Cinzel']">
-                <Clock className="w-3 h-3 text-[#d4af37]" /> Time & Entry
-              </div>
-              <div className="font-semibold text-white mt-0.5">{config?.event_time || '07:00 PM - 10:00 PM'}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Gates open 06:30 PM</div>
-            </div>
-
-            <div className="col-span-2 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
-              <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1 font-['Cinzel']">
-                <MapPin className="w-3 h-3 text-[#d4af37]" /> Venue
-              </div>
-              <div className="font-semibold text-white mt-0.5">
-                {config?.venue_name ? `${config.venue_name}, ${config.venue_city || 'Mysuru'}` : 'Green Acres, Mysuru'}
-              </div>
-            </div>
-          </div>
-
-          {/* Security Notice */}
-          <div className="p-3.5 rounded-2xl bg-[#d4af37]/10 border border-[#d4af37]/30 text-[11px] text-[#f3e4b2]/90 leading-relaxed flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
-            <div>
-              <strong>Single-Entry Policy:</strong> This ticket pass is digitally signed. Duplicate scans or screenshots shared with others will be rejected at the gate. Traditional festive attire encouraged.
-            </div>
-          </div>
+        {/* Footer info line */}
+        <div className="pb-4 text-center text-[11px] text-slate-400">
+          Pass 1 of 1 • Booking #{ticket.booking_id} • {config?.event_name || 'NAVRANG 2026'} × THE HAPPY CIRCLE Official E-Ticket
         </div>
       </motion.div>
     </div>

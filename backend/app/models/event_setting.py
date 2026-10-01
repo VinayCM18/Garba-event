@@ -7,9 +7,9 @@ class EventSetting(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     event_name = Column(String(255), default="NAVRANG 2026", nullable=False)
-    event_tagline = Column(String(255), default="The Premier Cultural Gala & Dance Experience", nullable=False)
+    event_tagline = Column(String(255), default="Celebrate. Dance. Connect.", nullable=False)
     event_date = Column(String(100), default="October 17, 2026", nullable=False)
-    event_time = Column(String(100), default="07:00 PM - 10:00 PM", nullable=False)
+    event_time = Column(String(100), default="06:30 PM - 10:00 PM", nullable=False)
     venue_name = Column(String(255), default="Green Acres", nullable=False)
     venue_address = Column(String(255), default="Green Acres, Mysuru", nullable=False)
     venue_city = Column(String(100), default="Mysuru", nullable=False)

@@ -370,7 +370,7 @@ export const BookingStatusPage: React.FC = () => {
             <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300 bg-black/40 p-4 rounded-2xl border border-white/5">
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-amber-400" />
-                <span>October 17, 2026 • 07:00 PM - 10:00 PM</span>
+                <span>October 17, 2026 • 06:30 PM - 10:00 PM</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-amber-400" />

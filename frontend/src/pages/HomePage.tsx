@@ -51,7 +51,7 @@ export const HomePage: React.FC = () => {
 
   const eventName = config?.event_name || 'NAVRANG 2026';
   const eventDate = config?.event_date || 'October 17, 2026';
-  const eventTime = config?.event_time || '07:00 PM - 10:00 PM';
+  const eventTime = config?.event_time || '06:30 PM - 10:00 PM';
   const venueName = config?.venue_name || 'Green Acres';
   const venueAddress = config?.venue_address || 'Green Acres, Mysuru';
   const venueCity = config?.venue_city || 'Mysuru';

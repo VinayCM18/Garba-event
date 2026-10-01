@@ -38,7 +38,7 @@ def init_db_defaults():
                 event_name="NAVRANG 2026",
                 event_tagline="Celebrate. Dance. Connect.",
                 event_date="October 17, 2026",
-                event_time="07:00 PM - 10:00 PM",
+                event_time="06:30 PM - 10:00 PM",
                 venue_name="Green Acres",
                 venue_address="Green Acres, Mysuru",
                 venue_city="Mysuru",
@@ -55,6 +55,10 @@ def init_db_defaults():
         else:
             if not setting.event_name or "garba" in setting.event_name.lower():
                 setting.event_name = "NAVRANG 2026"
+            if not setting.event_time or "07:00" in setting.event_time or "7:00" in setting.event_time:
+                setting.event_time = "06:30 PM - 10:00 PM"
+            if not setting.event_tagline or "cultural gala" in setting.event_tagline.lower():
+                setting.event_tagline = "Celebrate. Dance. Connect."
             env_raw = (
                 os.environ.get("PAYMENT_PROVIDER")
                 or os.environ.get("PAYMENT_METHOD")

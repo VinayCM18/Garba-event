@@ -26,13 +26,13 @@ def seed():
     try:
         print("Seeding Event Settings...")
         setting = EventSetting(
-            event_name="GARBA NIGHT 2026",
+            event_name="NAVRANG 2026",
             event_tagline="Celebrate. Dance. Connect.",
-            event_date="October 20, 2026",
-            event_time="07:00 PM - 02:00 AM IST",
-            venue_name="Royal Palm Grand Arena",
-            venue_address="SG Highway, Near Vaishnodevi Circle",
-            venue_city="Ahmedabad, Gujarat",
+            event_date="October 17, 2026",
+            event_time="06:30 PM - 10:00 PM",
+            venue_name="Green Acres",
+            venue_address="Green Acres, Mysuru",
+            venue_city="Mysuru",
             ticket_price=300.0,
             convenience_fee=0.0,
             total_capacity=1500,

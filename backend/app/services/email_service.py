@@ -597,43 +597,138 @@ class EmailService:
                       </tr>
             """
 
-        # Generate the official NAVRANG 2026 Dandiya festive ticket pass image
-        festive_pass_card_html = ""
-        try:
-            from app.services.ticket_service import ticket_service
-            primary_ticket = booking.tickets[0] if (booking and booking.tickets) else None
-            tkt_img_bytes = ticket_service.generate_ticket_image_bytes(booking, primary_ticket, event_setting)
-            tkt_img_b64 = base64.b64encode(tkt_img_bytes).decode("utf-8")
-            tkt_img_src = f"data:image/jpeg;base64,{tkt_img_b64}"
+        # Generate the official NAVRANG 2026 entry pass card matching the uploaded design
+        primary_attendee_name = primary_ticket.customer_name if (primary_ticket and primary_ticket.customer_name) else booking.customer_name
+        primary_ticket_id = primary_ticket.ticket_id if (primary_ticket and primary_ticket.ticket_id) else f"{booking.booking_id}-01"
+        primary_price = getattr(primary_ticket, "ticket_price", None) or (booking.amount / max(1, booking.ticket_count)) if booking.amount else 599
 
-            multi_note = ""
-            if booking.ticket_count > 1:
-                multi_note = f"""
-                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 12px;">
-                    <tr>
-                      <td style="padding: 10px 14px; background: rgba(212, 175, 55, 0.12); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 8px; font-size: 11px; font-weight: 700; color: #f3e4b2; text-align: center;">
-                        🎟️ Pass 1 of {booking.ticket_count} displayed above. Individual passes for all {booking.ticket_count} attendees with their unique cryptographic QR codes are included in the attached printable PDF passbook.
-                      </td>
-                    </tr>
-                  </table>
-                """
-
-            festive_pass_card_html = f"""
-              <!-- Official NAVRANG 2026 Festive Admission Pass -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 24px;">
+        multi_pass_notice = ""
+        if booking.ticket_count > 1:
+            multi_pass_notice = f"""
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 14px; margin-bottom: 24px;">
                 <tr>
-                  <td align="center" style="background: radial-gradient(circle at 50% 30%, #3d0910 0%, #150205 100%); border: 1.5px solid #d4af37; border-radius: 14px; padding: 14px; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.7);">
-                    <div style="font-size: 11px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #f3e4b2; margin-bottom: 12px; text-align: center;">
-                      ✦ OFFICIAL ADMISSION PASS ✦
-                    </div>
-                    <img src="{tkt_img_src}" alt="Official NAVRANG 2026 Admission Ticket" width="552" style="display: block; width: 100%; max-width: 552px; height: auto; border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.4); box-shadow: 0 8px 24px rgba(0,0,0,0.6);" />
-                    {multi_note}
+                  <td style="padding: 12px 16px; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 8px; font-size: 12px; font-weight: 700; color: #f3e4b2; text-align: center;">
+                    🎟️ <strong>Pass 1 of {booking.ticket_count} displayed above.</strong> Individual passes with unique QR codes for all {booking.ticket_count} attendees are included in the attached printable PDF passbook.
                   </td>
                 </tr>
               </table>
             """
-        except Exception as tkt_err:
-            app_logger.warning(f"Could not generate festive ticket pass for email: {tkt_err}")
+
+        official_pass_card_html = f"""
+          <!-- Official NAVRANG 2026 Entry Pass Matching Uploaded Design -->
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <!-- 1. Deep Midnight Navy Header #1C1949 -->
+            <tr>
+              <td style="background-color: #1C1949; padding: 22px 18px 18px; text-align: center;">
+                <div style="font-size: 24px; font-weight: 900; color: #EA580C; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">
+                  &#10070; {event_setting.event_name.upper()} &#10070;
+                </div>
+                <div style="font-size: 11px; font-weight: 800; color: #FBBF24; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px;">
+                  IN COLLABORATION WITH THE HAPPY CIRCLE
+                </div>
+                <div style="font-size: 13px; font-style: italic; color: #FCD34D; font-family: Georgia, serif; margin-bottom: 12px;">
+                  {event_setting.event_tagline or 'Celebrate. Dance. Connect.'}
+                </div>
+                <div style="font-size: 13px; font-weight: 800; color: #FFFFFF; letter-spacing: 1px; text-transform: uppercase;">
+                  OFFICIAL ENTRY PASS — PASS 1 OF {booking.ticket_count}
+                </div>
+              </td>
+            </tr>
+
+            <!-- 2. 4-Column Ticket Metadata Grid -->
+            <tr>
+              <td style="padding: 0; background: #ffffff;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse: collapse; border-bottom: 1px solid #E2E8F0;">
+                  <tr>
+                    <!-- Row 1: Attendee Name, Booking ID, Ticket Number, Pass Order -->
+                    <td width="25%" style="padding: 10px 12px; border-right: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0; vertical-align: top;">
+                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">ATTENDEE NAME</div>
+                      <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">{primary_attendee_name}</div>
+                    </td>
+                    <td width="25%" style="padding: 10px 12px; border-right: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0; vertical-align: top;">
+                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">BOOKING ID</div>
+                      <div style="font-size: 13px; font-weight: 800; color: #0F172A; font-family: monospace; margin-top: 3px;">{booking.booking_id}</div>
+                    </td>
+                    <td width="25%" style="padding: 10px 12px; border-right: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0; vertical-align: top;">
+                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">TICKET NUMBER</div>
+                      <div style="font-size: 13px; font-weight: 800; color: #0F172A; font-family: monospace; margin-top: 3px;">{primary_ticket_id}</div>
+                    </td>
+                    <td width="25%" style="padding: 10px 12px; border-bottom: 1px solid #E2E8F0; vertical-align: top;">
+                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">PASS ORDER</div>
+                      <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">Pass 1 of {booking.ticket_count}</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <!-- Row 2: Event Date & Time, Venue Location, Payment Status, Ticket Status -->
+                    <td width="25%" style="padding: 10px 12px; border-right: 1px solid #E2E8F0; vertical-align: top;">
+                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">EVENT DATE &amp; TIME</div>
+                      <div style="font-size: 11px; font-weight: 700; color: #0F172A; margin-top: 3px;">{event_setting.event_date}</div>
+                      <div style="font-size: 10px; color: #64748B;">06:30 PM - 10:00 PM</div>
+                    </td>
+                    <td width="25%" style="padding: 10px 12px; border-right: 1px solid #E2E8F0; vertical-align: top;">
+                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">VENUE LOCATION</div>
+                      <div style="font-size: 11px; font-weight: 800; color: #0F172A; margin-top: 3px;">{event_setting.venue_name}</div>
+                      <div style="font-size: 10px; color: #64748B;">{event_setting.venue_address}, {event_setting.venue_city}</div>
+                    </td>
+                    <td width="25%" style="padding: 10px 12px; border-right: 1px solid #E2E8F0; vertical-align: top;">
+                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">PAYMENT STATUS</div>
+                      <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">&#10003; PAID (&#8377;{int(primary_price)})</div>
+                    </td>
+                    <td width="25%" style="padding: 10px 12px; vertical-align: top;">
+                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">TICKET STATUS</div>
+                      <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">&#9679; VALID</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- 3. High-Contrast Centered QR Code Block -->
+            <tr>
+              <td align="center" style="background: #FAFAFA; padding: 20px 14px 16px; border-bottom: 1px solid #E2E8F0;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="background: #ffffff; padding: 10px; border-radius: 12px; border: 1px solid #CBD5E1; box-shadow: 0 4px 14px rgba(0,0,0,0.1);">
+                  <tr>
+                    <td align="center">
+                      <img src="{qr_src}" alt="Turnstile Admission Barcode" width="180" height="180" style="display: block; width: 180px; height: 180px; border: none;" />
+                    </td>
+                  </tr>
+                </table>
+                <div style="font-size: 11px; color: #64748B; margin-top: 10px; font-weight: 500;">
+                  Scan this barcode at security turnstiles for gate admission
+                </div>
+              </td>
+            </tr>
+
+            <!-- 4. Important Venue Instructions Box (Cream #FFFDF5, Border #FDE68A) -->
+            <tr>
+              <td style="padding: 16px 18px; background: #ffffff;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #FFFDF5; border: 1px solid #FDE68A; border-radius: 8px; padding: 14px 16px;">
+                  <tr>
+                    <td>
+                      <div style="font-size: 11px; font-weight: 800; color: #B45309; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                        IMPORTANT VENUE INSTRUCTIONS
+                      </div>
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 12px; color: #334155; line-height: 1.6;">
+                        <tr><td style="padding: 2px 0;">&bull; Gates open promptly at 06:30 PM. Show this barcode or digital pass at turnstiles.</td></tr>
+                        <tr><td style="padding: 2px 0;">&bull; Event Timings: 06:30 PM onwards till 10:00 PM. Gates close at 10:00 PM.</td></tr>
+                        <tr><td style="padding: 2px 0;">&bull; Entry will be granted only after successful QR scanning at security.</td></tr>
+                        <tr><td style="padding: 2px 0;">&bull; Each QR code is uniquely encrypted and admits exactly one person once.</td></tr>
+                        <tr><td style="padding: 2px 0;">&bull; Traditional festive attire is celebrated and recommended.</td></tr>
+                        <tr><td style="padding: 2px 0;">&bull; Carry valid Government photo ID matching the attendee name.</td></tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Footer Info Line -->
+                <div style="font-size: 10px; color: #64748B; text-align: center; margin-top: 12px;">
+                  Pass 1 of {booking.ticket_count} &bull; Booking #{booking.booking_id} &bull; {event_setting.event_name} &times; THE HAPPY CIRCLE Official E-Ticket
+                </div>
+              </td>
+            </tr>
+          </table>
+          {multi_pass_notice}
+        """
 
         return f"""<!DOCTYPE html>
 <html lang="en">
@@ -684,9 +779,9 @@ class EmailService:
                 Your reservation for <strong style="color: #f3e4b2;">{event_setting.event_name}</strong> is officially confirmed. Your cryptographically secured digital pass and tax receipt details are provided below.
               </p>
 
-              {festive_pass_card_html}
+              {official_pass_card_html}
 
-              <!-- Digital Pass Card -->
+              <!-- Booking Receipt & Tax Invoice Details -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: linear-gradient(145deg, #131724 0%, #0e111c 100%); border: 1px solid #282f48; border-radius: 14px; overflow: hidden; margin-bottom: 24px;">
                 <tr>
                   <td style="padding: 20px; border-bottom: 1px solid #1f253a;">
@@ -725,30 +820,6 @@ class EmailService:
                         <td style="padding: 4px 0; font-size: 11px; color: #cbd5e1; text-align: right;">{booking.phone}</td>
                       </tr>
                     </table>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- QR Code Admission Card -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #111422; border: 1px solid #23293e; border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 24px;">
-                <tr>
-                  <td align="center">
-                    <div style="font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #d4af37; margin-bottom: 14px;">
-                      OFFICIAL ENCRYPTED ADMISSION CODE
-                    </div>
-                    
-                    <!-- White frame for QR to ensure 100% optical scanner contrast -->
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="background: #ffffff; padding: 12px; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: 0 4px 14px rgba(0,0,0,0.4);">
-                      <tr>
-                        <td align="center">
-                          <img src="{qr_src}" alt="Entry QR Code" width="190" height="190" style="display: block; width: 190px; height: 190px; border: none; outline: none;" />
-                        </td>
-                      </tr>
-                    </table>
-
-                    <p style="margin: 14px 0 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
-                      Scan this digital barcode at <strong style="color: #ffffff;">Turnstile Gate A</strong> for rapid admission.
-                    </p>
                   </td>
                 </tr>
               </table>

@@ -104,6 +104,7 @@ export interface Ticket {
   customer_name: string;
   event_name: string;
   ticket_type?: string;
+  ticket_price?: number;
   ticket_status: 'VALID' | 'USED' | 'CANCELLED' | 'REFUNDED';
   checkin_status: boolean;
   checked_in_at: string | null;

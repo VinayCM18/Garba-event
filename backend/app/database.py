@@ -85,6 +85,12 @@ def sync_database_schema():
                         logger.info(f"Added column {col_name} to event_settings.")
                     except Exception as e:
                         logger.warning(f"Could not add column {col_name} to event_settings: {e}")
+            try:
+                conn.execute(text("UPDATE event_settings SET event_time = '06:30 PM - 10:00 PM' WHERE event_time LIKE '%07:00%' OR event_time LIKE '%7:00%' OR event_time IS NULL"))
+                conn.execute(text("UPDATE event_settings SET event_tagline = 'Celebrate. Dance. Connect.' WHERE event_tagline LIKE '%cultural gala%' OR event_tagline IS NULL"))
+                conn.commit()
+            except Exception as e:
+                logger.warning(f"Could not update event_settings time/tagline: {e}")
 
         if "bookings" in table_names:
             cols = {col["name"] for col in inspector.get_columns("bookings")}

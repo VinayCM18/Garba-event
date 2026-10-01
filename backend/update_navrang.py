@@ -28,9 +28,9 @@ def update_event_to_navrang():
             db.add(setting)
 
         setting.event_name = "NAVRANG 2026"
-        setting.event_tagline = "The Ultimate Navratri Cultural Gala"
+        setting.event_tagline = "Celebrate. Dance. Connect."
         setting.event_date = "October 17, 2026"
-        setting.event_time = "07:00 PM - 10:00 PM"
+        setting.event_time = "06:30 PM - 10:00 PM"
         setting.venue_name = "Green Acres"
         setting.venue_address = "Green Acres, Mysuru"
         setting.venue_city = "Mysuru"

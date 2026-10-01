@@ -31,7 +31,7 @@ def init_db():
         event_name="NAVRANG 2026",
         event_tagline="The Premier Cultural Gala & Dance Experience",
         event_date="October 17, 2026",
-        event_time="07:00 PM - 10:00 PM",
+        event_time="06:30 PM - 10:00 PM",
         venue_name="Green Acres",
         venue_address="Green Acres, Mysuru",
         venue_city="Mysuru",
