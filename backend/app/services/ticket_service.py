@@ -53,135 +53,172 @@ class TicketService:
     @classmethod
     def generate_ticket_image_bytes(cls, booking: Booking, ticket: Ticket, event_setting: EventSetting) -> bytes:
         """
-        Renders the official NAVRANG 2026 admission pass image matching the uploaded design:
-        - Deep Midnight Navy banner (#1C1949) with Orange (#EA580C) title, Gold (#FBBF24) collaboration, and warm Gold tagline
-        - 4-column white metadata grid with light borders (#E2E8F0)
-        - Clean scannable QR code
-        - Pale cream (#FFFDF5) important venue instructions box with amber border (#FDE68A)
-        - Synchronized event timings: 06:30 PM - 10:00 PM (Gates open 06:30 PM)
-        Returns JPEG bytes.
+        Renders the official NAVRANG 2026 admission pass image matching the reference design:
+        - Deep maroon/burgundy background with ornate gold border and Indian festive motifs
+        - Heritage Productions × The Happy Circle collaboration header
+        - Ornate 3D gold embossed NAVRANG DANDIYA 2026 central branding with crossed dandiya sticks
+        - Scalloped royal ivory arch cartouche with dynamic Phase Name & Offer Type
+        - Event details with Date, 06:30 PM - 10:00 PM (Gate Opening: 5:30 PM), and Green Acres venue
+        - Vertical perforated tear-off stub with dynamic ticket number, pure white QR card, and SCAN TO VERIFY
+        - Clean sponsor footer strip (Location Partner: Green Acres) without gray placeholder circles
+        Returns high-quality JPEG bytes.
         """
-        width = 1000
-        height = 680
-        img = PILImage.new("RGB", (width, height), "#FFFFFF")
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        clean_tpl = os.path.join(base_dir, "static", "navrang_ticket_template_clean.jpg")
+        fallback_tpl = os.path.join(base_dir, "static", "navrang_ticket_template.jpg")
+
+        if os.path.exists(clean_tpl):
+            img = PILImage.open(clean_tpl).convert("RGB")
+        elif os.path.exists(fallback_tpl):
+            img = PILImage.open(fallback_tpl).convert("RGB")
+        else:
+            img = PILImage.new("RGB", (1024, 494), "#4A0E17")
+
         draw = ImageDraw.Draw(img)
+        w, h = img.size
 
-        # 1. Official Header Banner (#1C1949)
-        header_height = 150
-        draw.rectangle([(0, 0), (width, header_height)], fill="#1C1949")
+        # Resolve Phase Label and Offer Type dynamically
+        offer_title = getattr(booking, "offer_title", "") or ""
+        ticket_offer = getattr(ticket, "offer_title", "") or ""
+        combined_offer = (ticket_offer or offer_title).lower()
 
-        font_title = cls._get_font("arialbd.ttf", 28)
-        font_collab = cls._get_font("arialbd.ttf", 12)
-        font_tagline = cls._get_font("georgiai.ttf", 13)
-        font_badge = cls._get_font("arialbd.ttf", 14)
+        total_passes = booking.ticket_count if (booking and booking.ticket_count) else 1
+        pass_idx = 1
+        if booking and booking.tickets:
+            for idx, t in enumerate(booking.tickets):
+                if t.ticket_id == ticket.ticket_id:
+                    pass_idx = idx + 1
+                    break
 
-        title_text = f"❖ {event_setting.event_name.upper()} ❖"
-        bbox = draw.textbbox((0, 0), title_text, font=font_title)
-        draw.text(((width - (bbox[2] - bbox[0])) // 2, 16), title_text, fill="#EA580C", font=font_title)
+        is_early = "early" in combined_offer
+        is_phase1 = "phase 1" in combined_offer or "phase_1" in combined_offer
 
-        collab_text = "IN COLLABORATION WITH THE HAPPY CIRCLE"
-        bbox = draw.textbbox((0, 0), collab_text, font=font_collab)
-        draw.text(((width - (bbox[2] - bbox[0])) // 2, 58), collab_text, fill="#FBBF24", font=font_collab)
+        if is_early:
+            phase_label = "EARLY BIRD"
+        elif is_phase1:
+            phase_label = "PHASE 1"
+        else:
+            phase_label = "EARLY BIRD"
 
-        tagline_text = event_setting.event_tagline or "Celebrate. Dance. Connect."
-        bbox = draw.textbbox((0, 0), tagline_text, font=font_tagline)
-        draw.text(((width - (bbox[2] - bbox[0])) // 2, 84), tagline_text, fill="#FCD34D", font=font_tagline)
+        if "group" in combined_offer or total_passes == 10:
+            offer_label = "GROUP OF 10"
+        elif "couple" in combined_offer or total_passes == 2:
+            offer_label = "COUPLE ENTRY"
+        elif "kid" in combined_offer or "child" in combined_offer:
+            offer_label = "KIDS ENTRY"
+        else:
+            offer_label = "STAG ENTRY"
 
-        badge_text = f"OFFICIAL ENTRY PASS — PASS 1 OF {booking.ticket_count}"
-        bbox = draw.textbbox((0, 0), badge_text, font=font_badge)
-        draw.text(((width - (bbox[2] - bbox[0])) // 2, 114), badge_text, fill="#FFFFFF", font=font_badge)
+        # Fonts
+        font_cart_sub = cls._get_font("georgia.ttf", 13)
+        font_cart_phase = cls._get_font("georgiab.ttf", 20)
+        font_cart_type = cls._get_font("arialbd.ttf", 10)
 
-        # 2. 4-Column Ticket Metadata Grid
-        grid_x0 = 30
-        grid_x1 = width - 30
-        grid_y0 = 170
-        row_h = 65
-        col_w = (grid_x1 - grid_x0) / 4
+        font_dt_bold = cls._get_font("arialbd.ttf", 13)
+        font_dt_sub = cls._get_font("arial.ttf", 11)
+        font_dt_gate = cls._get_font("arialbd.ttf", 11)
 
-        draw.rectangle([(grid_x0, grid_y0), (grid_x1, grid_y0 + 2 * row_h)], fill="#FFFFFF", outline="#E2E8F0", width=1)
-        draw.line([(grid_x0, grid_y0 + row_h), (grid_x1, grid_y0 + row_h)], fill="#E2E8F0", width=1)
-        for i in range(1, 4):
-            x = grid_x0 + i * col_w
-            draw.line([(x, grid_y0), (x, grid_y0 + 2 * row_h)], fill="#E2E8F0", width=1)
+        font_stub_sub = cls._get_font("georgia.ttf", 12)
+        font_stub_phase = cls._get_font("georgiab.ttf", 15)
+        font_stub_type = cls._get_font("arialbd.ttf", 9)
+        font_stub_div = cls._get_font("georgia.ttf", 11)
+        font_stub_lbl = cls._get_font("arialbd.ttf", 9)
+        font_stub_id = cls._get_font("arialbd.ttf", 11)
+        font_stub_scan = cls._get_font("arialbd.ttf", 9)
+        font_sp_val = cls._get_font("arialbd.ttf", 10)
 
-        font_label = cls._get_font("arialbd.ttf", 10)
-        font_val = cls._get_font("arialbd.ttf", 13)
-        font_subval = cls._get_font("arial.ttf", 11)
+        # 1. Clean and draw Cartouche text (centered around x=675, y=166)
+        cart_cx = 675
+        draw.rounded_rectangle([605, 126, 745, 205], radius=8, fill=(255, 248, 232))
 
-        cust_name = getattr(ticket, "customer_name", None) or getattr(booking, "customer_name", "ATTENDEE")
-        tkt_no = getattr(ticket, "ticket_id", None) or f"{booking.booking_id}-01"
-        price_val = getattr(ticket, "ticket_price", None) or (booking.amount / max(1, booking.ticket_count)) if booking.amount else 599
+        b1 = draw.textbbox((0, 0), "ENTRY PASS", font=font_cart_sub)
+        draw.text((cart_cx - (b1[2] - b1[0]) // 2, 134), "ENTRY PASS", fill=(70, 15, 25), font=font_cart_sub)
 
-        # Row 1
-        draw.text((grid_x0 + 12, grid_y0 + 10), "ATTENDEE NAME", fill="#64748B", font=font_label)
-        draw.text((grid_x0 + 12, grid_y0 + 28), str(cust_name)[:22], fill="#0F172A", font=font_val)
+        b2 = draw.textbbox((0, 0), phase_label, font=font_cart_phase)
+        draw.text((cart_cx - (b2[2] - b2[0]) // 2, 153), phase_label, fill=(70, 15, 25), font=font_cart_phase)
 
-        draw.text((grid_x0 + col_w + 12, grid_y0 + 10), "BOOKING ID", fill="#64748B", font=font_label)
-        draw.text((grid_x0 + col_w + 12, grid_y0 + 28), str(booking.booking_id), fill="#0F172A", font=font_val)
+        b3 = draw.textbbox((0, 0), f"❖ {offer_label} ❖", font=font_cart_type)
+        draw.text((cart_cx - (b3[2] - b3[0]) // 2, 182), f"❖ {offer_label} ❖", fill=(180, 83, 9), font=font_cart_type)
 
-        draw.text((grid_x0 + 2 * col_w + 12, grid_y0 + 10), "TICKET NUMBER", fill="#64748B", font=font_label)
-        draw.text((grid_x0 + 2 * col_w + 12, grid_y0 + 28), str(tkt_no)[:20], fill="#0F172A", font=font_val)
+        # 2. Clean and draw Event Details text (preserving the 3 white icons at x=580..604)
+        draw.rounded_rectangle([606, 236, 795, 355], radius=6, fill=(80, 19, 28))
 
-        draw.text((grid_x0 + 3 * col_w + 12, grid_y0 + 10), "PASS ORDER", fill="#64748B", font=font_label)
-        draw.text((grid_x0 + 3 * col_w + 12, grid_y0 + 28), f"Pass 1 of {booking.ticket_count}", fill="#0F172A", font=font_val)
+        # Dynamic Event Date
+        event_date_str = str(event_setting.event_date or "17 OCT 2026").upper()
+        if "OCTOBER" in event_date_str:
+            event_date_str = event_date_str.replace("OCTOBER", "OCT")
+        draw.text((608, 242), event_date_str, fill=(255, 248, 232), font=font_dt_bold)
 
-        # Row 2
-        draw.text((grid_x0 + 12, grid_y0 + row_h + 8), "EVENT DATE & TIME", fill="#64748B", font=font_label)
-        draw.text((grid_x0 + 12, grid_y0 + row_h + 24), str(event_setting.event_date), fill="#0F172A", font=font_subval)
-        draw.text((grid_x0 + 12, grid_y0 + row_h + 40), "06:30 PM - 10:00 PM", fill="#64748B", font=font_subval)
+        # Synchronized Timings & Explicit Gate Opening 5:30 PM (as requested)
+        draw.text((608, 268), "06:30 PM - 10:00 PM", fill=(255, 248, 232), font=font_dt_bold)
+        draw.text((608, 286), "Gate Opening: 5:30 PM", fill=(251, 191, 36), font=font_dt_gate)
 
-        draw.text((grid_x0 + col_w + 12, grid_y0 + row_h + 8), "VENUE LOCATION", fill="#64748B", font=font_label)
-        draw.text((grid_x0 + col_w + 12, grid_y0 + row_h + 24), str(event_setting.venue_name), fill="#0F172A", font=font_val)
-        draw.text((grid_x0 + col_w + 12, grid_y0 + row_h + 42), f"{event_setting.venue_address}, {event_setting.venue_city}"[:28], fill="#64748B", font=font_subval)
+        # Configured Venue: Green Acres, Mysuru (as requested)
+        venue_name_str = (event_setting.venue_name or "GREEN ACRES").upper()
+        venue_sub_str = f"{event_setting.venue_address or 'Green Acres, Mysuru'}"
+        draw.text((608, 310), venue_name_str, fill=(255, 248, 232), font=font_dt_bold)
+        draw.text((608, 328), venue_sub_str[:32], fill=(243, 228, 178), font=font_dt_sub)
 
-        draw.text((grid_x0 + 2 * col_w + 12, grid_y0 + row_h + 8), "PAYMENT STATUS", fill="#64748B", font=font_label)
-        draw.text((grid_x0 + 2 * col_w + 12, grid_y0 + row_h + 28), f"✓ PAID (Rs. {int(price_val)})", fill="#0F172A", font=font_val)
+        # 3. Clean and draw Stub Area (x=848 to 1010)
+        draw.rectangle([848, 28, 1010, 375], fill=(78, 20, 30))
+        stub_cx = 928
 
-        draw.text((grid_x0 + 3 * col_w + 12, grid_y0 + row_h + 8), "TICKET STATUS", fill="#64748B", font=font_label)
-        draw.text((grid_x0 + 3 * col_w + 12, grid_y0 + row_h + 28), "● VALID", fill="#0F172A", font=font_val)
+        bs1 = draw.textbbox((0, 0), "ENTRY PASS", font=font_stub_sub)
+        draw.text((stub_cx - (bs1[2] - bs1[0]) // 2, 34), "ENTRY PASS", fill=(255, 245, 230), font=font_stub_sub)
 
-        # 3. Dynamic QR Code
-        qr_payload = getattr(ticket, "qr_token_raw", None) or getattr(booking, "booking_id", "NAV2026")
+        bs2 = draw.textbbox((0, 0), phase_label, font=font_stub_phase)
+        draw.text((stub_cx - (bs2[2] - bs2[0]) // 2, 50), phase_label, fill=(251, 191, 36), font=font_stub_phase)
+
+        bs2b = draw.textbbox((0, 0), offer_label, font=font_stub_type)
+        draw.text((stub_cx - (bs2b[2] - bs2b[0]) // 2, 69), offer_label, fill=(255, 245, 230), font=font_stub_type)
+
+        bs3 = draw.textbbox((0, 0), "✦ ❖ ✦", font=font_stub_div)
+        draw.text((stub_cx - (bs3[2] - bs3[0]) // 2, 83), "✦ ❖ ✦", fill=(212, 175, 55), font=font_stub_div)
+
+        bs4 = draw.textbbox((0, 0), "TICKET NO.", font=font_stub_lbl)
+        draw.text((stub_cx - (bs4[2] - bs4[0]) // 2, 100), "TICKET NO.", fill=(243, 228, 178), font=font_stub_lbl)
+
+        tkt_no_str = getattr(ticket, "ticket_id", None) or f"{booking.booking_id}-01"
+        bs5 = draw.textbbox((0, 0), tkt_no_str, font=font_stub_id)
+        draw.text((stub_cx - (bs5[2] - bs5[0]) // 2, 114), tkt_no_str, fill=(255, 255, 255), font=font_stub_id)
+
+        # Scannable White QR Code Card (High-Contrast, Pure White Quiet Zone)
+        qr_token = getattr(ticket, "qr_token_raw", None) or getattr(ticket, "ticket_id", None) or getattr(booking, "booking_id", "NAV2026")
         qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=3, border=1)
-        qr.add_data(qr_payload)
+        qr.add_data(qr_token)
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color="#000000", back_color="#FFFFFF").convert("RGB")
-        qr_img = qr_img.resize((150, 150), PILImage.Resampling.LANCZOS)
-        
-        qr_x = grid_x0 + 15
-        qr_y = 320
-        draw.rectangle([(qr_x - 4, qr_y - 4), (qr_x + 154, qr_y + 154)], fill="#FFFFFF", outline="#CBD5E1", width=1)
-        img.paste(qr_img, (qr_x, qr_y))
+        qr_img = qr_img.resize((124, 124), PILImage.Resampling.LANCZOS)
 
-        # 4. Important Venue Instructions Box (#FFFDF5, border #FDE68A)
-        inst_x0 = qr_x + 175
-        inst_x1 = grid_x1
-        inst_y0 = 315
-        inst_y1 = 485
-        draw.rectangle([(inst_x0, inst_y0), (inst_x1, inst_y1)], fill="#FFFDF5", outline="#FDE68A", width=1)
+        draw.rounded_rectangle([860, 136, 996, 272], radius=6, fill=(255, 255, 255))
+        img.paste(qr_img, (866, 142))
 
-        font_inst_head = cls._get_font("arialbd.ttf", 11)
-        font_inst_text = cls._get_font("arial.ttf", 10)
-        draw.text((inst_x0 + 14, inst_y0 + 12), "IMPORTANT VENUE INSTRUCTIONS", fill="#B45309", font=font_inst_head)
+        bs6 = draw.textbbox((0, 0), "SCAN TO VERIFY", font=font_stub_scan)
+        draw.text((stub_cx - (bs6[2] - bs6[0]) // 2, 280), "SCAN TO VERIFY", fill=(255, 245, 230), font=font_stub_scan)
 
-        bullets = [
-            "• Gates open promptly at 06:30 PM. Show this barcode or digital pass at turnstiles.",
-            "• Event Timings: 06:30 PM onwards till 10:00 PM. Gates close at 10:00 PM.",
-            "• Entry will be granted only after successful QR scanning at security.",
-            "• Each QR code is uniquely encrypted and admits exactly one person once.",
-            "• Traditional festive attire is celebrated and recommended.",
-            "• Carry valid Government photo ID matching the attendee name."
-        ]
-        b_y = inst_y0 + 34
-        for b_text in bullets:
-            draw.text((inst_x0 + 14, b_y), b_text, fill="#334155", font=font_inst_text)
-            b_y += 18
+        if total_passes > 1:
+            pass_order_str = f"PASS {pass_idx} OF {total_passes}"
+            bs7 = draw.textbbox((0, 0), pass_order_str, font=font_stub_lbl)
+            draw.text((stub_cx - (bs7[2] - bs7[0]) // 2, 296), pass_order_str, fill=(251, 191, 36), font=font_stub_lbl)
 
-        # 5. Footer Line
-        font_footer = cls._get_font("arial.ttf", 10)
-        footer_text = f"Pass 1 of {booking.ticket_count} • Booking #{booking.booking_id} • {event_setting.event_name} × THE HAPPY CIRCLE Official E-Ticket"
-        bbox = draw.textbbox((0, 0), footer_text, font=font_footer)
-        draw.text(((width - (bbox[2] - bbox[0])) // 2, 510), footer_text, fill="#64748B", font=font_footer)
+        # 4. Clean Sponsor Footer Strip (zero gray placeholder circles)
+        draw.rectangle([35, 425, 975, 468], fill=(248, 241, 222))
+
+        # Location Partner: Green Acres
+        b_loc = draw.textbbox((0, 0), "GREEN ACRES", font=font_sp_val)
+        draw.text((150 - (b_loc[2] - b_loc[0]) // 2, 436), "GREEN ACRES", fill=(70, 15, 25), font=font_sp_val)
+
+        # Main Sponsor: Heritage Productions
+        b_main = draw.textbbox((0, 0), "HERITAGE PRODUCTIONS", font=font_sp_val)
+        draw.text((370 - (b_main[2] - b_main[0]) // 2, 436), "HERITAGE PRODUCTIONS", fill=(70, 15, 25), font=font_sp_val)
+
+        # Co-Sponsor: The Happy Circle
+        b_co = draw.textbbox((0, 0), "THE HAPPY CIRCLE", font=font_sp_val)
+        draw.text((580 - (b_co[2] - b_co[0]) // 2, 436), "THE HAPPY CIRCLE", fill=(70, 15, 25), font=font_sp_val)
+
+        # Event Partners
+        b_oth = draw.textbbox((0, 0), "OFFICIAL ADMISSION PASS • 2026", font=font_sp_val)
+        draw.text((830 - (b_oth[2] - b_oth[0]) // 2, 436), "OFFICIAL ADMISSION PASS • 2026", fill=(70, 15, 25), font=font_sp_val)
 
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG", quality=95)
@@ -189,189 +226,53 @@ class TicketService:
 
     @classmethod
     def generate_single_ticket_pdf(cls, booking: Booking, ticket: Ticket, event_setting: EventSetting) -> bytes:
-        """Generates a professional, print-ready PDF for a single ticket matching the official ticket pass design."""
+        """Generates a professional, print-ready PDF for a single ticket matching the official NAVRANG 2026 pass design."""
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
             pagesize=letter,
-            rightMargin=36,
-            leftMargin=36,
-            topMargin=32,
-            bottomMargin=32
+            rightMargin=24,
+            leftMargin=24,
+            topMargin=24,
+            bottomMargin=24
         )
-
         story = []
+
+        # 1. Official NAVRANG 2026 Entry Pass Visual
+        tkt_img_bytes = cls.generate_ticket_image_bytes(booking, ticket, event_setting)
+        img_w = 7.8 * inch
+        img_h = img_w * (494.0 / 1024.0)
+        story.append(Image(io.BytesIO(tkt_img_bytes), width=img_w, height=img_h))
+        story.append(Spacer(1, 14))
+
+        # 2. Official Guidelines & Instructions Box
         styles = getSampleStyleSheet()
+        inst_style = ParagraphStyle("IT", fontName="Helvetica", fontSize=8.5, leading=12.5, textColor=colors.HexColor("#334155"))
 
-        # Custom Styles matching the official ticket design
-        title_style = ParagraphStyle(
-            "EventTitle",
-            parent=styles["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=24,
-            textColor=colors.HexColor("#EA580C"), # Vibrant Orange
-            alignment=1, # Center
-            spaceAfter=4
+        notice_text = (
+            "<b><font color='#78350F'>OFFICIAL ENTRY PASS GUIDELINES</font></b><br/>"
+            "&bull; <b>Gate Opening:</b> Gates open promptly at <b>05:30 PM</b>. Please arrive early to avoid queue delays.<br/>"
+            "&bull; <b>Event Timings:</b> 06:30 PM onwards till 10:00 PM. Turnstiles close at 10:00 PM.<br/>"
+            "&bull; <b>Venue:</b> Green Acres, Mysuru. Ample parking available on premise.<br/>"
+            "&bull; <b>Entry Verification:</b> Present this physical or digital pass with the authentic QR code at security turnstiles.<br/>"
+            "&bull; <b>One Pass per Attendee:</b> Each QR code is uniquely encrypted and allows exactly one entry.<br/>"
+            "&bull; <b>Photo ID:</b> Please carry a government-issued photo ID matching the attendee name."
         )
-        collab_style = ParagraphStyle(
-            "EventCollab",
-            parent=styles["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=10,
-            textColor=colors.HexColor("#FBBF24"), # Radiant Gold
-            alignment=1,
-            spaceAfter=4
-        )
-        tagline_style = ParagraphStyle(
-            "EventTagline",
-            parent=styles["Normal"],
-            fontName="Helvetica-Oblique",
-            fontSize=11,
-            textColor=colors.HexColor("#FCD34D"), # Warm Gold Italic
-            alignment=1,
-            spaceAfter=10
-        )
-        badge_style = ParagraphStyle(
-            "BadgeStyle",
-            parent=styles["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=13,
-            textColor=colors.white,
-            alignment=1
-        )
-        label_style = ParagraphStyle(
-            "LabelStyle",
-            parent=styles["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=8,
-            textColor=colors.HexColor("#64748B") # Slate Gray
-        )
-        val_style = ParagraphStyle(
-            "ValStyle",
-            parent=styles["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=10,
-            textColor=colors.HexColor("#0F172A") # Near Black
-        )
-        sub_val_style = ParagraphStyle(
-            "SubValStyle",
-            parent=styles["Normal"],
-            fontName="Helvetica",
-            fontSize=9,
-            textColor=colors.HexColor("#334155")
-        )
-        footer_style = ParagraphStyle(
-            "FooterStyle",
-            parent=styles["Normal"],
-            fontName="Helvetica",
-            fontSize=8,
-            textColor=colors.HexColor("#64748B"),
-            alignment=1
-        )
+        notice_p = Paragraph(notice_text, inst_style)
 
-        # 1. Official Deep Navy / Indigo Header Banner
-        header_data = [
-            [Paragraph(f"&#10070; {event_setting.event_name.upper()} &#10070;", title_style)],
-            [Paragraph("IN COLLABORATION WITH THE HAPPY CIRCLE", collab_style)],
-            [Paragraph("Celebrate. Dance. Connect.", tagline_style)],
-            [Paragraph("OFFICIAL ENTRY PASS — PASS 1 OF 1", badge_style)]
-        ]
-        header_table = Table(header_data, colWidths=[540])
-        header_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#1C1949")), # Royal Midnight Indigo
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ("TOPPADDING", (0, 0), (-1, -1), 10),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ]))
-        story.append(header_table)
-        story.append(Spacer(1, 10))
-
-        # 2. 4-Column Ticket Metadata Grid
-        details_data = [
-            [
-                Paragraph("ATTENDEE NAME", label_style),
-                Paragraph("BOOKING ID", label_style),
-                Paragraph("TICKET NUMBER", label_style),
-                Paragraph("PASS ORDER", label_style),
-            ],
-            [
-                Paragraph(f"{ticket.customer_name}", val_style),
-                Paragraph(f"{booking.booking_id}", val_style),
-                Paragraph(f"{ticket.ticket_id}", val_style),
-                Paragraph("Pass 1 of 1", val_style),
-            ],
-            [
-                Paragraph("EVENT DATE & TIME", label_style),
-                Paragraph("VENUE LOCATION", label_style),
-                Paragraph("PAYMENT STATUS", label_style),
-                Paragraph("TICKET STATUS", label_style),
-            ],
-            [
-                Paragraph(f"{event_setting.event_date}<br/>06:30 PM - 10:00 PM", sub_val_style),
-                Paragraph(f"<b>{event_setting.venue_name}</b><br/>{event_setting.venue_address}, {event_setting.venue_city}", sub_val_style),
-                Paragraph(f"✓ PAID (Rs. {int(getattr(ticket, 'ticket_price', None) or (booking.amount / max(1, booking.ticket_count)) if booking.amount else 599)})", val_style),
-                Paragraph(f"● {ticket.ticket_status}", val_style),
-            ],
-        ]
-
-        main_table = Table(details_data, colWidths=[135, 135, 135, 135])
-        main_table.setStyle(TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING", (0, 0), (-1, -1), 6),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
-            ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#E2E8F0")),
-            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
-        ]))
-        story.append(main_table)
-        story.append(Spacer(1, 10))
-
-        # 3. High-Contrast Scannable QR Code and Important Venue Instructions Box
-        qr_token = getattr(ticket, "qr_token_raw", None) or getattr(ticket, "ticket_id", None) or getattr(booking, "booking_id", "NAV2026")
-        qr_img_bytes = qr_service.generate_qr_bytes(qr_token)
-        qr_stream = io.BytesIO(qr_img_bytes)
-        qr_image = Image(qr_stream, width=1.45 * inch, height=1.45 * inch)
-
-        qr_box = Table([
-            [qr_image],
-            [Paragraph("Scan at Security", ParagraphStyle("QS", fontName="Helvetica-Bold", fontSize=8, textColor=colors.HexColor("#B45309"), alignment=1))]
-        ], colWidths=[140])
-        qr_box.setStyle(TableStyle([
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
-            ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#CBD5E1")),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
-
-        inst_style = ParagraphStyle("IT", fontName="Helvetica", fontSize=8.5, leading=13, textColor=colors.HexColor("#334155"))
-        guidelines_text = Paragraph(
-            "<b><font color='#B45309'>IMPORTANT VENUE INSTRUCTIONS</font></b><br/>"
-            "• Gates open promptly at 06:30 PM. Show this barcode or digital pass at turnstiles.<br/>"
-            "• Event Timings: 06:30 PM onwards till 10:00 PM. Gates close at 10:00 PM.<br/>"
-            "• Entry will be granted only after successful QR scanning at security.<br/>"
-            "• Each QR code is uniquely encrypted and admits exactly one person once.<br/>"
-            "• Traditional festive attire is celebrated and recommended.<br/>"
-            "• Carry valid Government photo ID matching the attendee name.",
-            inst_style
-        )
-
-        rules_table = Table([[guidelines_text, qr_box]], colWidths=[380, 160])
-        rules_table.setStyle(TableStyle([
+        notice_table = Table([[notice_p]], colWidths=[7.8 * inch])
+        notice_table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFDF5")),
             ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#FDE68A")),
+            ("PADDING", (0, 0), (-1, -1), 10),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ALIGN", (1, 0), (1, 0), "CENTER"),
-            ("PADDING", (0, 0), (-1, -1), 8),
         ]))
-        story.append(rules_table)
+        story.append(notice_table)
         story.append(Spacer(1, 10))
 
-        # 5. Footer Line
+        footer_style = ParagraphStyle("FS", fontName="Helvetica", fontSize=7.5, textColor=colors.HexColor("#64748B"), alignment=1)
         story.append(Paragraph(
-            f"Pass 1 of 1 • Booking #{booking.booking_id} • {event_setting.event_name} × THE HAPPY CIRCLE Official E-Ticket",
+            f"Pass 1 of 1 &bull; Booking #{booking.booking_id} &bull; Ticket #{ticket.ticket_id} &bull; NAVRANG 2026 &times; THE HAPPY CIRCLE Official Pass",
             footer_style
         ))
 
@@ -385,77 +286,24 @@ class TicketService:
         doc = SimpleDocTemplate(
             buffer,
             pagesize=letter,
-            rightMargin=36,
-            leftMargin=36,
-            topMargin=32,
-            bottomMargin=32
+            rightMargin=24,
+            leftMargin=24,
+            topMargin=24,
+            bottomMargin=24
         )
         story = []
         styles = getSampleStyleSheet()
+        inst_style = ParagraphStyle("IT_Bundle", fontName="Helvetica", fontSize=8.5, leading=12.5, textColor=colors.HexColor("#334155"))
+        footer_style = ParagraphStyle("FS_Bundle", fontName="Helvetica", fontSize=7.5, textColor=colors.HexColor("#64748B"), alignment=1)
 
-        title_style = ParagraphStyle(
-            "EventTitle",
-            parent=styles["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=24,
-            textColor=colors.HexColor("#EA580C"), # Vibrant Orange
-            alignment=1,
-            spaceAfter=4
-        )
-        collab_style = ParagraphStyle(
-            "EventCollabBundle",
-            parent=styles["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=10,
-            textColor=colors.HexColor("#FBBF24"), # Radiant Gold
-            alignment=1,
-            spaceAfter=4
-        )
-        tagline_style = ParagraphStyle(
-            "EventTagline",
-            parent=styles["Normal"],
-            fontName="Helvetica-Oblique",
-            fontSize=11,
-            textColor=colors.HexColor("#FCD34D"), # Warm Gold Italic
-            alignment=1,
-            spaceAfter=10
-        )
-        badge_style = ParagraphStyle(
-            "BadgeStyle",
-            parent=styles["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=13,
-            textColor=colors.white,
-            alignment=1
-        )
-        label_style = ParagraphStyle(
-            "LabelStyle",
-            parent=styles["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=8,
-            textColor=colors.HexColor("#64748B") # Slate Gray
-        )
-        val_style = ParagraphStyle(
-            "ValStyle",
-            parent=styles["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=10,
-            textColor=colors.HexColor("#0F172A")
-        )
-        sub_val_style = ParagraphStyle(
-            "SubValStyle",
-            parent=styles["Normal"],
-            fontName="Helvetica",
-            fontSize=9,
-            textColor=colors.HexColor("#334155")
-        )
-        footer_style = ParagraphStyle(
-            "FooterStyle",
-            parent=styles["Normal"],
-            fontName="Helvetica",
-            fontSize=8,
-            textColor=colors.HexColor("#64748B"),
-            alignment=1
+        notice_text = (
+            "<b><font color='#78350F'>OFFICIAL ENTRY PASS GUIDELINES</font></b><br/>"
+            "&bull; <b>Gate Opening:</b> Gates open promptly at <b>05:30 PM</b>. Please arrive early to avoid queue delays.<br/>"
+            "&bull; <b>Event Timings:</b> 06:30 PM onwards till 10:00 PM. Turnstiles close at 10:00 PM.<br/>"
+            "&bull; <b>Venue:</b> Green Acres, Mysuru. Ample parking available on premise.<br/>"
+            "&bull; <b>Entry Verification:</b> Present this physical or digital pass with the authentic QR code at security turnstiles.<br/>"
+            "&bull; <b>One Pass per Attendee:</b> Each QR code is uniquely encrypted and allows exactly one entry.<br/>"
+            "&bull; <b>Photo ID:</b> Please carry a government-issued photo ID matching the attendee name."
         )
 
         total_tickets = len(booking.tickets)
@@ -463,109 +311,25 @@ class TicketService:
             if index > 0:
                 story.append(PageBreak())
 
-            # 1. Official Deep Navy / Indigo Header Banner
-            header_data = [
-                [Paragraph(f"&#10070; {event_setting.event_name.upper()} &#10070;", title_style)],
-                [Paragraph("IN COLLABORATION WITH THE HAPPY CIRCLE", collab_style)],
-                [Paragraph("Celebrate. Dance. Connect.", tagline_style)],
-                [Paragraph(f"OFFICIAL ENTRY PASS — PASS {index + 1} OF {total_tickets}", badge_style)]
-            ]
-            header_table = Table(header_data, colWidths=[540])
-            header_table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#1C1949")),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-                ("TOPPADDING", (0, 0), (-1, -1), 10),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ]))
-            story.append(header_table)
-            story.append(Spacer(1, 10))
+            tkt_img_bytes = cls.generate_ticket_image_bytes(booking, ticket, event_setting)
+            img_w = 7.8 * inch
+            img_h = img_w * (494.0 / 1024.0)
+            story.append(Image(io.BytesIO(tkt_img_bytes), width=img_w, height=img_h))
+            story.append(Spacer(1, 14))
 
-            # 2. 4-Column Ticket Metadata Grid
-            details_data = [
-                [
-                    Paragraph("ATTENDEE NAME", label_style),
-                    Paragraph("BOOKING ID", label_style),
-                    Paragraph("TICKET NUMBER", label_style),
-                    Paragraph("PASS ORDER", label_style),
-                ],
-                [
-                    Paragraph(f"{ticket.customer_name}", val_style),
-                    Paragraph(f"{booking.booking_id}", val_style),
-                    Paragraph(f"{ticket.ticket_id}", val_style),
-                    Paragraph(f"Pass {index + 1} of {total_tickets}", val_style),
-                ],
-                [
-                    Paragraph("EVENT DATE & TIME", label_style),
-                    Paragraph("VENUE LOCATION", label_style),
-                    Paragraph("PAYMENT STATUS", label_style),
-                    Paragraph("TICKET STATUS", label_style),
-                ],
-                [
-                    Paragraph(f"{event_setting.event_date}<br/>06:30 PM - 10:00 PM", sub_val_style),
-                    Paragraph(f"<b>{event_setting.venue_name}</b><br/>{event_setting.venue_address}, {event_setting.venue_city}", sub_val_style),
-                    Paragraph(f"✓ PAID (Rs. {int(getattr(ticket, 'ticket_price', None) or (booking.amount / max(1, booking.ticket_count)) if booking.amount else 599)})", val_style),
-                    Paragraph(f"● {ticket.ticket_status}", val_style),
-                ],
-            ]
-
-            main_table = Table(details_data, colWidths=[135, 135, 135, 135])
-            main_table.setStyle(TableStyle([
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
-                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#E2E8F0")),
-                ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
-            ]))
-            story.append(main_table)
-            story.append(Spacer(1, 10))
-
-            # 3. High-Contrast Scannable QR Code and Important Venue Instructions Box
-            qr_token = getattr(ticket, "qr_token_raw", None) or getattr(ticket, "ticket_id", None) or getattr(booking, "booking_id", "NAV2026")
-            qr_img_bytes = qr_service.generate_qr_bytes(qr_token)
-            qr_stream = io.BytesIO(qr_img_bytes)
-            qr_image = Image(qr_stream, width=1.45 * inch, height=1.45 * inch)
-
-            qr_box = Table([
-                [qr_image],
-                [Paragraph("Scan at Security", ParagraphStyle("QS2", fontName="Helvetica-Bold", fontSize=8, textColor=colors.HexColor("#B45309"), alignment=1))]
-            ], colWidths=[140])
-            qr_box.setStyle(TableStyle([
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
-                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#CBD5E1")),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ]))
-
-            inst_style = ParagraphStyle("IT2", fontName="Helvetica", fontSize=8.5, leading=13, textColor=colors.HexColor("#334155"))
-            guidelines_text = Paragraph(
-                "<b><font color='#B45309'>IMPORTANT VENUE INSTRUCTIONS</font></b><br/>"
-                "• Gates open promptly at 06:30 PM. Show this barcode or digital pass at turnstiles.<br/>"
-                "• Event Timings: 06:30 PM onwards till 10:00 PM. Gates close at 10:00 PM.<br/>"
-                "• Entry will be granted only after successful QR scanning at security.<br/>"
-                "• Each QR code is uniquely encrypted and admits exactly one person once.<br/>"
-                "• Traditional festive attire is celebrated and recommended.<br/>"
-                "• Carry valid Government photo ID matching the attendee name.",
-                inst_style
-            )
-
-            rules_table = Table([[guidelines_text, qr_box]], colWidths=[380, 160])
-            rules_table.setStyle(TableStyle([
+            notice_p = Paragraph(notice_text, inst_style)
+            notice_table = Table([[notice_p]], colWidths=[7.8 * inch])
+            notice_table.setStyle(TableStyle([
                 ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFDF5")),
                 ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#FDE68A")),
+                ("PADDING", (0, 0), (-1, -1), 10),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ALIGN", (1, 0), (1, 0), "CENTER"),
-                ("PADDING", (0, 0), (-1, -1), 8),
             ]))
-            story.append(rules_table)
+            story.append(notice_table)
             story.append(Spacer(1, 10))
 
-            # 5. Footer Line
             story.append(Paragraph(
-                f"Pass {index + 1} of {total_tickets} • Booking #{booking.booking_id} • {event_setting.event_name} × THE HAPPY CIRCLE Official E-Ticket",
+                f"Pass {index + 1} of {total_tickets} &bull; Booking #{booking.booking_id} &bull; Ticket #{ticket.ticket_id} &bull; NAVRANG 2026 &times; THE HAPPY CIRCLE Official Pass",
                 footer_style
             ))
 

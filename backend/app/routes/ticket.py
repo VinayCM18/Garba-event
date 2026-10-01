@@ -176,6 +176,51 @@ def download_single_ticket_pdf(
         }
     )
 
+@router.get("/api/tickets/{ticket_id}/pass.jpg")
+def download_single_ticket_pass_image(
+    ticket_id: str,
+    token: Optional[str] = Query(None),
+    request: Request = None,
+    db: Session = Depends(get_db)
+):
+    """Downloads or views the official NAVRANG 2026 festive pass image."""
+    ticket = db.query(Ticket).filter(Ticket.ticket_id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found.")
+
+    is_authorized = False
+    if token and (token.strip() == ticket.qr_token_raw or hash_qr_token(token.strip()) == ticket.qr_token_hash):
+        is_authorized = True
+    else:
+        try:
+            auth_header = request.headers.get("Authorization") if request else None
+            cookie_token = request.cookies.get("admin_access_token") if request else None
+            jwt_raw = auth_header.replace("Bearer ", "").strip() if (auth_header and auth_header.startswith("Bearer ")) else cookie_token
+            if jwt_raw:
+                from app.utils.security import decode_access_token
+                payload = decode_access_token(jwt_raw)
+                if payload and payload.get("role") in ["SUPER_ADMIN", "ADMIN", "CHECKIN_STAFF", "STAFF"]:
+                    is_authorized = True
+        except Exception:
+            pass
+
+    if not is_authorized:
+        # Also allow viewing if accessed with valid session or direct verification
+        if not token:
+            raise HTTPException(status_code=403, detail="Secure ticket access token required.")
+
+    booking = ticket.booking
+    event_setting = db.query(EventSetting).first() or EventSetting()
+
+    img_bytes = ticket_service.generate_ticket_image_bytes(booking, ticket, event_setting)
+    return Response(
+        content=img_bytes,
+        media_type="image/jpeg",
+        headers={
+            "Content-Disposition": f'inline; filename="NAVRANG2026_Pass_{ticket.ticket_id}.jpg"'
+        }
+    )
+
 @router.post("/api/qr/verify", response_model=VerifyQRResponse)
 def verify_qr(
     payload: VerifyQRRequest,

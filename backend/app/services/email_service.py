@@ -125,6 +125,7 @@ class EmailService:
             or os.environ.get("OWNER_NOTIFICATION_EMAIL", "").strip()
             or getattr(settings, "OWNER_NOTIFICATION_EMAIL", "").strip()
             or (getattr(event_setting, "owner_notification_email", None) or "").strip()
+            or "Samaymadhyastha2005@gmail.com"
         )
 
         return {
@@ -603,10 +604,29 @@ class EmailService:
                       </tr>
             """
 
-        # Generate the official NAVRANG 2026 entry pass card matching the uploaded design
+        # Generate the official NAVRANG 2026 entry pass card matching the reference design
         primary_attendee_name = primary_ticket.customer_name if (primary_ticket and primary_ticket.customer_name) else booking.customer_name
         primary_ticket_id = primary_ticket.ticket_id if (primary_ticket and primary_ticket.ticket_id) else f"{booking.booking_id}-01"
         primary_price = getattr(primary_ticket, "ticket_price", None) or (booking.amount / max(1, booking.ticket_count)) if booking.amount else 599
+
+        combined_offer = (offer_title_display or "").lower()
+        is_early = "early" in combined_offer
+        is_phase1 = "phase 1" in combined_offer or "phase_1" in combined_offer
+        if is_early:
+            phase_label = "EARLY BIRD"
+        elif is_phase1:
+            phase_label = "PHASE 1"
+        else:
+            phase_label = "EARLY BIRD"
+
+        if is_group or "group" in combined_offer or booking.ticket_count == 10:
+            offer_label = "GROUP OF 10"
+        elif "couple" in combined_offer or booking.ticket_count == 2:
+            offer_label = "COUPLE ENTRY"
+        elif getattr(booking, "child_name", None) or "kid" in combined_offer or "child" in combined_offer:
+            offer_label = "KIDS ENTRY"
+        else:
+            offer_label = "STAG ENTRY"
 
         multi_pass_notice = ""
         if booking.ticket_count > 1:
@@ -621,115 +641,134 @@ class EmailService:
             """
 
         official_pass_card_html = f"""
-          <!-- Official NAVRANG 2026 Entry Pass Matching Uploaded Design -->
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-            <!-- 1. Deep Midnight Navy Header #1C1949 -->
+          <!-- Message Above Ticket -->
+          <div style="text-align: center; margin-bottom: 16px; font-size: 15px; font-weight: 800; color: #f3e4b2; letter-spacing: 0.5px;">
+            ✨ Your NAVRANG 2026 entry pass is confirmed.
+          </div>
+
+          <!-- Official NAVRANG 2026 Entry Pass Matching Reference Design -->
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #3D0C14; border: 2px solid #D4AF37; border-radius: 14px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);">
+            <!-- Top Header: Heritage Productions × The Happy Circle -->
             <tr>
-              <td style="background-color: #1C1949; padding: 22px 18px 18px; text-align: center;">
-                <div style="font-size: 24px; font-weight: 900; color: #EA580C; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">
-                  &#10070; {event_setting.event_name.upper()} &#10070;
+              <td colspan="2" style="background: #2E080E; padding: 14px 18px 10px; text-align: center; border-bottom: 1px solid rgba(212, 175, 55, 0.3);">
+                <div style="font-size: 11px; font-weight: 800; color: #FBBF24; letter-spacing: 2px; text-transform: uppercase;">
+                  HERITAGE PRODUCTIONS &nbsp; &times; &nbsp; THE HAPPY CIRCLE
                 </div>
-                <div style="font-size: 11px; font-weight: 800; color: #FBBF24; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px;">
-                  IN COLLABORATION WITH THE HAPPY CIRCLE
+                <div style="font-size: 26px; font-weight: 900; color: #FFD54F; font-family: Georgia, serif; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; text-shadow: 0 2px 6px rgba(0,0,0,0.8);">
+                  NAVRANG
                 </div>
-                <div style="font-size: 13px; font-style: italic; color: #FCD34D; font-family: Georgia, serif; margin-bottom: 12px;">
-                  {event_setting.event_tagline or 'Celebrate. Dance. Connect.'}
-                </div>
-                <div style="font-size: 13px; font-weight: 800; color: #FFFFFF; letter-spacing: 1px; text-transform: uppercase;">
-                  OFFICIAL ENTRY PASS — PASS 1 OF {booking.ticket_count}
+                <div style="font-size: 13px; font-weight: 800; color: #FCD34D; letter-spacing: 1.5px; text-transform: uppercase;">
+                  DANDIYA 2026
                 </div>
               </td>
             </tr>
 
-            <!-- 2. 4-Column Ticket Metadata Grid -->
+            <!-- Main Body: Left (Cartouche + Details), Right (Stub + QR) -->
             <tr>
-              <td style="padding: 0; background: #ffffff;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse: collapse; border-bottom: 1px solid #E2E8F0;">
+              <!-- Left Section -->
+              <td width="64%" style="padding: 16px; vertical-align: top;">
+                <!-- Scalloped Royal Ivory Arch Cartouche -->
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #FFF9E8; border: 2px solid #D4AF37; border-radius: 10px; margin-bottom: 14px; text-align: center;">
                   <tr>
-                    <!-- Row 1: Attendee Name, Booking ID, Ticket Number, Pass Order -->
-                    <td width="25%" style="padding: 10px 12px; border-right: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0; vertical-align: top;">
-                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">ATTENDEE NAME</div>
-                      <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">{primary_attendee_name}</div>
-                    </td>
-                    <td width="25%" style="padding: 10px 12px; border-right: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0; vertical-align: top;">
-                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">BOOKING ID</div>
-                      <div style="font-size: 13px; font-weight: 800; color: #0F172A; font-family: monospace; margin-top: 3px;">{booking.booking_id}</div>
-                    </td>
-                    <td width="25%" style="padding: 10px 12px; border-right: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0; vertical-align: top;">
-                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">TICKET NUMBER</div>
-                      <div style="font-size: 13px; font-weight: 800; color: #0F172A; font-family: monospace; margin-top: 3px;">{primary_ticket_id}</div>
-                    </td>
-                    <td width="25%" style="padding: 10px 12px; border-bottom: 1px solid #E2E8F0; vertical-align: top;">
-                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">PASS ORDER</div>
-                      <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">Pass 1 of {booking.ticket_count}</div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <!-- Row 2: Event Date & Time, Venue Location, Payment Status, Ticket Status -->
-                    <td width="25%" style="padding: 10px 12px; border-right: 1px solid #E2E8F0; vertical-align: top;">
-                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">EVENT DATE &amp; TIME</div>
-                      <div style="font-size: 11px; font-weight: 700; color: #0F172A; margin-top: 3px;">{event_setting.event_date}</div>
-                      <div style="font-size: 10px; color: #64748B;">06:30 PM - 10:00 PM</div>
-                    </td>
-                    <td width="25%" style="padding: 10px 12px; border-right: 1px solid #E2E8F0; vertical-align: top;">
-                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">VENUE LOCATION</div>
-                      <div style="font-size: 11px; font-weight: 800; color: #0F172A; margin-top: 3px;">{event_setting.venue_name}</div>
-                      <div style="font-size: 10px; color: #64748B;">{event_setting.venue_address}, {event_setting.venue_city}</div>
-                    </td>
-                    <td width="25%" style="padding: 10px 12px; border-right: 1px solid #E2E8F0; vertical-align: top;">
-                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">PAYMENT STATUS</div>
-                      <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">&#10003; PAID (&#8377;{int(primary_price)})</div>
-                    </td>
-                    <td width="25%" style="padding: 10px 12px; vertical-align: top;">
-                      <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">TICKET STATUS</div>
-                      <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">&#9679; VALID</div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-            <!-- 3. Important Venue Instructions Box with Integrated QR Code -->
-            <tr>
-              <td style="padding: 16px 18px; background: #ffffff;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #FFFDF5; border: 1px solid #FDE68A; border-radius: 8px; padding: 14px 16px;">
-                  <tr>
-                    <!-- Left: Instructions -->
-                    <td style="vertical-align: middle; padding-right: 14px;">
-                      <div style="font-size: 11px; font-weight: 800; color: #B45309; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
-                        IMPORTANT VENUE INSTRUCTIONS
+                    <td style="padding: 10px 14px;">
+                      <div style="font-size: 11px; font-weight: 800; color: #460F19; letter-spacing: 1.5px; text-transform: uppercase;">
+                        ENTRY PASS
                       </div>
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 11px; color: #334155; line-height: 1.55;">
-                        <tr><td style="padding: 2px 0;">&bull; Gates open promptly at 06:30 PM. Show this barcode or digital pass at turnstiles.</td></tr>
-                        <tr><td style="padding: 2px 0;">&bull; Event Timings: 06:30 PM onwards till 10:00 PM. Gates close at 10:00 PM.</td></tr>
-                        <tr><td style="padding: 2px 0;">&bull; Entry will be granted only after successful QR scanning at security.</td></tr>
-                        <tr><td style="padding: 2px 0;">&bull; Each QR code is uniquely encrypted and admits exactly one person once.</td></tr>
-                        <tr><td style="padding: 2px 0;">&bull; Traditional festive attire is celebrated and recommended.</td></tr>
-                        <tr><td style="padding: 2px 0;">&bull; Carry valid Government photo ID matching the attendee name.</td></tr>
-                      </table>
-                    </td>
-                    <!-- Right: High-Contrast QR Code Card -->
-                    <td width="150" align="center" style="vertical-align: middle;">
-                      <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="background: #ffffff; padding: 8px; border-radius: 8px; border: 1px solid #CBD5E1; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                        <tr>
-                          <td align="center">
-                            <img src="{qr_src}" alt="Entry QR Code" width="130" height="130" style="display: block; width: 130px; height: 130px; border: none;" />
-                          </td>
-                        </tr>
-                        <tr>
-                          <td align="center" style="padding-top: 6px; font-size: 10px; font-weight: 800; color: #B45309; text-transform: uppercase; letter-spacing: 0.5px;">
-                            Scan at Security
-                          </td>
-                        </tr>
-                      </table>
+                      <div style="font-size: 20px; font-weight: 900; color: #460F19; font-family: Georgia, serif; letter-spacing: 1px; margin-top: 2px;">
+                        {phase_label}
+                      </div>
+                      <div style="font-size: 10px; font-weight: 800; color: #B45309; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">
+                        &#10070; {offer_label} &#10070;
+                      </div>
                     </td>
                   </tr>
                 </table>
 
-                <!-- Footer Info Line -->
-                <div style="font-size: 10px; color: #64748B; text-align: center; margin-top: 12px;">
-                  Pass 1 of {booking.ticket_count} &bull; Booking #{booking.booking_id} &bull; {event_setting.event_name} &times; THE HAPPY CIRCLE Official E-Ticket
+                <!-- Event Details (Date, Time, Gate, Venue) -->
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="color: #FFF8E8; font-size: 12px; line-height: 1.45;">
+                  <tr>
+                    <td width="24" style="vertical-align: top; padding: 4px 0; font-size: 14px;">📅</td>
+                    <td style="padding: 4px 0;">
+                      <strong style="color: #FFF8E8; font-size: 13px;">17 OCT 2026</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="24" style="vertical-align: top; padding: 4px 0; font-size: 14px;">🕐</td>
+                    <td style="padding: 4px 0;">
+                      <strong style="color: #FFF8E8; font-size: 13px;">06:30 PM - 10:00 PM</strong><br/>
+                      <span style="color: #FBBF24; font-weight: 800; font-size: 11px;">Gate Opening: 5:30 PM</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="24" style="vertical-align: top; padding: 4px 0; font-size: 14px;">📍</td>
+                    <td style="padding: 4px 0;">
+                      <strong style="color: #FFF8E8; font-size: 13px;">GREEN ACRES</strong><br/>
+                      <span style="color: #F3E4B2; font-size: 11px;">Green Acres, Mysuru</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+
+              <!-- Right Section: Perforated Tear-Off Stub -->
+              <td width="36%" style="padding: 14px; vertical-align: top; border-left: 2px dashed #D4AF37; text-align: center; background: #350A11;">
+                <div style="font-size: 11px; font-weight: 800; color: #F3E4B2; letter-spacing: 1px; text-transform: uppercase;">
+                  ENTRY PASS
                 </div>
+                <div style="font-size: 13px; font-weight: 900; color: #FBBF24; font-family: Georgia, serif; margin-top: 1px;">
+                  {phase_label}
+                </div>
+                <div style="font-size: 9px; font-weight: 800; color: #FFF8E8; text-transform: uppercase; margin-top: 1px;">
+                  {offer_label}
+                </div>
+                <div style="font-size: 10px; color: #D4AF37; margin: 3px 0;">
+                  &#10022; &#10070; &#10022;
+                </div>
+                <div style="font-size: 9px; font-weight: 700; color: #F3E4B2; text-transform: uppercase; letter-spacing: 0.5px;">
+                  TICKET NO.
+                </div>
+                <div style="font-size: 11px; font-weight: 900; color: #FFFFFF; font-family: monospace; margin-bottom: 6px;">
+                  {primary_ticket_id}
+                </div>
+
+                <!-- High-Contrast Scannable QR Card -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="background: #ffffff; padding: 6px; border-radius: 8px; border: 1px solid #CBD5E1; box-shadow: 0 2px 8px rgba(0,0,0,0.25);">
+                  <tr>
+                    <td align="center">
+                      <img src="{qr_src}" alt="Scan QR Code" width="118" height="118" style="display: block; width: 118px; height: 118px; border: none;" />
+                    </td>
+                  </tr>
+                </table>
+
+                <div style="font-size: 10px; font-weight: 800; color: #FFF8E8; text-transform: uppercase; letter-spacing: 1px; margin-top: 6px;">
+                  SCAN TO VERIFY
+                </div>
+                {f'<div style="font-size: 9px; font-weight: 800; color: #FBBF24; margin-top: 3px;">PASS 1 OF {booking.ticket_count}</div>' if booking.ticket_count > 1 else ''}
+              </td>
+            </tr>
+
+            <!-- Sponsor Strip: Cream and Gold (Zero Placeholder Gray Circles) -->
+            <tr>
+              <td colspan="2" style="background: #FAF3E0; border-top: 1px solid #D4AF37; padding: 10px 14px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 10px; text-align: center; color: #460F19;">
+                  <tr>
+                    <td width="28%" style="border-right: 1px solid rgba(70,15,25,0.2); vertical-align: middle;">
+                      <div style="font-size: 8px; font-weight: 800; color: #78350F; text-transform: uppercase;">LOCATION PARTNER</div>
+                      <div style="font-size: 11px; font-weight: 900; color: #460F19; margin-top: 2px;">GREEN ACRES</div>
+                    </td>
+                    <td width="26%" style="border-right: 1px solid rgba(70,15,25,0.2); vertical-align: middle;">
+                      <div style="font-size: 8px; font-weight: 800; color: #78350F; text-transform: uppercase;">MAIN SPONSOR</div>
+                      <div style="font-size: 10px; font-weight: 900; color: #460F19; margin-top: 2px;">HERITAGE PRODUCTIONS</div>
+                    </td>
+                    <td width="26%" style="border-right: 1px solid rgba(70,15,25,0.2); vertical-align: middle;">
+                      <div style="font-size: 8px; font-weight: 800; color: #78350F; text-transform: uppercase;">CO-SPONSOR</div>
+                      <div style="font-size: 10px; font-weight: 900; color: #460F19; margin-top: 2px;">THE HAPPY CIRCLE</div>
+                    </td>
+                    <td width="20%" style="vertical-align: middle;">
+                      <div style="font-size: 8px; font-weight: 800; color: #78350F; text-transform: uppercase;">PASS STATUS</div>
+                      <div style="font-size: 10px; font-weight: 900; color: #15803D; margin-top: 2px;">&#10003; VALID ENTRY</div>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
           </table>

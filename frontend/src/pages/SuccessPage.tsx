@@ -938,10 +938,16 @@ export const SuccessPage: React.FC = () => {
                         </div>
 
                         {/* Event Details */}
-                        <div className="text-[11px] text-slate-400 flex items-center gap-1.5 pt-0.5">
-                          <span className="text-[#f3e4b2]/90 font-medium">NAVRANG 2026</span>
-                          <span>•</span>
-                          <span>Admit 1</span>
+                        <div className="text-[11px] text-slate-300 space-y-0.5 pt-0.5">
+                          <div className="text-[#f3e4b2] font-bold">
+                            NAVRANG 2026 • 17 OCT 2026
+                          </div>
+                          <div className="text-[10px] text-amber-300 font-semibold">
+                            Gate Opening: 5:30 PM (Event: 06:30 PM - 10:00 PM)
+                          </div>
+                          <div className="text-[10px] text-slate-400 truncate">
+                            📍 Green Acres, Mysuru
+                          </div>
                         </div>
                       </div>
 
@@ -990,22 +996,33 @@ export const SuccessPage: React.FC = () => {
                           className="text-[#f3e4b2] hover:text-white font-bold inline-flex items-center gap-1 transition-colors"
                         >
                           <QrCode className="w-3.5 h-3.5 text-[#d4af37]" />
-                          <span>View Digital Pass</span>
+                          <span>View Pass</span>
                           <ExternalLink className="w-3 h-3 opacity-60" />
                         </Link>
                       ) : (
                         <span className="text-slate-500 text-[11px]">Gate Entry Pass</span>
                       )}
 
-                      <a
-                        href={getDownloadUrl(`/api/tickets/${ticket.ticket_id}/pdf`)}
-                        download
-                        className="text-slate-300 hover:text-amber-300 font-semibold inline-flex items-center gap-1 transition-colors"
-                        title="Download Individual Ticket PDF"
-                      >
-                        <Download className="w-3.5 h-3.5 text-[#d4af37]" />
-                        <span>PDF</span>
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={getDownloadUrl(`/api/tickets/${ticket.ticket_id}/pass.jpg?token=${encodeURIComponent(ticket.qr_token_raw || '')}`)}
+                          download={`NAVRANG2026_Pass_${ticket.ticket_id}.jpg`}
+                          className="text-slate-300 hover:text-amber-300 font-semibold inline-flex items-center gap-1 transition-colors"
+                          title="Download Pass Image"
+                        >
+                          <Download className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Image</span>
+                        </a>
+                        <a
+                          href={getDownloadUrl(`/api/tickets/${ticket.ticket_id}/pdf?token=${encodeURIComponent(ticket.qr_token_raw || '')}`)}
+                          download
+                          className="text-slate-300 hover:text-amber-300 font-semibold inline-flex items-center gap-1 transition-colors"
+                          title="Download Individual Ticket PDF"
+                        >
+                          <Download className="w-3.5 h-3.5 text-[#d4af37]" />
+                          <span>PDF</span>
+                        </a>
+                      </div>
                     </div>
                   </div>
                 );
