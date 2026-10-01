@@ -6,7 +6,7 @@ import os
 from contextlib import asynccontextmanager
 from sqlalchemy import func
 
-from app.config import settings
+from app.config import settings, _INSECURE_MARKERS
 from app.database import Base, engine, SessionLocal
 from app.models.user import User
 from app.models.event_setting import EventSetting
@@ -117,49 +117,39 @@ def init_db_defaults():
 
         # Admin and staff seed credentials are read from environment variables.
         # Set these in Vercel → Settings → Environment Variables.
-        # In local dev they fall back to insecure defaults — CHANGE in production.
+        # Admin and staff seed credentials are read from environment variables.
+        # In production, these MUST be set in Railway environment variables.
         admin_email  = os.environ.get("ADMIN_EMAIL",  "admin@garbanight.in")
-        admin_pass   = os.environ.get("ADMIN_PASSWORD","GarbaNight@2026")
+        admin_pass   = os.environ.get("ADMIN_PASSWORD", "GarbaNight@2026")
         admin_name   = os.environ.get("ADMIN_NAME",   "Head Organizer (Super Admin)")
         staff_email  = os.environ.get("STAFF_EMAIL",  "staff@garbanight.in")
-        staff_pass   = os.environ.get("STAFF_PASSWORD","StaffEntry@2026")
+        staff_pass   = os.environ.get("STAFF_PASSWORD", "StaffEntry@2026")
         staff_name   = os.environ.get("STAFF_NAME",   "Gate Security Staff")
 
-        if settings.ENVIRONMENT == "production":
-            missing = [k for k, v in {
-                "ADMIN_EMAIL": admin_email, "ADMIN_PASSWORD": admin_pass,
-                "STAFF_EMAIL": staff_email, "STAFF_PASSWORD": staff_pass,
-            }.items() if not v or v in {"GarbaNight@2026", "StaffEntry@2026",
-                                        "admin@garbanight.in", "staff@garbanight.in"}]
-            if missing:
-                warnings.warn(
-                    f"SECURITY: Using default seed credentials in production for: {missing}. "
-                    "Set these as Vercel environment variables immediately.",
-                    stacklevel=2
-                )
-
         seed_accounts = [
-            ("vinay18744@gmail.com", "Vinay@1438", "Vinay (Super Admin)", "SUPER_ADMIN"),
-            ("samaymadhyastha2005@gmail.com", "Samay@866033", "Samay (Super Admin)", "SUPER_ADMIN"),
             (admin_email, admin_pass, admin_name, "SUPER_ADMIN"),
             (staff_email, staff_pass, staff_name, "CHECKIN_STAFF"),
         ]
+
+        # Optional organizers read from environment variables
+        vinay_pass = os.environ.get("VINAY_ADMIN_PASSWORD", admin_pass)
+        samay_pass = os.environ.get("SAMAY_ADMIN_PASSWORD", admin_pass)
+        seed_accounts.append(("vinay18744@gmail.com", vinay_pass, "Vinay (Super Admin)", "SUPER_ADMIN"))
+        seed_accounts.append(("samaymadhyastha2005@gmail.com", samay_pass, "Samay (Super Admin)", "SUPER_ADMIN"))
+
         for seed_email, seed_pass, seed_name, seed_role in seed_accounts:
             existing = db.query(User).filter(func.lower(User.email) == seed_email.lower()).first()
             if not existing:
-                new_user = User(
-                    email=seed_email.lower(),
-                    name=seed_name,
-                    password_hash=get_password_hash(seed_pass),
-                    role=seed_role,
-                    is_active=True
-                )
-                db.add(new_user)
-            else:
-                existing.name = seed_name
-                existing.password_hash = get_password_hash(seed_pass)
-                existing.role = seed_role
-                existing.is_active = True
+                if seed_pass:
+                    new_user = User(
+                        email=seed_email.lower(),
+                        name=seed_name,
+                        password_hash=get_password_hash(seed_pass),
+                        role=seed_role,
+                        is_active=True
+                    )
+                    db.add(new_user)
+            # CRITICAL: Never overwrite an existing user's password on startup or restart!
 
         db.commit()
     except Exception as e:
@@ -173,6 +163,62 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Initializing NAVRANG 2026 Backend...")
     init_db_defaults()
+
+    # Production environment strict validation
+    if settings.ENVIRONMENT == "production":
+        if settings.DEBUG:
+            raise RuntimeError("CRITICAL CONFIGURATION ERROR: DEBUG must be False in production.")
+        if not settings.JWT_SECRET or settings.JWT_SECRET in _INSECURE_MARKERS:
+            raise RuntimeError("CRITICAL CONFIGURATION ERROR: JWT_SECRET must be set to a strong random value in production.")
+        if not settings.QR_SECRET_SALT or settings.QR_SECRET_SALT in _INSECURE_MARKERS:
+            raise RuntimeError("CRITICAL CONFIGURATION ERROR: QR_SECRET_SALT must be set to a strong random value in production.")
+
+        rzp_mode = (os.environ.get("RAZORPAY_MODE") or getattr(settings, "RAZORPAY_MODE", "TEST")).strip().strip("'\"").upper()
+        raw_key = (os.environ.get("RAZORPAY_KEY_ID") or getattr(settings, "RAZORPAY_KEY_ID", "") or "").strip().strip("'\"")
+        raw_secret = (os.environ.get("RAZORPAY_KEY_SECRET") or getattr(settings, "RAZORPAY_KEY_SECRET", "") or "").strip().strip("'\"")
+        raw_webhook = (os.environ.get("RAZORPAY_WEBHOOK_SECRET") or getattr(settings, "RAZORPAY_WEBHOOK_SECRET", "") or "").strip().strip("'\"")
+
+        if not raw_key:
+            raise RuntimeError("CRITICAL CONFIGURATION ERROR: RAZORPAY_KEY_ID is missing in production.")
+        if not raw_secret:
+            raise RuntimeError("CRITICAL CONFIGURATION ERROR: RAZORPAY_KEY_SECRET is missing in production.")
+        if not raw_webhook:
+            raise RuntimeError("CRITICAL CONFIGURATION ERROR: RAZORPAY_WEBHOOK_SECRET is missing in production.")
+
+        if rzp_mode == "LIVE":
+            if not raw_key.startswith("rzp_live_"):
+                raise RuntimeError("CRITICAL CONFIGURATION ERROR: RAZORPAY_MODE is LIVE but RAZORPAY_KEY_ID does not start with 'rzp_live_'.")
+        elif rzp_mode == "TEST":
+            if not raw_key.startswith("rzp_test_"):
+                raise RuntimeError("CRITICAL CONFIGURATION ERROR: RAZORPAY_MODE is TEST but RAZORPAY_KEY_ID does not start with 'rzp_test_'.")
+        else:
+            raise RuntimeError(f"CRITICAL CONFIGURATION ERROR: Invalid RAZORPAY_MODE '{rzp_mode}'. Must be TEST or LIVE.")
+
+    # Safe Razorpay configuration startup logging
+    try:
+        rzp_mode = (os.environ.get("RAZORPAY_MODE") or getattr(settings, "RAZORPAY_MODE", "TEST")).strip().strip("'\"").upper()
+        raw_key = (os.environ.get("RAZORPAY_KEY_ID") or getattr(settings, "RAZORPAY_KEY_ID", "") or "").strip().strip("'\"")
+
+        if rzp_mode == "LIVE":
+            key_type = "LIVE" if raw_key.startswith("rzp_live_") else ("TEST" if raw_key.startswith("rzp_test_") else "UNKNOWN")
+            key_prefix = raw_key[:9] if len(raw_key) >= 9 else (raw_key if raw_key else "NONE")
+            logger.info(f"Razorpay mode: {rzp_mode}")
+            logger.info(f"Razorpay key type: {key_type}")
+            logger.info(f"Razorpay key prefix: {key_prefix}")
+            if key_type != "LIVE":
+                logger.warning(
+                    f"CONFIGURATION WARNING: RAZORPAY_MODE is LIVE but key type is {key_type} (prefix: {key_prefix}). "
+                    "LIVE mode requires a key starting with rzp_live_ in Railway environment variables."
+                )
+        else:
+            key_type = "TEST" if raw_key.startswith("rzp_test_") else ("LIVE" if raw_key.startswith("rzp_live_") else ("NONE" if not raw_key else "CUSTOM"))
+            key_prefix = raw_key[:9] if len(raw_key) >= 9 else (raw_key if raw_key else "NONE")
+            logger.info(f"Razorpay mode: {rzp_mode}")
+            logger.info(f"Razorpay key type: {key_type}")
+            logger.info(f"Razorpay key prefix: {key_prefix}")
+    except Exception as log_err:
+        logger.warning(f"Could not log safe Razorpay startup diagnostics: {log_err}")
+
     yield
     # Shutdown
     logger.info("NAVRANG 2026 Backend shutting down.")
@@ -186,9 +232,23 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Configuration — includes Vercel preview/production URLs automatically
+# Production Security Headers Middleware
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    if settings.ENVIRONMENT == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+# CORS Configuration — includes Custom Domain & Vercel preview/production URLs
 origins = [
     settings.FRONTEND_URL,
+    "https://www.heritageproduction.online",
+    "https://heritageproduction.online",
     "https://garba-event-inky.vercel.app",
     "http://localhost:5173",
     "http://127.0.0.1:5173",

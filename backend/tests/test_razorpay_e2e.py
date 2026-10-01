@@ -29,6 +29,11 @@ from app.models.event_setting import EventSetting
 client = TestClient(app)
 
 def run_e2e_tests():
+    os.environ["PASS_GATEWAY_FEE_TO_CUSTOMER"] = "false"
+    os.environ["RAZORPAY_KEY_ID"] = "rzp_test_e2e_mock_key"
+    os.environ["RAZORPAY_KEY_SECRET"] = "rzp_test_e2e_mock_secret"
+    os.environ["RAZORPAY_WEBHOOK_SECRET"] = "rzp_webhook_e2e_secret"
+    os.environ["RAZORPAY_MODE"] = "TEST"
     sync_database_schema()
     db = SessionLocal()
     setting = db.query(EventSetting).first()
@@ -309,13 +314,6 @@ def run_e2e_tests():
         assert res_wh_bad.status_code == 400
         print("✓ Test 10 Passed: Forged webhook signature correctly rejected with 400 Bad Request")
 
-        # Test Case 15: Staff scans QR ticket
-        qr_token_1 = lookup_data["tickets"][0]["qr_token_raw"]
-        res_verify_qr = client.post("/api/qr/verify", json={"qr_token": qr_token_1})
-        assert res_verify_qr.status_code == 200
-        assert res_verify_qr.json()["valid"] is True
-        assert res_verify_qr.json()["status"] == "VALID"
-
         # Authenticate staff
         res_login = client.post("/api/auth/login", json={
             "email": "staff@garbanight.in",
@@ -324,6 +322,13 @@ def run_e2e_tests():
         assert res_login.status_code == 200
         staff_token = res_login.json()["access_token"]
         staff_headers = {"Authorization": f"Bearer {staff_token}"}
+
+        # Test Case 15: Staff scans QR ticket
+        qr_token_1 = lookup_data["tickets"][0]["qr_token_raw"]
+        res_verify_qr = client.post("/api/qr/verify", json={"qr_token": qr_token_1}, headers=staff_headers)
+        assert res_verify_qr.status_code == 200
+        assert res_verify_qr.json()["valid"] is True
+        assert res_verify_qr.json()["status"] == "VALID"
 
         res_checkin = client.post(
             "/api/qr/checkin",
@@ -339,7 +344,7 @@ def run_e2e_tests():
         print("✓ Test 15 Passed: Staff authenticated, scanned, and successfully checked in QR ticket")
 
         # Test Case 16: Duplicate scan rejected
-        res_verify_dup = client.post("/api/qr/verify", json={"qr_token": qr_token_1})
+        res_verify_dup = client.post("/api/qr/verify", json={"qr_token": qr_token_1}, headers=staff_headers)
         assert res_verify_dup.status_code == 200
         assert res_verify_dup.json()["valid"] is False
         assert res_verify_dup.json()["status"] == "USED"
@@ -359,6 +364,9 @@ def run_e2e_tests():
     print("\n=======================================================")
     print("ALL 16 END-TO-END RAZORPAY INTEGRATION TESTS PASSED!")
     print("=======================================================")
+
+def test_razorpay_e2e_suite():
+    run_e2e_tests()
 
 if __name__ == "__main__":
     run_e2e_tests()

@@ -272,11 +272,22 @@ export const AdminBookingsPage: React.FC = () => {
                           <span className="font-mono font-bold text-white">{b.ticket_count}</span>
                           <span className="text-[10px] text-slate-400">passes</span>
                         </div>
-                        {isGroup && (
+                        {b.offer_title ? (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/30 whitespace-nowrap">
+                              🎟️ {b.offer_title}
+                            </span>
+                          </div>
+                        ) : isGroup ? (
                           <div className="mt-1">
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/30 whitespace-nowrap">
                               🔥 {offerName}
                             </span>
+                          </div>
+                        ) : null}
+                        {b.child_name && (
+                          <div className="text-[10px] text-amber-300 mt-0.5">
+                            Child: {b.child_name} ({b.child_age || '5–12'}y)
                           </div>
                         )}
                       </td>

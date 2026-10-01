@@ -289,6 +289,13 @@ export const AdminBookingDetailPage: React.FC = () => {
               <div className="text-[10px] text-slate-500 uppercase">Mobile Phone</div>
               <div className="font-mono text-slate-300 mt-0.5">{booking.phone}</div>
             </div>
+            {booking.child_name && (
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200">
+                <div className="text-[10px] uppercase font-bold text-amber-400">Child Attendee</div>
+                <div className="font-bold text-white mt-0.5">{booking.child_name} (Age: {booking.child_age || '5–12'})</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Aadhaar card / valid ID required at gate.</div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -302,6 +309,10 @@ export const AdminBookingDetailPage: React.FC = () => {
             <div>
               <div className="text-[10px] text-slate-500 uppercase">Booking Reference</div>
               <div className="text-base font-black text-amber-400 font-mono mt-0.5">{booking.booking_id}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-slate-500 uppercase">Offer Selected</div>
+              <div className="text-sm font-bold text-white mt-0.5">{booking.offer_title || booking.offer_name || 'Standard Pass'}</div>
             </div>
             <div className="flex justify-between">
               <div>
@@ -589,7 +600,11 @@ export const AdminBookingDetailPage: React.FC = () => {
 
               {t.qr_code_base64 && (
                 <div className="p-1.5 bg-white rounded-xl shadow-md shrink-0">
-                  <img src={t.qr_code_base64} alt="QR" className="w-20 h-20" />
+                  <img
+                    src={t.qr_code_base64.startsWith('data:') ? t.qr_code_base64 : `data:image/png;base64,${t.qr_code_base64}`}
+                    alt="QR"
+                    className="w-20 h-20"
+                  />
                 </div>
               )}
             </div>

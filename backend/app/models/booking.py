@@ -23,6 +23,12 @@ class Booking(Base):
     currency = Column(String(10), default="INR", nullable=False)
     ticket_phase = Column(String(50), default="EARLY_BIRD", nullable=True) # EARLY_BIRD, PHASE_1, PHASE_2
     
+    # Offer & Attendee Classification
+    offer_id = Column(String(50), index=True, nullable=True) # EARLY_BIRD_STAG, EARLY_BIRD_GROUP_10, etc.
+    offer_title = Column(String(100), nullable=True)
+    child_name = Column(String(255), nullable=True)
+    child_age = Column(Integer, nullable=True)
+    
     # Payment & Provider Details
     payment_method = Column(String(50), default="UPI_MANUAL", nullable=False) # UPI_MANUAL, RAZORPAY
     utr_number = Column(String(100), index=True, nullable=True)
@@ -44,6 +50,7 @@ class Booking(Base):
     
     # Idempotency & Tracking
     idempotency_key = Column(String(100), unique=True, nullable=True, index=True)
+    reservation_expires_at = Column(DateTime, nullable=True, index=True)
     
     # Email Delivery Tracking
     email_status = Column(String(50), default="PENDING", nullable=False) # PENDING, SENT, FAILED, NOT_CONFIGURED

@@ -7,6 +7,10 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from unittest.mock import patch, MagicMock
+import hmac
+import hashlib
+from app.config import settings
 from app.main import app
 from app.database import Base, get_db
 from app.models.user import User
@@ -24,6 +28,10 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_test_db():
+    os.environ["PASS_GATEWAY_FEE_TO_CUSTOMER"] = "true"
+    os.environ["RAZORPAY_MODE"] = "TEST"
+    os.environ["RAZORPAY_KEY_ID"] = "rzp_test_group_key_123"
+    os.environ["RAZORPAY_KEY_SECRET"] = "rzp_test_secret_456"
     Base.metadata.drop_all(bind=test_engine)
     Base.metadata.create_all(bind=test_engine)
     
@@ -142,12 +150,21 @@ def test_fee_calculation_endpoint(client, count, expected_subtotal, expected_dis
 # TEST 3: Create Order for 10 Tickets (Backend Pricing & Razorpay Amount)
 # =========================================================================
 def test_create_order_for_10_tickets(client):
-    res = client.post("/api/payments/create-order", json={
-        "customer_name": "Garba Squad Leader",
-        "email": "squad@example.com",
-        "phone": "+919876543210",
-        "ticket_count": 10
-    })
+    with patch("razorpay.Client") as mock_client:
+        mock_instance = MagicMock()
+        mock_instance.order.create.return_value = {
+            "id": "order_mock_group_10",
+            "amount": 551823,
+            "currency": "INR",
+            "status": "created"
+        }
+        mock_client.return_value = mock_instance
+        res = client.post("/api/payments/create-order", json={
+            "customer_name": "Garba Squad Leader",
+            "email": "squad@example.com",
+            "phone": "+919876543210",
+            "ticket_count": 10
+        })
     assert res.status_code == 200
     data = res.json()
     assert data["ticket_count"] == 10
@@ -167,23 +184,38 @@ def test_create_order_for_10_tickets(client):
 # =========================================================================
 def test_payment_and_10_unique_valid_tickets(client, db_session):
     # Step 1: Create Order for 10 tickets
-    order_res = client.post("/api/payments/create-order", json={
-        "customer_name": "Navratri Group",
-        "email": "navratri@example.com",
-        "phone": "+919876543210",
-        "ticket_count": 10
-    })
+    with patch("razorpay.Client") as mock_client:
+        mock_instance = MagicMock()
+        mock_instance.order.create.return_value = {
+            "id": "order_mock_group_10_unique",
+            "amount": 551823,
+            "currency": "INR",
+            "status": "created"
+        }
+        mock_client.return_value = mock_instance
+        order_res = client.post("/api/payments/create-order", json={
+            "customer_name": "Navratri Group",
+            "email": "navratri@example.com",
+            "phone": "+919876543210",
+            "ticket_count": 10
+        })
     assert order_res.status_code == 200
     order_data = order_res.json()
     booking_id = order_data["booking_id"]
     order_id = order_data["razorpay_order_id"]
+    payment_id = f"pay_test_{booking_id}"
 
-    # Step 2: Verify simulated payment
+    # Generate valid HMAC signature matching the test secret
+    secret = os.environ.get("RAZORPAY_KEY_SECRET") or settings.RAZORPAY_KEY_SECRET or "rzp_test_secret_456"
+    msg = f"{order_id}|{payment_id}".encode("utf-8")
+    sig = hmac.new(secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+    # Step 2: Verify payment with real HMAC signature
     verify_res = client.post("/api/payments/verify", json={
         "booking_id": booking_id,
         "razorpay_order_id": order_id,
-        "razorpay_payment_id": f"pay_test_{booking_id}",
-        "razorpay_signature": "mock_sig_for_test"
+        "razorpay_payment_id": payment_id,
+        "razorpay_signature": sig
     })
     assert verify_res.status_code == 200
     verify_data = verify_res.json()
@@ -216,17 +248,17 @@ def test_payment_and_10_unique_valid_tickets(client, db_session):
         assert t.ticket_id.endswith(f"-{str(idx).zfill(2)}")
 
     # Step 5: Test check-in of the 10th (free) ticket to prove it is 100% functional
-    ticket_10 = tickets[9]
-    verify_qr_res = client.post("/api/qr/verify", json={
-        "qr_token": ticket_10.qr_token_raw
-    })
-    assert verify_qr_res.status_code == 200
-    assert verify_qr_res.json()["valid"] is True
-    assert verify_qr_res.json()["ticket_status"] == "VALID"
-
     staff_user = db_session.query(User).filter(User.role == "CHECKIN_STAFF").first()
     staff_token = create_access_token({"sub": str(staff_user.id), "role": staff_user.role, "email": staff_user.email})
     staff_headers = {"Authorization": f"Bearer {staff_token}"}
+
+    ticket_10 = tickets[9]
+    verify_qr_res = client.post("/api/qr/verify", json={
+        "qr_token": ticket_10.qr_token_raw
+    }, headers=staff_headers)
+    assert verify_qr_res.status_code == 200
+    assert verify_qr_res.json()["valid"] is True
+    assert verify_qr_res.json()["ticket_status"] == "VALID"
 
     checkin_res = client.post("/api/qr/checkin", json={
         "qr_token": ticket_10.qr_token_raw

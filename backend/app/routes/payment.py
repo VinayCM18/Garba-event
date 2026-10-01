@@ -31,12 +31,20 @@ QR_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "up
 
 @router.get("/calculate", response_model=CalculateFeeResponse)
 def calculate_fee(
-    ticket_count: int = Query(1, ge=1, le=10),
+    ticket_count: Optional[int] = Query(None, ge=1, le=50),
     ticket_phase: Optional[str] = Query("EARLY_BIRD"),
+    offer_id: Optional[str] = Query(None),
+    quantity: Optional[int] = Query(1, ge=1, le=10),
     db: Session = Depends(get_db)
 ):
-    """Calculates server-side ticket pricing breakdown using the active payment provider."""
-    return booking_service.calculate_pricing(db=db, ticket_count=ticket_count, ticket_phase=ticket_phase)
+    """Calculates server-side ticket pricing breakdown using the active payment provider, ticket phase, or offer."""
+    return booking_service.calculate_pricing(
+        db=db,
+        ticket_count=ticket_count or 1,
+        ticket_phase=ticket_phase,
+        offer_id=offer_id,
+        quantity=quantity or 1
+    )
 
 @router.get("/create-order")
 @router.get("/create-order/")
@@ -70,12 +78,20 @@ def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_
         ticket_count=payload.ticket_count,
         ticket_phase=getattr(payload, "ticket_phase", "EARLY_BIRD") or "EARLY_BIRD",
         db=db,
-        idempotency_key=payload.idempotency_key
+        idempotency_key=payload.idempotency_key,
+        offer_id=payload.offer_id,
+        quantity=payload.quantity or 1,
+        child_name=payload.child_name,
+        child_age=payload.child_age
     )
 
     active_method = order_info.get("payment_method", getattr(booking, "payment_method", "RAZORPAY"))
     is_razorpay = (active_method or "").strip().upper() in ("RAZORPAY", "RZP")
-    razorpay_mode = (os.environ.get("RAZORPAY_MODE") or getattr(settings, "RAZORPAY_MODE", "TEST")).strip().upper()
+    razorpay_mode = (
+        order_info.get("razorpay_mode")
+        or os.environ.get("RAZORPAY_MODE")
+        or getattr(settings, "RAZORPAY_MODE", "TEST")
+    ).strip().upper()
 
     return CreateOrderResponse(
         payment_method="RAZORPAY" if is_razorpay else "UPI_MANUAL",
@@ -102,6 +118,11 @@ def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_
         customer_phone=booking.phone,
         is_group_offer=order_info.get("is_group_offer", (getattr(booking, "group_discount", 0.0) or 0) > 0),
         offer_name=order_info.get("offer_name", "BUY 10, PAY FOR 9" if (getattr(booking, "group_discount", 0.0) or 0) > 0 else None),
+        offer_id=booking.offer_id,
+        offer_title=booking.offer_title,
+        passes_count=booking.ticket_count,
+        child_name=booking.child_name,
+        child_age=booking.child_age,
         free_tickets=order_info.get("free_tickets", 1 if (getattr(booking, "group_discount", 0.0) or 0) > 0 else 0),
         # UPI Manual details (strictly suppressed for Razorpay orders)
         upi_id=None if is_razorpay else order_info.get("upi_id"),
@@ -278,15 +299,40 @@ def verify_payment(payload: VerifyPaymentRequest, db: Session = Depends(get_db))
         booking_status=confirmed_booking.booking_status
     )
 
-@router.post("/webhook")
-@router.post("/razorpay/webhook")
+@router.post("/webhook", summary="Canonical Razorpay Webhook Endpoint")
+@router.post(
+    "/razorpay/webhook",
+    deprecated=True,
+    summary="Legacy Razorpay Webhook Endpoint (Alias to /api/payments/webhook)"
+)
 async def razorpay_webhook(
     request: Request,
     x_razorpay_signature: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
-    """Handles incoming Razorpay asynchronous webhooks with signature verification."""
-    signature = x_razorpay_signature or request.headers.get("x-razorpay-signature")
+    """
+    Handles incoming Razorpay asynchronous webhooks with HMAC-SHA256 signature verification.
+
+    Canonical Endpoint: /api/payments/webhook
+    Legacy Aliases:
+      - /api/payments/razorpay/webhook (same router alias)
+      - /api/webhook/razorpay (legacy router internal delegation)
+
+    Supported Events:
+      - payment.captured (confirms booking & generates QR tickets)
+      - order.paid (confirms booking & generates QR tickets)
+      - payment.failed (updates booking to PAYMENT_FAILED & releases reservation hold)
+
+    Guarantees:
+      - HMAC-SHA256 signature verification via RAZORPAY_WEBHOOK_SECRET
+      - Idempotent processing of duplicate events
+      - Amount validation against database booking amount (in paise)
+    """
+    signature = (
+        x_razorpay_signature
+        or request.headers.get("x-razorpay-signature")
+        or request.headers.get("X-Razorpay-Signature")
+    )
     body_bytes = await request.body()
     result = payment_service.process_webhook(body_bytes, signature, db)
     return result
@@ -337,7 +383,11 @@ def retry_payment(booking_id: str, db: Session = Depends(get_db)):
         free_tickets=pricing.get("free_tickets", 0),
         razorpay_order_id=order_info.get("razorpay_order_id"),
         key_id=order_info.get("key_id"),
-        razorpay_mode=settings.RAZORPAY_MODE,
+        razorpay_mode=(
+            order_info.get("razorpay_mode")
+            or os.environ.get("RAZORPAY_MODE")
+            or getattr(settings, "RAZORPAY_MODE", "TEST")
+        ).strip().upper(),
         is_simulation=False
     )
 
@@ -353,6 +403,7 @@ def mark_payment_failed(booking_id: str, reason: Optional[str] = None, db: Sessi
     if booking.booking_status != "CONFIRMED":
         booking.payment_status = "FAILED"
         booking.booking_status = "PAYMENT_FAILED"
+        booking.reservation_expires_at = None
         payment = db.query(Payment).filter(Payment.booking_id == booking.id).first()
         if payment:
             payment.payment_status = "FAILED"

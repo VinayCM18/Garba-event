@@ -12,8 +12,6 @@ import {
   ChevronDown,
   ArrowRight,
   CheckCircle2,
-  Volume2,
-  VolumeX,
   Award,
   Users,
   Headphones,
@@ -29,12 +27,11 @@ import {
 import { CountdownTimer } from '../components/CountdownTimer';
 import { fetchPublicConfig } from '../services/api';
 import { EventConfig } from '../types';
-import { playDandiyaClick, toggleAmbientSound } from '../utils/audio';
+import { playDandiyaClick } from '../utils/audio';
 
 export const HomePage: React.FC = () => {
   const [config, setConfig] = useState<EventConfig | null>(null);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
-  const [ambientActive, setAmbientActive] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
@@ -61,12 +58,6 @@ export const HomePage: React.FC = () => {
   const ticketPrice = config?.ticket_price || 599;
   const remaining = config?.remaining_tickets ?? 1460;
   const mapsUrl = 'https://maps.google.com/?q=Green+Acres+Mysuru';
-
-  const handleToggleAmbient = () => {
-    const nextState = toggleAmbientSound();
-    setAmbientActive(nextState);
-    playDandiyaClick();
-  };
 
   const highlights = [
     {
@@ -158,7 +149,7 @@ export const HomePage: React.FC = () => {
     <div className="relative overflow-hidden">
       {/* Hero Section */}
       <section className="relative pt-12 pb-20 md:pt-20 md:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-        {/* Top Badges & Audio Switch */}
+        {/* Top Badges */}
         <div className="flex flex-wrap items-center justify-center gap-3.5 mb-7">
           <motion.div
             initial={{ opacity: 0, y: -15 }}
@@ -168,19 +159,6 @@ export const HomePage: React.FC = () => {
             <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
             <span>Navratri 2026 • Early Bird Pass ₹{ticketPrice}</span>
           </motion.div>
-
-          <button
-            onClick={handleToggleAmbient}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border ${
-              ambientActive
-                ? 'bg-[#d4af37]/20 text-[#f3e4b2] border-[#d4af37]/50 shadow-md shadow-[#d4af37]/20 animate-pulse'
-                : 'bg-white/[0.04] text-slate-300 border-white/[0.1] hover:text-white hover:bg-white/[0.08]'
-            }`}
-            title="Toggle festive ambient music drone"
-          >
-            {ambientActive ? <Volume2 className="w-3.5 h-3.5 text-[#d4af37]" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
-            <span>{ambientActive ? 'Ambiance Live 🎵' : 'Play Music 🎶'}</span>
-          </button>
         </div>
 
         {/* NAVRANG Primary Identity */}
@@ -367,50 +345,50 @@ export const HomePage: React.FC = () => {
 
           {/* Prominent Header */}
           <h2 className="mt-3 text-2xl sm:text-4xl font-black text-white uppercase tracking-tight font-['Outfit']">
-            🔥 BUY 10, PAY FOR 9
+            🔥 EARLY BIRD — GROUP OF 10
           </h2>
 
           <div className="mt-1.5 inline-flex items-center gap-2 text-xs sm:text-sm font-extrabold text-[#f3e4b2] uppercase tracking-[0.2em]">
-            <span>10 TICKETS</span>
+            <span>10 PASSES INCLUDED</span>
             <span>•</span>
-            <span className="text-emerald-300">1 FREE</span>
+            <span className="text-emerald-300">₹4,999 ALL-INCLUSIVE</span>
           </div>
 
           {/* Desktop & Mobile Price Calculation */}
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5 sm:gap-4">
             <span className="text-base sm:text-xl text-slate-400 font-mono line-through decoration-rose-500 decoration-2">
-              ₹{(ticketPrice * 10).toLocaleString('en-IN')}
+              ₹5,990
             </span>
             <span className="text-slate-400 font-bold text-sm sm:text-lg">→</span>
             <span className="text-3xl sm:text-5xl font-black bg-gradient-to-r from-white via-[#f3e4b2] to-[#d4af37] bg-clip-text text-transparent font-mono">
-              ₹{(ticketPrice * 9).toLocaleString('en-IN')}
+              ₹4,999
             </span>
             <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 text-xs sm:text-sm font-black uppercase tracking-wider shadow-sm">
-              SAVE ₹{ticketPrice.toLocaleString('en-IN')}
+              SAVE ₹991
             </span>
           </div>
 
           {/* Supporting Text */}
           <p className="mt-3 text-xs sm:text-sm text-slate-300 font-medium max-w-lg mx-auto leading-relaxed">
-            Bring your whole Garba squad. More friends. More Garba. One ticket FREE.
+            Entry for 10 people. 10 individual encrypted QR passes generated instantly.
           </p>
 
-          {/* Mobile concise summary chips (Requirement 14) */}
+          {/* Mobile concise summary chips */}
           <div className="mt-4 flex sm:hidden items-center justify-center gap-2 text-[11px] font-bold">
-            <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-200">🎟 10 TICKETS</span>
-            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">🎟 1 FREE</span>
-            <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300">₹{ticketPrice} OFF</span>
+            <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-200">🎟 10 PASSES</span>
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">₹4,999 TOTAL</span>
+            <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300">SAVE ₹991</span>
           </div>
 
           {/* Action CTA */}
           <div className="mt-5 flex justify-center">
             <Link
-              to="/book?count=10"
+              to="/book?offer=EARLY_BIRD_GROUP_10"
               onClick={() => playDandiyaClick()}
               className="festive-button w-full sm:w-auto px-8 py-3.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-[#d4af37]/30 hover:scale-105 transition-all"
             >
               <Ticket className="w-4 h-4" />
-              <span>BOOK GROUP TICKETS</span>
+              <span>CHOOSE GROUP OFFER</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

@@ -91,13 +91,22 @@ export interface FeeCalculation {
   currency: string;
   is_group_offer?: boolean;
   offer_name?: string;
+  offer_id?: string;
+  offer_title?: string;
+  passes_count?: number;
   free_tickets?: number;
 }
 
-export const calculatePaymentFee = async (ticketCount: number, ticketPhase: string = 'EARLY_BIRD'): Promise<FeeCalculation> => {
-  const res = await api.get('/api/payments/calculate', {
-    params: { ticket_count: ticketCount, ticket_phase: ticketPhase }
-  });
+export const calculatePaymentFee = async (
+  ticketCount: number = 1,
+  ticketPhase: string = 'EARLY_BIRD',
+  offerId?: string,
+  quantity?: number
+): Promise<FeeCalculation> => {
+  const params: Record<string, any> = { ticket_count: ticketCount, ticket_phase: ticketPhase };
+  if (offerId) params.offer_id = offerId;
+  if (quantity) params.quantity = quantity;
+  const res = await api.get('/api/payments/calculate', { params });
   return res.data;
 };
 
@@ -105,8 +114,12 @@ export const createPaymentOrder = async (payload: {
   customer_name: string;
   email: string;
   phone: string;
-  ticket_count: number;
+  ticket_count?: number;
   ticket_phase?: string;
+  offer_id?: string;
+  quantity?: number;
+  child_name?: string;
+  child_age?: number;
   idempotency_key?: string;
 }) => {
   const res = await api.post('/api/payments/create-order', payload);

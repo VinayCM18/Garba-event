@@ -223,7 +223,12 @@ def list_bookings(
             amount=b.amount,
             currency=b.currency,
             is_group_offer=is_grp,
-            offer_name="BUY 10, PAY FOR 9" if is_grp else None,
+            offer_name=getattr(b, "offer_title", None) or ("BUY 10, PAY FOR 9" if is_grp else None),
+            offer_id=getattr(b, "offer_id", None),
+            offer_title=getattr(b, "offer_title", None),
+            child_name=getattr(b, "child_name", None),
+            child_age=getattr(b, "child_age", None),
+            ticket_phase=getattr(b, "ticket_phase", None),
             payment_method=b.payment_method or "UPI_MANUAL",
             utr_number=b.utr_number,
             payment_screenshot=b.payment_screenshot,
@@ -302,7 +307,12 @@ def get_booking_details(
         amount=booking.amount,
         currency=booking.currency,
         is_group_offer=is_grp,
-        offer_name="BUY 10, PAY FOR 9" if is_grp else None,
+        offer_name=getattr(booking, "offer_title", None) or ("BUY 10, PAY FOR 9" if is_grp else None),
+        offer_id=getattr(booking, "offer_id", None),
+        offer_title=getattr(booking, "offer_title", None),
+        child_name=getattr(booking, "child_name", None),
+        child_age=getattr(booking, "child_age", None),
+        ticket_phase=getattr(booking, "ticket_phase", None),
         payment_method=booking.payment_method or "UPI_MANUAL",
         utr_number=booking.utr_number,
         payment_screenshot=booking.payment_screenshot,
@@ -393,7 +403,7 @@ def cancel_booking(
 @router.get("/checkins", response_model=list[CheckInLogItem])
 def list_checkins(
     limit: int = Query(50, le=200),
-    current_user: User = Depends(require_staff),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """List recent checkin scans and validation attempts."""
@@ -419,7 +429,7 @@ def list_checkins(
 @router.get("/audit-logs", response_model=list[AuditLogItem])
 def list_audit_logs(
     limit: int = Query(50, le=200),
-    current_user: User = Depends(require_staff),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """List system and security audit logs."""
@@ -515,8 +525,19 @@ def get_settings(current_user: User = Depends(require_admin), db: Session = Depe
 
     smtp_pwd_present = bool((event_setting.smtp_password or "").strip() or settings.SMTP_PASSWORD)
     resend_key_present = bool((event_setting.resend_api_key or "").strip() or (settings.RESEND_API_KEY and "placeholder" not in settings.RESEND_API_KEY))
-    rzp_secret_present = bool((event_setting.razorpay_key_secret or "").strip() or (settings.RAZORPAY_KEY_SECRET and "placeholder" not in settings.RAZORPAY_KEY_SECRET))
-    rzp_webhook_present = bool((event_setting.razorpay_webhook_secret or "").strip() or (settings.RAZORPAY_WEBHOOK_SECRET and "placeholder" not in settings.RAZORPAY_WEBHOOK_SECRET))
+    rzp_mode = (os.environ.get("RAZORPAY_MODE") or getattr(settings, "RAZORPAY_MODE", "TEST")).strip().upper()
+    env_rzp_key = (os.environ.get("RAZORPAY_KEY_ID") or getattr(settings, "RAZORPAY_KEY_ID", "") or "").strip().strip("'\"")
+    env_rzp_secret = (os.environ.get("RAZORPAY_KEY_SECRET") or getattr(settings, "RAZORPAY_KEY_SECRET", "") or "").strip().strip("'\"")
+    env_rzp_webhook = (os.environ.get("RAZORPAY_WEBHOOK_SECRET") or getattr(settings, "RAZORPAY_WEBHOOK_SECRET", "") or "").strip().strip("'\"")
+
+    if rzp_mode == "LIVE":
+        rzp_key_display = env_rzp_key
+        rzp_secret_present = bool(env_rzp_secret)
+        rzp_webhook_present = bool(env_rzp_webhook)
+    else:
+        rzp_key_display = env_rzp_key or getattr(event_setting, "razorpay_key_id", None) or ""
+        rzp_secret_present = bool(env_rzp_secret or (event_setting.razorpay_key_secret or "").strip())
+        rzp_webhook_present = bool(env_rzp_webhook or (event_setting.razorpay_webhook_secret or "").strip())
 
     eff_email_provider = getattr(event_setting, "email_provider", None) or settings.EMAIL_PROVIDER or ("resend" if resend_key_present else "smtp")
 
@@ -558,7 +579,7 @@ def get_settings(current_user: User = Depends(require_admin), db: Session = Depe
         upi_id=getattr(event_setting, "upi_id", None) or settings.UPI_ID or "samaymadhyastha2005@oksbi",
         upi_qr_image=getattr(event_setting, "upi_qr_image", None) or settings.UPI_QR_IMAGE or "uploads/qr/upi_qr.jpg",
         upi_payment_instructions=getattr(event_setting, "upi_payment_instructions", None) or settings.UPI_PAYMENT_INSTRUCTIONS,
-        razorpay_key_id=getattr(event_setting, "razorpay_key_id", None) or (settings.RAZORPAY_KEY_ID if "placeholder" not in settings.RAZORPAY_KEY_ID else ""),
+        razorpay_key_id=rzp_key_display,
         razorpay_key_secret_set=rzp_secret_present,
         razorpay_webhook_secret_set=rzp_webhook_present
     )
@@ -601,8 +622,18 @@ def update_settings(
 
     smtp_pwd_present = bool((event_setting.smtp_password or "").strip() or settings.SMTP_PASSWORD)
     resend_key_present = bool((event_setting.resend_api_key or "").strip() or (settings.RESEND_API_KEY and "placeholder" not in settings.RESEND_API_KEY))
-    rzp_secret_present = bool((event_setting.razorpay_key_secret or "").strip() or (settings.RAZORPAY_KEY_SECRET and "placeholder" not in settings.RAZORPAY_KEY_SECRET))
-    rzp_webhook_present = bool((event_setting.razorpay_webhook_secret or "").strip() or (settings.RAZORPAY_WEBHOOK_SECRET and "placeholder" not in settings.RAZORPAY_WEBHOOK_SECRET))
+    rzp_mode = (os.environ.get("RAZORPAY_MODE") or getattr(settings, "RAZORPAY_MODE", "TEST")).strip().upper()
+    env_rzp_key = (os.environ.get("RAZORPAY_KEY_ID") or getattr(settings, "RAZORPAY_KEY_ID", "") or "").strip().strip("'\"")
+    env_rzp_secret = (os.environ.get("RAZORPAY_KEY_SECRET") or getattr(settings, "RAZORPAY_KEY_SECRET", "") or "").strip().strip("'\"")
+    env_rzp_webhook = (os.environ.get("RAZORPAY_WEBHOOK_SECRET") or getattr(settings, "RAZORPAY_WEBHOOK_SECRET", "") or "").strip().strip("'\"")
+    if rzp_mode == "LIVE":
+        rzp_key_display = env_rzp_key
+        rzp_secret_present = bool(env_rzp_secret)
+        rzp_webhook_present = bool(env_rzp_webhook)
+    else:
+        rzp_key_display = env_rzp_key or getattr(event_setting, "razorpay_key_id", None) or ""
+        rzp_secret_present = bool(env_rzp_secret or (event_setting.razorpay_key_secret or "").strip())
+        rzp_webhook_present = bool(env_rzp_webhook or (event_setting.razorpay_webhook_secret or "").strip())
 
     eff_email_provider = getattr(event_setting, "email_provider", None) or settings.EMAIL_PROVIDER or ("resend" if resend_key_present else "smtp")
 
@@ -644,7 +675,7 @@ def update_settings(
         upi_id=getattr(event_setting, "upi_id", None) or settings.UPI_ID or "samaymadhyastha2005@oksbi",
         upi_qr_image=getattr(event_setting, "upi_qr_image", None) or settings.UPI_QR_IMAGE or "uploads/qr/upi_qr.jpg",
         upi_payment_instructions=getattr(event_setting, "upi_payment_instructions", None) or settings.UPI_PAYMENT_INSTRUCTIONS,
-        razorpay_key_id=getattr(event_setting, "razorpay_key_id", None) or (settings.RAZORPAY_KEY_ID if "placeholder" not in settings.RAZORPAY_KEY_ID else ""),
+        razorpay_key_id=rzp_key_display,
         razorpay_key_secret_set=rzp_secret_present,
         razorpay_webhook_secret_set=rzp_webhook_present
     )

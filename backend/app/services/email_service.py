@@ -1,3 +1,4 @@
+import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -19,6 +20,7 @@ from app.models.event_setting import EventSetting
 from app.services.qr_service import qr_service
 from app.services.ticket_service import ticket_service
 from app.utils.logger import app_logger
+from app.utils.validators import validate_email_format, is_placeholder_email
 
 def format_ist_datetime(dt: Optional[datetime] = None) -> str:
     """Converts a UTC datetime to Indian Standard Time (IST, UTC+5:30) and formats it cleanly."""
@@ -36,51 +38,74 @@ class EmailService:
         if not event_setting:
             event_setting = EventSetting()
 
-        # Resend API Key: EventSetting in DB or environment variable
+        # Resend API Key: environment variable takes precedence (Railway), then settings, then DB
         resend_api_key = (
-            getattr(event_setting, "resend_api_key", None) or ""
-        ).strip() or (settings.RESEND_API_KEY or "").strip()
+            os.environ.get("RESEND_API_KEY", "").strip()
+            or (settings.RESEND_API_KEY or "").strip()
+            or (getattr(event_setting, "resend_api_key", None) or "").strip()
+        )
 
         # Provider determination:
-        # 1. DB event_setting.email_provider (resend / smtp / console)
-        # 2. Environment variable EMAIL_PROVIDER (resend / smtp / console)
+        # 1. Environment variable EMAIL_PROVIDER (e.g. Railway config)
+        # 2. Database event_setting.email_provider
         # 3. Default to resend if resend_api_key is set
-        # 4. In production -> "resend"
-        # 5. In dev without keys -> "console"
+        # 4. Default to resend
+        os_env_provider = os.environ.get("EMAIL_PROVIDER", "").strip().lower()
         db_provider = (getattr(event_setting, "email_provider", None) or "").strip().lower()
-        env_provider = (settings.EMAIL_PROVIDER or "").strip().lower()
+        settings_provider = (getattr(settings, "EMAIL_PROVIDER", "") or "").strip().lower()
 
-        if db_provider in ("resend", "smtp", "console"):
+        if os_env_provider in ("resend", "smtp", "console"):
+            email_provider = os_env_provider
+        elif db_provider in ("resend", "smtp", "console"):
             email_provider = db_provider
-        elif env_provider in ("resend", "smtp", "console"):
-            email_provider = env_provider
+        elif settings_provider in ("resend", "smtp", "console"):
+            email_provider = settings_provider
         elif resend_api_key:
             email_provider = "resend"
-        elif settings.ENVIRONMENT == "production":
-            email_provider = "resend"
         else:
-            email_provider = "console"
+            email_provider = "resend"
 
-        smtp_username = (event_setting.smtp_username or "").strip() or settings.SMTP_USERNAME
-        smtp_password = (event_setting.smtp_password or "").strip() or settings.SMTP_PASSWORD
-        smtp_host = (event_setting.smtp_host or "").strip() or settings.SMTP_HOST or "smtp.gmail.com"
-        smtp_port = event_setting.smtp_port or settings.SMTP_PORT or 587
+        smtp_username = (
+            os.environ.get("SMTP_USERNAME", "").strip()
+            or (settings.SMTP_USERNAME or "").strip()
+            or (event_setting.smtp_username or "").strip()
+        )
+        smtp_password = (
+            os.environ.get("SMTP_PASSWORD", "").strip()
+            or (settings.SMTP_PASSWORD or "").strip()
+            or (event_setting.smtp_password or "").strip()
+        )
+        smtp_host = (
+            os.environ.get("SMTP_HOST", "").strip()
+            or (settings.SMTP_HOST or "").strip()
+            or (event_setting.smtp_host or "").strip()
+            or "smtp.gmail.com"
+        )
+        smtp_port = int(
+            os.environ.get("SMTP_PORT", "").strip()
+            or settings.SMTP_PORT
+            or event_setting.smtp_port
+            or 587
+        )
         smtp_from_email = (
-            (event_setting.smtp_from_email or "").strip()
+            os.environ.get("FROM_EMAIL", "").strip()
             or (settings.FROM_EMAIL or "").strip()
+            or (event_setting.smtp_from_email or "").strip()
             or "onboarding@resend.dev"
         )
         smtp_from_name = (
-            (event_setting.smtp_from_name or "").strip()
+            os.environ.get("FROM_NAME", "").strip()
             or (settings.FROM_NAME or "").strip()
+            or (event_setting.smtp_from_name or "").strip()
             or "NAVRANG 2026"
         )
         smtp_use_tls = getattr(event_setting, "smtp_use_tls", True) if hasattr(event_setting, "smtp_use_tls") else settings.SMTP_USE_TLS
 
         # Owner notification configuration (no hardcoded fallback)
         owner_email = (
-            (getattr(event_setting, "owner_notification_email", None) or "").strip()
+            os.environ.get("OWNER_NOTIFICATION_EMAIL", "").strip()
             or (settings.OWNER_NOTIFICATION_EMAIL or "").strip()
+            or (getattr(event_setting, "owner_notification_email", None) or "").strip()
         )
         owner_phone = (
             (getattr(event_setting, "owner_notification_phone", None) or "").strip()
@@ -275,6 +300,28 @@ class EmailService:
         has_resend = bool(config.get("resend_api_key"))
         has_smtp = bool(config.get("smtp_username") and config.get("smtp_password"))
 
+        # Validate recipient list and enforce placeholder protection
+        allow_placeholders = getattr(settings, "ALLOW_PLACEHOLDER_EMAILS", False)
+        clean_recipients: List[str] = []
+        for em in to_emails:
+            clean_em = (em or "").strip().lower()
+            if not clean_em:
+                continue
+            if not validate_email_format(clean_em):
+                app_logger.warning(f"{log_prefix} Rejected malformed recipient email: '{clean_em}'")
+                continue
+            if is_placeholder_email(clean_em) and not allow_placeholders:
+                app_logger.warning(f"{log_prefix} Blocked placeholder recipient email to prevent bounce: '{clean_em}'")
+                continue
+            clean_recipients.append(clean_em)
+
+        if not clean_recipients:
+            err = f"No deliverable recipient email address found. Refusing to send to placeholder/invalid address (given: {to_emails})."
+            app_logger.error(f"{log_prefix} {err}")
+            raise ValueError(err)
+
+        to_emails = clean_recipients
+
         # -------------------------------------------------------------
         # 1. RESEND DISPATCH (Port 443 HTTPS REST API)
         # -------------------------------------------------------------
@@ -367,6 +414,29 @@ class EmailService:
         disc_amt = getattr(booking, "group_discount", 0.0) or (599.0 if is_group else 0.0)
         subtotal_amt = booking.ticket_subtotal or (reg_amt - disc_amt)
 
+        offer_title_display = getattr(booking, "offer_title", None)
+        if not offer_title_display:
+            if is_group:
+                offer_title_display = "Early Bird — Group of 10" if booking.amount == 4999.0 else "Group Entry (10 Passes)"
+            elif booking.ticket_count == 2:
+                offer_title_display = "Early Bird — Couple Entry" if booking.amount == 999.0 else "Couple Entry (2 Passes)"
+            elif getattr(booking, "child_name", None) or booking.ticket_price == 300.0:
+                offer_title_display = "Kids (5–12 years)"
+            else:
+                offer_title_display = "Early Bird — Stag Entry" if booking.amount == 599.0 else "Stag Entry"
+
+        child_row_html = ""
+        if getattr(booking, "child_name", None):
+            child_row_html = f"""
+                      <tr>
+                        <td style="padding: 6px 0; font-size: 13px; color: #94a3b8;">Child Attendee:</td>
+                        <td style="padding: 6px 0; font-size: 13px; font-weight: 700; color: #34d399; text-align: right;">{booking.child_name} (Age: {getattr(booking, 'child_age', '') or '5–12'})</td>
+                      </tr>
+                      <tr>
+                        <td colspan="2" style="padding: 4px 0; font-size: 11px; color: #fbbf24;">ℹ️ Aadhaar card / valid ID proof required at entry.</td>
+                      </tr>
+            """
+
         group_banner_html = ""
         if is_group:
             group_banner_html = f"""
@@ -375,19 +445,27 @@ class EmailService:
                   🎉 GROUP BOOKING CONFIRMED
                 </div>
                 <div style="font-size: 13px; font-weight: 800; color: #34d399; margin-top: 4px; letter-spacing: 0.5px;">
-                  BUY 10, PAY FOR 9 • YOU SAVED ₹{disc_amt:,.2f}
+                  BUY 10, PAY FOR 9 • {offer_title_display.upper()}
                 </div>
                 <div style="font-size: 12px; color: #cbd5e1; margin-top: 6px;">
-                  10 Tickets (9 Paid + 1 FREE Ticket) • All 10 tickets are 100% valid admission passes
+                  10 Official Admission Passes • All passes include individual high-speed QR check-in
+                </div>
+                <div style="font-size: 13px; font-weight: 700; color: #fde047; margin-top: 6px;">
+                  ⚡ YOU SAVED ₹{disc_amt:,.0f} ON THIS BOOKING!
                 </div>
               </div>
             """
 
         price_rows_html = f"""
                       <tr>
-                        <td style="padding: 6px 0; font-size: 13px; color: #94a3b8; width: 45%;">Admission Passes:</td>
-                        <td style="padding: 6px 0; font-size: 13px; font-weight: 700; color: #f3e4b2; text-align: right;">{booking.ticket_count} Passes {'(BUY 10, PAY FOR 9)' if is_group else f'× ₹{booking.ticket_price:,.2f}'}</td>
+                        <td style="padding: 6px 0; font-size: 13px; color: #94a3b8; width: 45%;">Selected Offer:</td>
+                        <td style="padding: 6px 0; font-size: 13px; font-weight: 800; color: #f3e4b2; text-align: right;">{offer_title_display}</td>
                       </tr>
+                      <tr>
+                        <td style="padding: 6px 0; font-size: 13px; color: #94a3b8;">Admission Passes:</td>
+                        <td style="padding: 6px 0; font-size: 13px; font-weight: 700; color: #ffffff; text-align: right;">{booking.ticket_count} Pass{'es' if booking.ticket_count > 1 else ''}</td>
+                      </tr>
+                      {child_row_html}
         """
         if is_group:
             price_rows_html += f"""
@@ -654,6 +732,20 @@ class EmailService:
         wa_url = f"https://wa.me/{clean_phone}" if clean_phone else "#"
         booking_ist = format_ist_datetime(booking.created_at)
         dispatch_ist = format_ist_datetime(datetime.utcnow())
+        offer_title_display = getattr(booking, "offer_title", None) or (
+            "Early Bird — Group of 10" if booking.ticket_count == 10
+            else "Early Bird — Couple Entry" if booking.ticket_count == 2
+            else "Kids (5–12 years)" if getattr(booking, "child_name", None) or booking.ticket_price == 300.0
+            else "Early Bird — Stag Entry"
+        )
+        child_alert_row = ""
+        if getattr(booking, "child_name", None):
+            child_alert_row = f"""
+                <tr>
+                  <td style="padding: 11px 18px; font-size: 13px; color: #94a3b8; border-bottom: 1px solid #1a1e30;">Child Attendee:</td>
+                  <td style="padding: 11px 18px; font-size: 13px; font-weight: 700; color: #34d399; border-bottom: 1px solid #1a1e30; text-align: right;">{booking.child_name} (Age: {getattr(booking, 'child_age', '') or '5-12'})</td>
+                </tr>
+            """
 
         return f"""<!DOCTYPE html>
 <html lang="en">
@@ -805,6 +897,13 @@ class EmailService:
                   </td>
                 </tr>
                 <tr>
+                  <td style="padding: 11px 18px; font-size: 13px; color: #94a3b8; border-bottom: 1px solid #1a1e30;">Offer Type:</td>
+                  <td style="padding: 11px 18px; font-size: 13px; font-weight: 800; color: #f3e4b2; border-bottom: 1px solid #1a1e30; text-align: right;">
+                    {offer_title_display}
+                  </td>
+                </tr>
+                {child_alert_row}
+                <tr>
                   <td style="padding: 11px 18px; font-size: 13px; color: #94a3b8; border-bottom: 1px solid #1a1e30;">Passes Purchased:</td>
                   <td style="padding: 11px 18px; font-size: 13px; font-weight: 700; color: #ffffff; border-bottom: 1px solid #1a1e30; text-align: right;">
                     {booking.ticket_count} Pass{'es' if booking.ticket_count > 1 else ''}
@@ -882,9 +981,58 @@ class EmailService:
             app_logger.error(f"[EMAIL] Cannot send customer confirmation: Booking {booking_id} not found.")
             return False
 
+        # Step 1: Retrieve customer email strictly from the booking record (backend source of truth)
+        raw_email = getattr(booking, "email", None)
+        customer_email = (raw_email or "").strip().lower()
+
+        # Step 2: Validate customer email presence and syntax
+        if not customer_email or not validate_email_format(customer_email):
+            err_msg = f"Customer email is missing or has an invalid format: '{raw_email or ''}'."
+            app_logger.error(f"[EMAIL] Confirmation email delivery skipped for booking {booking.booking_id}: {err_msg}")
+            booking.email_status = "FAILED"
+            booking.email_error = err_msg[:500]
+            db.commit()
+            return False
+
+        # Step 3: Enforce placeholder protection to prevent bounces (e.g. example.com, test.com)
+        allow_placeholders = getattr(settings, "ALLOW_PLACEHOLDER_EMAILS", False)
+        if is_placeholder_email(customer_email) and not allow_placeholders:
+            err_msg = (
+                f"Customer email address is a placeholder ('{customer_email}'). "
+                f"Email delivery skipped to prevent provider bounce (example.com does not accept email)."
+            )
+            app_logger.warning(f"[EMAIL] Confirmation email delivery blocked for booking {booking.booking_id}: {err_msg}")
+            booking.email_status = "FAILED"
+            booking.email_error = err_msg[:500]
+            db.commit()
+            return False
+
         event_setting = db.query(EventSetting).first() or EventSetting()
         config = cls.get_email_config(db)
-        provider = config.get("email_provider", "resend")
+        provider = (config.get("email_provider") or "resend").lower().strip()
+
+        # Step 4: Verify provider credentials before attempting dispatch
+        has_credentials = False
+        if provider == "resend":
+            has_credentials = bool(config.get("resend_api_key"))
+        elif provider == "smtp":
+            has_credentials = bool(config.get("smtp_username") and config.get("smtp_password"))
+        elif provider == "console":
+            has_credentials = True
+
+        if not has_credentials:
+            err_msg = "Email provider credentials are not configured"
+            app_logger.warning(
+                f"[EMAIL] Confirmation email delivery skipped for booking {booking.booking_id}: {err_msg} (provider={provider})"
+            )
+            booking.email_status = "NOT_CONFIGURED"
+            booking.email_error = err_msg
+            db.commit()
+            return False
+
+        app_logger.info(
+            f"[EMAIL] Attempt: booking_id={booking.booking_id} recipient={customer_email} provider={provider}"
+        )
 
         try:
             primary_ticket = booking.tickets[0] if booking.tickets else None
@@ -910,9 +1058,9 @@ class EmailService:
             pdf_filename = f"{event_slug}_{booking.booking_id}_Tickets.pdf"
             attachments = [{"filename": pdf_filename, "content_bytes": pdf_bytes}]
 
-            # Dispatch provider-aware message (Resend / SMTP / Console)
+            # Dispatch provider-aware message (Resend / SMTP / Console) strictly to validated customer_email
             cls._dispatch_message(
-                to_emails=[booking.email],
+                to_emails=[customer_email],
                 subject=subject,
                 html_content=html_content,
                 config=config,
@@ -925,6 +1073,9 @@ class EmailService:
             booking.email_sent_at = datetime.utcnow()
             booking.email_error = None
             db.commit()
+            app_logger.info(
+                f"[EMAIL] Success: booking_id={booking.booking_id} email_status=SENT"
+            )
             return True
 
         except Exception as e:
@@ -932,6 +1083,9 @@ class EmailService:
             booking.email_status = "FAILED"
             booking.email_error = err_msg[:500]
             db.commit()
+            app_logger.error(
+                f"[EMAIL] Failure: booking_id={booking.booking_id} email_status=FAILED error={err_msg[:200]}"
+            )
             return False
 
     @classmethod

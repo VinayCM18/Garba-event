@@ -61,6 +61,24 @@ export interface EventConfig {
   collaboration_logo_url?: string;
   active_phase_code?: string;
   ticket_phases?: TicketPhaseItem[];
+  offers?: TicketOffer[];
+}
+
+export interface TicketOffer {
+  id: string;
+  phase_code: string;
+  phase_name: string;
+  phase_status: 'ACTIVE' | 'LOCKED' | 'COMING_SOON';
+  type: 'STAG' | 'GROUP' | 'COUPLE' | 'KIDS';
+  title: string;
+  price: number;
+  per_unit_passes: number;
+  description: string;
+  badge: string;
+  is_purchasable: boolean;
+  requires_id_proof?: boolean;
+  min_age?: number;
+  max_age?: number;
 }
 
 export interface TicketPhaseItem {
@@ -113,6 +131,11 @@ export interface Booking {
   currency: string;
   is_group_offer?: boolean;
   offer_name?: string;
+  offer_id?: string;
+  offer_title?: string;
+  child_name?: string;
+  child_age?: number;
+  ticket_phase?: string;
   payment_method?: string;
   utr_number?: string;
   payment_screenshot?: string;
@@ -174,6 +197,11 @@ export interface CreateOrderResponse {
   customer_phone: string;
   is_group_offer: boolean;
   offer_name?: string;
+  offer_id?: string;
+  offer_title?: string;
+  passes_count?: number;
+  child_name?: string;
+  child_age?: number;
   free_tickets: number;
   upi_id?: string;
   upi_qr_image_url?: string;

@@ -743,6 +743,20 @@ export const SuccessPage: React.FC = () => {
 
           {/* Confirmation Summary Card */}
           <div className="glass-panel-gold rounded-3xl p-6 sm:p-8 border border-[#d4af37]/30 shadow-2xl mb-8">
+            {booking.offer_title && (
+              <div className="mb-4 pb-4 border-b border-white/[0.08] flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">OFFER SELECTED</div>
+                  <div className="text-sm font-black text-[#f3e4b2]">{booking.offer_title}</div>
+                </div>
+                {booking.child_name && (
+                  <div className="text-right">
+                    <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">CHILD ATTENDEE</div>
+                    <div className="text-xs font-bold text-emerald-400">{booking.child_name} ({booking.child_age || '5–12'}y)</div>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center pb-6 border-b border-white/[0.08]">
               <div>
                 <div className="text-[11px] text-slate-400 uppercase font-bold tracking-wider">Booking ID</div>
@@ -830,34 +844,125 @@ export const SuccessPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {booking.tickets.map((ticket, idx) => (
-                <div
-                  key={ticket.ticket_id}
-                  className="p-5 rounded-2xl glass-panel border border-white/[0.08] flex items-center justify-between gap-4"
-                >
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#d4af37]/20 text-[#f3e4b2]">
-                      Ticket {String(idx + 1).padStart(2, '0')} {idx === 9 && isGroupOffer ? '• (FREE BONUS)' : ''}
-                    </span>
-                    <div className="text-sm font-black font-mono text-white mt-1">
-                      {ticket.ticket_id}
+              {booking.tickets.map((ticket, idx) => {
+                const qrSrc = ticket.qr_code_base64?.startsWith('data:')
+                  ? ticket.qr_code_base64
+                  : ticket.qr_code_base64
+                  ? `data:image/png;base64,${ticket.qr_code_base64}`
+                  : null;
+
+                const isFreeTicket = idx === 9 && isGroupOffer;
+
+                return (
+                  <div
+                    key={ticket.ticket_id}
+                    className="p-5 rounded-2xl glass-panel border border-[#d4af37]/20 hover:border-[#d4af37]/45 transition-all shadow-lg flex flex-col justify-between gap-4 relative overflow-hidden"
+                  >
+                    {/* Top Gold Accent Bar */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-[#d4af37] to-amber-300" />
+
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        {/* Status Badges */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#d4af37]/20 text-[#f3e4b2] border border-[#d4af37]/30">
+                            Ticket {String(idx + 1).padStart(2, '0')} {isFreeTicket ? '• FREE BONUS' : ''}
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded ${
+                              ticket.checkin_status
+                                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            }`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            {ticket.checkin_status ? 'CHECKED IN' : 'VALID PASS'}
+                          </span>
+                        </div>
+
+                        {/* Ticket Number */}
+                        <div className="text-sm font-black font-mono text-white tracking-wide truncate">
+                          {ticket.ticket_id}
+                        </div>
+
+                        {/* Attendee Name */}
+                        <div className="text-xs font-semibold text-slate-200 truncate">
+                          {ticket.customer_name}
+                        </div>
+
+                        {/* Event Details */}
+                        <div className="text-[11px] text-slate-400 flex items-center gap-1.5 pt-0.5">
+                          <span className="text-[#f3e4b2]/90 font-medium">NAVRANG 2026</span>
+                          <span>•</span>
+                          <span>Admit 1</span>
+                        </div>
+                      </div>
+
+                      {/* QR Code Presentation */}
+                      {qrSrc ? (
+                        <div className="flex flex-col items-center shrink-0">
+                          {ticket.qr_token_raw ? (
+                            <Link
+                              to={`/ticket/${ticket.qr_token_raw}`}
+                              target="_blank"
+                              title="Click to view digital pass"
+                              className="group block p-1.5 bg-white rounded-xl shadow-md border border-white/30 hover:scale-105 transition-transform"
+                            >
+                              <img
+                                src={qrSrc}
+                                alt={`QR Code for ${ticket.ticket_id}`}
+                                className="w-16 h-16 sm:w-20 sm:h-20 object-contain block"
+                              />
+                            </Link>
+                          ) : (
+                            <div className="p-1.5 bg-white rounded-xl shadow-md border border-white/30">
+                              <img
+                                src={qrSrc}
+                                alt={`QR Code for ${ticket.ticket_id}`}
+                                className="w-16 h-16 sm:w-20 sm:h-20 object-contain block"
+                              />
+                            </div>
+                          )}
+                          <span className="text-[9px] font-mono text-slate-400 mt-1 uppercase tracking-wider">
+                            Scan at Gate
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                          <QrCode className="w-6 h-6 text-slate-500" />
+                        </div>
+                      )}
                     </div>
-                    <div className="text-xs text-slate-400">
-                      {ticket.customer_name}
+
+                    {/* Bottom Actions Row */}
+                    <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between gap-2 text-xs">
+                      {ticket.qr_token_raw ? (
+                        <Link
+                          to={`/ticket/${ticket.qr_token_raw}`}
+                          target="_blank"
+                          className="text-[#f3e4b2] hover:text-white font-bold inline-flex items-center gap-1 transition-colors"
+                        >
+                          <QrCode className="w-3.5 h-3.5 text-[#d4af37]" />
+                          <span>View Digital Pass</span>
+                          <ExternalLink className="w-3 h-3 opacity-60" />
+                        </Link>
+                      ) : (
+                        <span className="text-slate-500 text-[11px]">Gate Entry Pass</span>
+                      )}
+
+                      <a
+                        href={getDownloadUrl(`/api/tickets/${ticket.ticket_id}/pdf`)}
+                        download
+                        className="text-slate-300 hover:text-amber-300 font-semibold inline-flex items-center gap-1 transition-colors"
+                        title="Download Individual Ticket PDF"
+                      >
+                        <Download className="w-3.5 h-3.5 text-[#d4af37]" />
+                        <span>PDF</span>
+                      </a>
                     </div>
                   </div>
-
-                  {ticket.qr_code_base64 && (
-                    <div className="p-2 bg-white rounded-xl shadow-md shrink-0">
-                      <img
-                        src={`data:image/png;base64,${ticket.qr_code_base64}`}
-                        alt={ticket.ticket_id}
-                        className="w-16 h-16 object-contain"
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

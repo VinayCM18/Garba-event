@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
     FROM_EMAIL: str = ""
     FROM_NAME: str = "NAVRANG 2026"
+    ALLOW_PLACEHOLDER_EMAILS: bool = False  # Blocks accidental delivery to example.com/test.com dummy addresses
 
     # Owner Instant Notification Settings
     OWNER_NOTIFICATION_EMAIL: str = ""
@@ -86,15 +87,21 @@ class Settings(BaseSettings):
     DEFAULT_TOTAL_CAPACITY: int = 1500
     DEFAULT_MAX_PER_BOOKING: int = 10
 
+    # Reservation Timeout (Minutes)
+    PAYMENT_RESERVATION_MINUTES: int = 15
+
     class Config:
         env_file = ".env"
         extra = "ignore"
+
+    _cached_dev_jwt: Optional[str] = None
+    _cached_dev_qr: Optional[str] = None
 
     # ------------------------------------------------------------------
     # Runtime secret validation
     # ------------------------------------------------------------------
     def effective_jwt_secret(self) -> str:
-        """Return the JWT secret, auto-generating a temporary one in dev only."""
+        """Return the JWT secret, caching an ephemeral one in dev only."""
         if self.JWT_SECRET and self.JWT_SECRET not in _INSECURE_MARKERS:
             return self.JWT_SECRET
         if self.ENVIRONMENT == "production":
@@ -103,34 +110,36 @@ class Settings(BaseSettings):
                 "Run: python -c \"import secrets; print(secrets.token_hex(32))\" "
                 "and set the result as JWT_SECRET in your environment."
             )
-        # Development fallback — random per-process, tickets invalidated on restart
-        _tmp = secrets.token_hex(32)
-        import warnings
-        warnings.warn(
-            "JWT_SECRET not set — using a random ephemeral secret. "
-            "Tokens will be invalidated on every server restart. "
-            "Set JWT_SECRET in backend/.env for persistent sessions.",
-            stacklevel=2,
-        )
-        return _tmp
+        # Development fallback — cached per-process so sessions survive API calls
+        if not self._cached_dev_jwt:
+            self._cached_dev_jwt = secrets.token_hex(32)
+            import warnings
+            warnings.warn(
+                "JWT_SECRET not set — using an ephemeral per-process secret. "
+                "Tokens will be invalidated on server restart. "
+                "Set JWT_SECRET in backend/.env for persistent sessions.",
+                stacklevel=2,
+            )
+        return self._cached_dev_jwt
 
     def effective_qr_salt(self) -> str:
-        """Return the QR secret salt, auto-generating a temporary one in dev only."""
+        """Return the QR secret salt, caching an ephemeral one in dev only."""
         if self.QR_SECRET_SALT and self.QR_SECRET_SALT not in _INSECURE_MARKERS:
             return self.QR_SECRET_SALT
         if self.ENVIRONMENT == "production":
             raise RuntimeError(
                 "QR_SECRET_SALT must be set to a strong random value in production."
             )
-        _tmp = secrets.token_hex(16)
-        import warnings
-        warnings.warn(
-            "QR_SECRET_SALT not set — using a random ephemeral salt. "
-            "QR codes will be invalidated on every server restart. "
-            "Set QR_SECRET_SALT in backend/.env.",
-            stacklevel=2,
-        )
-        return _tmp
+        if not self._cached_dev_qr:
+            self._cached_dev_qr = secrets.token_hex(16)
+            import warnings
+            warnings.warn(
+                "QR_SECRET_SALT not set — using an ephemeral per-process salt. "
+                "QR codes will be invalidated on server restart. "
+                "Set QR_SECRET_SALT in backend/.env.",
+                stacklevel=2,
+            )
+        return self._cached_dev_qr
 
 
 settings = Settings()

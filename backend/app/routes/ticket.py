@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Query
 from sqlalchemy.orm import Session
 from datetime import datetime
 import re
@@ -26,14 +26,10 @@ from typing import Optional
 
 router = APIRouter(prefix="", tags=["Tickets & QR Verification"])
 
-def find_ticket_by_any_identifier(raw_identifier: str, db: Session, for_update: bool = False) -> Optional[Ticket]:
-    """Intelligently resolves a ticket from any user-provided identifier or scanned payload:
-    - Raw cryptographic token (e.g. GN26_...)
-    - SHA-256 token hash
-    - Full ticket URL (e.g. /ticket/GN26_... or /tickets/view/... or /success/...)
-    - Ticket ID (e.g. GN26-TKT-070591-01 or 070591-01)
-    - Booking Reference ID (e.g. GN-2026-70591 or 70591)
-    - Customer mobile phone number or email address
+def find_ticket_by_any_identifier(raw_identifier: str, db: Session, for_update: bool = False, is_staff: bool = False) -> Optional[Ticket]:
+    """Intelligently resolves a ticket from any user-provided identifier or scanned payload.
+    - Public access (is_staff=False): ONLY high-entropy cryptographic QR tokens are accepted.
+    - Staff access (is_staff=True): Allows Ticket ID, Booking ID, or attendee lookup at entry gates.
     """
     if not raw_identifier:
         return None
@@ -53,26 +49,30 @@ def find_ticket_by_any_identifier(raw_identifier: str, db: Session, for_update: 
     if for_update:
         query = query.with_for_update()
 
-    # Priority 1: Match by raw QR token or token hash
+    # Priority 1: Match by raw high-entropy QR token or token hash (Allowed for both public and staff)
     ticket = query.filter(
         (Ticket.qr_token_raw == token) | (Ticket.qr_token_hash == token_hash)
     ).first()
     if ticket:
         return ticket
 
-    # Priority 2: Direct match on Ticket ID (exact or case-insensitive)
+    # Public callers are strictly restricted to high-entropy tokens to prevent enumeration attacks
+    if not is_staff:
+        return None
+
+    # Priority 2: Direct match on Ticket ID (staff only)
     ticket = query.filter(Ticket.ticket_id.ilike(token)).first()
     if ticket:
         return ticket
 
-    # Priority 3: Match on Booking ID (e.g. GN-2026-70591)
+    # Priority 3: Match on Booking ID (staff only, e.g. GN-2026-70591)
     booking = db.query(Booking).filter(Booking.booking_id.ilike(token)).first()
     if booking and booking.tickets:
         unclaimed = [t for t in booking.tickets if not t.checkin_status and t.ticket_status == "VALID"]
         target_id = unclaimed[0].id if unclaimed else booking.tickets[0].id
         return query.filter(Ticket.id == target_id).first()
 
-    # Priority 4: Partial numeric or stripped search (e.g. 070591-01 or 70591)
+    # Priority 4: Partial numeric or stripped search (staff only, e.g. 070591-01 or 70591)
     clean_numeric = re.sub(r'[^0-9]', '', token)
     if len(clean_numeric) >= 4:
         ticket = query.filter(Ticket.ticket_id.ilike(f"%{clean_numeric}%")).first()
@@ -84,7 +84,7 @@ def find_ticket_by_any_identifier(raw_identifier: str, db: Session, for_update: 
             target_id = unclaimed[0].id if unclaimed else booking.tickets[0].id
             return query.filter(Ticket.id == target_id).first()
 
-    # Priority 5: Customer phone match
+    # Priority 5: Customer phone match (staff only)
     if len(clean_numeric) >= 10:
         booking = db.query(Booking).filter(Booking.phone.ilike(f"%{clean_numeric}%")).order_by(Booking.id.desc()).first()
         if booking and booking.tickets:
@@ -92,7 +92,7 @@ def find_ticket_by_any_identifier(raw_identifier: str, db: Session, for_update: 
             target_id = unclaimed[0].id if unclaimed else booking.tickets[0].id
             return query.filter(Ticket.id == target_id).first()
 
-    # Priority 6: Customer email match
+    # Priority 6: Customer email match (staff only)
     if "@" in token and "." in token:
         booking = db.query(Booking).filter(Booking.email.ilike(token)).order_by(Booking.id.desc()).first()
         if booking and booking.tickets:
@@ -104,8 +104,8 @@ def find_ticket_by_any_identifier(raw_identifier: str, db: Session, for_update: 
 
 @router.get("/api/tickets/view/{qr_token}", response_model=TicketResponse)
 def view_ticket_by_token(qr_token: str, db: Session = Depends(get_db)):
-    """Public digital ticket view for customer via secret token, Ticket ID, or Booking ID."""
-    ticket = find_ticket_by_any_identifier(qr_token, db)
+    """Public digital ticket view for customer via secret high-entropy token only."""
+    ticket = find_ticket_by_any_identifier(qr_token, db, is_staff=False)
 
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found or link has expired.")
@@ -128,11 +128,40 @@ def view_ticket_by_token(qr_token: str, db: Session = Depends(get_db)):
     )
 
 @router.get("/api/tickets/{ticket_id}/pdf")
-def download_single_ticket_pdf(ticket_id: str, db: Session = Depends(get_db)):
-    """Downloads single ticket PDF."""
+def download_single_ticket_pdf(
+    ticket_id: str,
+    token: Optional[str] = Query(None),
+    request: Request = None,
+    db: Session = Depends(get_db)
+):
+    """Downloads single ticket PDF with access token or staff authorization check."""
     ticket = db.query(Ticket).filter(Ticket.ticket_id == ticket_id).first()
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found.")
+
+    # Validate access: either valid high-entropy token or authenticated staff/admin session
+    is_authorized = False
+    if token and (token.strip() == ticket.qr_token_raw or hash_qr_token(token.strip()) == ticket.qr_token_hash):
+        is_authorized = True
+    else:
+        # Check bearer auth or cookies for staff/admin
+        try:
+            auth_header = request.headers.get("Authorization") if request else None
+            cookie_token = request.cookies.get("admin_access_token") if request else None
+            jwt_raw = auth_header.replace("Bearer ", "").strip() if (auth_header and auth_header.startswith("Bearer ")) else cookie_token
+            if jwt_raw:
+                from app.utils.security import decode_access_token
+                payload = decode_access_token(jwt_raw)
+                if payload and payload.get("role") in ["SUPER_ADMIN", "ADMIN", "CHECKIN_STAFF", "STAFF"]:
+                    is_authorized = True
+        except Exception:
+            pass
+
+    if not is_authorized:
+        raise HTTPException(
+            status_code=403,
+            detail="Secure ticket access token required." if not token else "Invalid ticket access token."
+        )
 
     booking = ticket.booking
     event_setting = db.query(EventSetting).first() or EventSetting()
@@ -148,13 +177,17 @@ def download_single_ticket_pdf(ticket_id: str, db: Session = Depends(get_db)):
     )
 
 @router.post("/api/qr/verify", response_model=VerifyQRResponse)
-def verify_qr(payload: VerifyQRRequest, db: Session = Depends(get_db)):
-    """Checks QR token, Ticket ID, Booking ID, or Attendee info and returns status (VALID, USED, CANCELLED, INVALID)."""
+def verify_qr(
+    payload: VerifyQRRequest,
+    current_staff: User = Depends(require_staff),
+    db: Session = Depends(get_db)
+):
+    """Checks QR token or Ticket ID for authenticated gate staff and returns status (VALID, USED, CANCELLED, INVALID)."""
     raw_token = payload.qr_token.strip()
     event_setting = db.query(EventSetting).first() or EventSetting()
 
-    # Search by any valid identifier
-    ticket = find_ticket_by_any_identifier(raw_token, db)
+    # Search for ticket as staff
+    ticket = find_ticket_by_any_identifier(raw_token, db, is_staff=True)
 
     if not ticket:
         return VerifyQRResponse(
@@ -177,7 +210,7 @@ def verify_qr(payload: VerifyQRRequest, db: Session = Depends(get_db)):
             ticket_status=ticket.ticket_status,
             checkin_status=ticket.checkin_status,
             checked_in_at=ticket.checked_in_at,
-            qr_token_raw=ticket.qr_token_raw
+            qr_token_raw=None
         )
 
     if ticket.checkin_status:
@@ -192,7 +225,7 @@ def verify_qr(payload: VerifyQRRequest, db: Session = Depends(get_db)):
             ticket_status="USED",
             checkin_status=True,
             checked_in_at=ticket.checked_in_at,
-            qr_token_raw=ticket.qr_token_raw
+            qr_token_raw=None
         )
 
     return VerifyQRResponse(
@@ -205,7 +238,7 @@ def verify_qr(payload: VerifyQRRequest, db: Session = Depends(get_db)):
         event_name=ticket.event_name,
         ticket_status="VALID",
         checkin_status=False,
-        qr_token_raw=ticket.qr_token_raw
+        qr_token_raw=None
     )
 
 @router.post("/api/qr/checkin", response_model=CheckInResponse)

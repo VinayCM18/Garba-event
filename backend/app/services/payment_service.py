@@ -67,10 +67,23 @@ class PaymentService:
         return self.razorpay_provider
 
 
-    def calculate_pricing(self, db: Session, ticket_count: int, ticket_phase_code: Optional[str] = None) -> Dict[str, Any]:
-        """Calculates server-side pricing breakdown using the active payment provider and ticket phase."""
+    def calculate_pricing(
+        self,
+        db: Session,
+        ticket_count: int = 1,
+        ticket_phase_code: Optional[str] = None,
+        offer_id: Optional[str] = None,
+        quantity: Optional[int] = 1
+    ) -> Dict[str, Any]:
+        """Calculates server-side pricing breakdown using the active payment provider, ticket phase, or offer."""
         provider = self.get_provider(db)
-        return provider.calculate_pricing(db=db, ticket_count=ticket_count, ticket_phase_code=ticket_phase_code)
+        return provider.calculate_pricing(
+            db=db,
+            ticket_count=ticket_count,
+            ticket_phase_code=ticket_phase_code,
+            offer_id=offer_id,
+            quantity=quantity
+        )
 
     def initiate_payment_order(
         self,

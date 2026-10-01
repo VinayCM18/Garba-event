@@ -20,10 +20,21 @@ from app.utils.logger import app_logger
 class ManualUPIPaymentProvider(BasePaymentProvider):
     provider_code = "UPI_MANUAL"
 
-    def calculate_pricing(self, db: Session, ticket_count: int, ticket_phase_code: Optional[str] = None) -> Dict[str, Any]:
+    def calculate_pricing(
+        self,
+        db: Session,
+        ticket_count: int = 1,
+        ticket_phase_code: Optional[str] = None,
+        offer_id: Optional[str] = None,
+        quantity: Optional[int] = 1
+    ) -> Dict[str, Any]:
         """
         Calculates exact ticket pricing breakdown for manual UPI.
         """
+        if offer_id:
+            from app.models.offers import calculate_offer_pricing
+            return calculate_offer_pricing(offer_id=offer_id, quantity=quantity or 1, db=db)
+
         event_setting = db.query(EventSetting).first() if db else None
 
         from app.models.ticket_phase import TicketPhase
@@ -38,7 +49,7 @@ class ManualUPIPaymentProvider(BasePaymentProvider):
             if phase.status != "ACTIVE":
                 raise HTTPException(
                     status_code=400,
-                    detail=f"{phase.name} tickets are currently locked and not available for purchase."
+                    detail=f"Ticket phase '{phase.name}' is currently {phase.status.lower()} and cannot be purchased."
                 )
 
         if not phase and db:

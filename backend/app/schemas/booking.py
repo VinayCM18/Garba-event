@@ -28,6 +28,11 @@ class BookingDetailResponse(BaseModel):
     currency: str = "INR"
     is_group_offer: bool = False
     offer_name: Optional[str] = None
+    offer_id: Optional[str] = None
+    offer_title: Optional[str] = None
+    child_name: Optional[str] = None
+    child_age: Optional[int] = None
+    ticket_phase: Optional[str] = "EARLY_BIRD"
     payment_method: str = "UPI_MANUAL"
     utr_number: Optional[str] = None
     payment_screenshot: Optional[str] = None

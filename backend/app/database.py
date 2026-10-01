@@ -1,7 +1,8 @@
+import os
+import logging
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from app.config import settings
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,15 @@ if db_url.startswith("postgres://"):
 connect_args = {}
 if db_url.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
+    # Auto-create directory for persistent SQLite paths (e.g. /data/garba_night.db on Railway)
+    raw_path = db_url.replace("sqlite:////", "/", 1) if db_url.startswith("sqlite:////") else db_url.replace("sqlite:///", "", 1)
+    db_dir = os.path.dirname(raw_path)
+    if db_dir and not os.path.exists(db_dir):
+        try:
+            os.makedirs(db_dir, exist_ok=True)
+            logger.info(f"Created persistent database directory: {db_dir}")
+        except Exception as e:
+            logger.warning(f"Could not auto-create database directory {db_dir}: {e}")
     engine = create_engine(db_url, connect_args=connect_args)
 else:
     engine = create_engine(
@@ -97,6 +107,11 @@ def sync_database_schema():
                 ("verified_at", "DATETIME DEFAULT NULL"),
                 ("rejection_reason", "TEXT DEFAULT NULL"),
                 ("ticket_phase", "VARCHAR(50) DEFAULT 'EARLY_BIRD'"),
+                ("reservation_expires_at", "DATETIME DEFAULT NULL"),
+                ("offer_id", "VARCHAR(50) DEFAULT NULL"),
+                ("offer_title", "VARCHAR(100) DEFAULT NULL"),
+                ("child_name", "VARCHAR(255) DEFAULT NULL"),
+                ("child_age", "INTEGER DEFAULT NULL"),
             ]
             for col_name, col_type in booking_new_cols:
                 if col_name not in cols:
@@ -172,35 +187,5 @@ def sync_database_schema():
         Base.metadata.create_all(bind=engine, tables=[TicketPhase.__table__])
     except Exception as e:
         logger.warning(f"Could not ensure ticket_phases table: {e}")
-
-    # Ensure root admin accounts are active with exact credentials
-    try:
-        from app.utils.security import get_password_hash
-        from app.models.user import User
-        from sqlalchemy import func
-        with SessionLocal() as db_session:
-            root_admins = [
-                ("vinay18744@gmail.com", "Vinay@1438", "Vinay (Super Admin)"),
-                ("samaymadhyastha2005@gmail.com", "Samay@866033", "Samay (Super Admin)"),
-            ]
-            for r_email, r_pass, r_name in root_admins:
-                user = db_session.query(User).filter(func.lower(User.email) == r_email.lower()).first()
-                if not user:
-                    user = User(
-                        email=r_email.lower(),
-                        name=r_name,
-                        password_hash=get_password_hash(r_pass),
-                        role="SUPER_ADMIN",
-                        is_active=True
-                    )
-                    db_session.add(user)
-                else:
-                    user.password_hash = get_password_hash(r_pass)
-                    user.role = "SUPER_ADMIN"
-                    user.is_active = True
-            db_session.commit()
-            logger.info("Verified rooted admin accounts for vinay18744@gmail.com and samaymadhyastha2005@gmail.com.")
-    except Exception as e:
-        logger.warning(f"Could not verify root admin accounts in sync_database_schema: {e}")
 
 

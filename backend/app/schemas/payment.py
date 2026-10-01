@@ -25,14 +25,25 @@ class CalculateFeeResponse(BaseModel):
     is_group_offer: bool = False
     offer_name: Optional[str] = None
     free_tickets: int = 0
+    offer_id: Optional[str] = None
+    offer_title: Optional[str] = None
+    passes_count: Optional[int] = None
+    unit_count: Optional[int] = 1
+    unit_price: Optional[float] = None
+    is_kids: bool = False
+    id_proof_note: Optional[str] = None
 
 class CreateOrderRequest(BaseModel):
     customer_name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
     phone: str = Field(..., min_length=10, max_length=15)
-    ticket_count: int = Field(..., ge=1, le=10)
+    ticket_count: Optional[int] = Field(default=None, ge=1, le=50)
     ticket_phase: Optional[str] = "EARLY_BIRD"
     idempotency_key: Optional[str] = None
+    offer_id: Optional[str] = None
+    quantity: Optional[int] = Field(default=1, ge=1, le=10)
+    child_name: Optional[str] = None
+    child_age: Optional[int] = None
 
 class CreateOrderResponse(BaseModel):
     payment_method: str = "RAZORPAY" # "RAZORPAY" or "UPI_MANUAL"
@@ -59,6 +70,11 @@ class CreateOrderResponse(BaseModel):
     is_group_offer: bool = False
     offer_name: Optional[str] = None
     free_tickets: int = 0
+    offer_id: Optional[str] = None
+    offer_title: Optional[str] = None
+    passes_count: Optional[int] = None
+    child_name: Optional[str] = None
+    child_age: Optional[int] = None
     
     # Manual UPI Fields
     payment_id: Optional[str] = None

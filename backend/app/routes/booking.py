@@ -9,6 +9,7 @@ from app.schemas.ticket import TicketResponse
 from app.services.ticket_service import ticket_service
 from app.services.qr_service import qr_service
 from app.config import settings
+from app.models.offers import get_all_offers
 
 router = APIRouter(prefix="/api/bookings", tags=["Bookings"])
 
@@ -133,7 +134,9 @@ def get_public_config(db: Session = Depends(get_db)):
         "payment_method": getattr(event_setting, "payment_method", None) or settings.PAYMENT_METHOD or "RAZORPAY",
         "upi_id": getattr(event_setting, "upi_id", None) or settings.UPI_ID or "samaymadhyastha2005@oksbi",
         "upi_qr_image_url": "/api/payments/qr-image",
-        "upi_payment_instructions": getattr(event_setting, "upi_payment_instructions", None) or settings.UPI_PAYMENT_INSTRUCTIONS
+        "upi_payment_instructions": getattr(event_setting, "upi_payment_instructions", None) or settings.UPI_PAYMENT_INSTRUCTIONS,
+        # NAVRANG 2026 Ticket Offers
+        "offers": get_all_offers(db)
     }
 
 @router.get("/{booking_id}", response_model=BookingDetailResponse)
@@ -180,7 +183,12 @@ def get_booking(booking_id: str, db: Session = Depends(get_db)):
         amount=booking.amount,
         currency=booking.currency,
         is_group_offer=is_grp,
-        offer_name="BUY 10, PAY FOR 9" if is_grp else None,
+        offer_name=getattr(booking, "offer_title", None) or ("BUY 10, PAY FOR 9" if is_grp else None),
+        offer_id=getattr(booking, "offer_id", None),
+        offer_title=getattr(booking, "offer_title", None),
+        child_name=getattr(booking, "child_name", None),
+        child_age=getattr(booking, "child_age", None),
+        ticket_phase=getattr(booking, "ticket_phase", None),
         payment_method=booking.payment_method or "UPI_MANUAL",
         utr_number=booking.utr_number,
         payment_screenshot=booking.payment_screenshot,
@@ -193,6 +201,7 @@ def get_booking(booking_id: str, db: Session = Depends(get_db)):
         booking_status=booking.booking_status,
         email_status=booking.email_status,
         email_sent_at=booking.email_sent_at,
+        email_error=booking.email_error,
         created_at=booking.created_at,
         tickets=tickets_data
     )
@@ -220,7 +229,7 @@ def download_booking_pdf(booking_id: str, db: Session = Depends(get_db)):
 
 @router.post("/{booking_id}/resend-email")
 def resend_booking_email(booking_id: str, db: Session = Depends(get_db)):
-    """Resends confirmation email with digital tickets to attendee."""
+    """Resends confirmation email with digital tickets to attendee (rate-limited)."""
     booking = db.query(Booking).filter(Booking.booking_id == booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found.")
@@ -228,12 +237,34 @@ def resend_booking_email(booking_id: str, db: Session = Depends(get_db)):
     if booking.booking_status != "CONFIRMED" or booking.payment_status not in ["PAID", "CAPTURED"]:
         raise HTTPException(status_code=400, detail="Cannot send tickets for unconfirmed booking.")
 
+    # Rate limiting cooldown (60 seconds between resends)
+    if booking.email_sent_at:
+        elapsed = (datetime.utcnow() - booking.email_sent_at).total_seconds()
+        if elapsed < 60:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Email was sent recently. Please wait {int(60 - elapsed)} seconds before requesting another email."
+            )
+
     from app.services.email_service import EmailService
     dispatched = EmailService.send_confirmation_email(booking.booking_id, db)
+    db.refresh(booking)
+
+    if booking.email_status == "SENT":
+        message = f"Passes dispatched to {booking.email}"
+    elif booking.email_status == "NOT_CONFIGURED":
+        message = "Email delivery is currently unavailable"
+    elif booking.email_status == "PENDING":
+        message = "Email is being processed"
+    else:
+        message = booking.email_error or "Email could not be sent"
+
     return {
-        "success": dispatched,
+        "success": bool(dispatched and booking.email_status == "SENT"),
+        "email_status": booking.email_status,
         "email": booking.email,
-        "message": f"Tickets have been dispatched to {booking.email}" if dispatched else "Email queued or SMTP pending configuration."
+        "email_error": booking.email_error,
+        "message": message
     }
 
 @router.get("/status/lookup", response_model=BookingDetailResponse)
@@ -242,19 +273,24 @@ def lookup_booking_status(
     contact: str = None,
     db: Session = Depends(get_db)
 ):
-    """Customer lookup for booking status using Booking ID and optional Phone/Email verification."""
+    """Customer lookup for booking status using Booking ID and required Phone/Email verification."""
+    if not contact or not contact.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Verification required: Please provide your registered mobile number or email address."
+        )
+
     clean_id = (booking_id or "").strip().upper()
     query = db.query(Booking).filter(func.upper(Booking.booking_id) == clean_id)
-    if contact and contact.strip():
-        c = contact.strip().lower()
-        from sqlalchemy import or_
-        query = query.filter(
-            or_(
-                func.lower(Booking.email) == c,
-                Booking.phone == c,
-                Booking.phone.like(f"%{c[-10:]}")
-            )
+    c = contact.strip().lower()
+    from sqlalchemy import or_
+    query = query.filter(
+        or_(
+            func.lower(Booking.email) == c,
+            Booking.phone == c,
+            Booking.phone.like(f"%{c[-10:]}")
         )
+    )
 
     booking = query.first()
     if not booking:

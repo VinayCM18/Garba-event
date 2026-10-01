@@ -168,7 +168,7 @@ export const TicketPage: React.FC = () => {
             {ticket.qr_code_base64 && (
               <div className="p-4 bg-white rounded-2xl shadow-2xl border-2 border-slate-300">
                 <img
-                  src={ticket.qr_code_base64}
+                  src={ticket.qr_code_base64.startsWith('data:') ? ticket.qr_code_base64 : `data:image/png;base64,${ticket.qr_code_base64}`}
                   alt="Entry QR Code"
                   className="w-52 h-52 sm:w-60 sm:h-60 object-contain"
                 />
