@@ -112,6 +112,9 @@ def sync_database_schema():
                 ("offer_title", "VARCHAR(100) DEFAULT NULL"),
                 ("child_name", "VARCHAR(255) DEFAULT NULL"),
                 ("child_age", "INTEGER DEFAULT NULL"),
+                ("admin_email_sent", "BOOLEAN DEFAULT 0"),
+                ("admin_email_sent_at", "DATETIME DEFAULT NULL"),
+                ("admin_email_error", "TEXT DEFAULT NULL"),
             ]
             for col_name, col_type in booking_new_cols:
                 if col_name not in cols:

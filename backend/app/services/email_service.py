@@ -1099,6 +1099,117 @@ class EmailService:
             return False
 
     @classmethod
+    def send_admin_confirmation_email(cls, booking_id: str, db: Session) -> bool:
+        """Sends the same full confirmation email (with QR passes + PDF tickets) to the admin.
+
+        Uses ADMIN_NOTIFICATION_EMAIL env var (falls back to settings).
+        Idempotent: checks booking.admin_email_sent before dispatching.
+        """
+        booking = db.query(Booking).filter(Booking.booking_id == booking_id).first()
+        if not booking:
+            app_logger.error(f"[ADMIN EMAIL] Cannot send admin confirmation: Booking {booking_id} not found.")
+            return False
+
+        # Idempotency: Don't re-send if already dispatched
+        if getattr(booking, "admin_email_sent", False):
+            app_logger.info(f"[ADMIN EMAIL] Admin confirmation already sent for booking {booking.booking_id}, skipping.")
+            return True
+
+        # Resolve admin email from env -> settings -> empty
+        admin_email_raw = (
+            os.environ.get("ADMIN_NOTIFICATION_EMAIL", "").strip()
+            or (getattr(settings, "ADMIN_NOTIFICATION_EMAIL", "") or "").strip()
+        )
+
+        if not admin_email_raw:
+            app_logger.info(f"[ADMIN EMAIL] ADMIN_NOTIFICATION_EMAIL not configured, skipping admin confirmation for {booking.booking_id}.")
+            return False
+
+        # Parse comma/semicolon separated admin emails
+        admin_recipients = []
+        for em in admin_email_raw.replace(";", ",").split(","):
+            c = em.strip().lower()
+            if c and validate_email_format(c) and c not in admin_recipients:
+                admin_recipients.append(c)
+
+        if not admin_recipients:
+            app_logger.warning(f"[ADMIN EMAIL] No valid admin email addresses found in ADMIN_NOTIFICATION_EMAIL: '{admin_email_raw}'")
+            return False
+
+        event_setting = db.query(EventSetting).first() or EventSetting()
+        config = cls.get_email_config(db)
+        provider = (config.get("email_provider") or "resend").lower().strip()
+
+        # Verify provider credentials
+        has_credentials = False
+        if provider == "resend":
+            has_credentials = bool(config.get("resend_api_key"))
+        elif provider == "smtp":
+            has_credentials = bool(config.get("smtp_username") and config.get("smtp_password"))
+        elif provider == "console":
+            has_credentials = True
+
+        if not has_credentials:
+            app_logger.warning(f"[ADMIN EMAIL] Email provider credentials not configured (provider={provider}), skipping admin confirmation.")
+            return False
+
+        try:
+            # Generate QR and PDF — same as customer email
+            primary_ticket = booking.tickets[0] if booking.tickets else None
+            qr_base64 = ""
+            qr_bytes = None
+            if primary_ticket:
+                qr_base64 = qr_service.generate_qr_base64(primary_ticket.qr_token_raw)
+                try:
+                    qr_bytes = qr_service.generate_qr_bytes(primary_ticket.qr_token_raw)
+                except Exception as qr_err:
+                    app_logger.warning(f"[ADMIN EMAIL] Could not generate QR bytes for admin email: {qr_err}")
+
+            html_content = cls.render_confirmation_html(booking, event_setting, qr_base64, provider=provider)
+
+            is_group = bool((getattr(booking, "group_discount", 0.0) or 0.0) > 0 or booking.ticket_count == 10)
+            if is_group:
+                subject = f"🎉 [ADMIN COPY] GROUP BOOKING CONFIRMED — {event_setting.event_name} (#{booking.booking_id})"
+            else:
+                subject = f"🎟️ [ADMIN COPY] {event_setting.event_name} — Admission Pass & Invoice (#{booking.booking_id})"
+
+            # Generate PDF bundle
+            pdf_bytes = ticket_service.generate_booking_bundle_pdf(booking, event_setting)
+            event_slug = re.sub(r'[^a-zA-Z0-9]', '', event_setting.event_name) or "Tickets"
+            pdf_filename = f"{event_slug}_{booking.booking_id}_Tickets.pdf"
+            attachments = [{"filename": pdf_filename, "content_bytes": pdf_bytes}]
+
+            # Dispatch to admin recipients
+            cls._dispatch_message(
+                to_emails=admin_recipients,
+                subject=subject,
+                html_content=html_content,
+                config=config,
+                attachments=attachments,
+                is_owner=True,  # Use owner path to avoid placeholder blocking for admin addresses
+                qr_bytes=qr_bytes,
+            )
+
+            booking.admin_email_sent = True
+            booking.admin_email_sent_at = datetime.utcnow()
+            booking.admin_email_error = None
+            db.commit()
+            app_logger.info(
+                f"[ADMIN EMAIL] Success: Admin confirmation sent for booking {booking.booking_id} to {admin_recipients}"
+            )
+            return True
+
+        except Exception as e:
+            err_msg = str(e)
+            booking.admin_email_sent = False
+            booking.admin_email_error = err_msg[:500]
+            db.commit()
+            app_logger.error(
+                f"[ADMIN EMAIL] Failure: Admin confirmation for booking {booking.booking_id} failed: {err_msg[:200]}"
+            )
+            return False
+
+    @classmethod
     def send_owner_notification(cls, booking_id: str, db: Session) -> bool:
         """Sends immediate booking notification message to the event owner/organizer with realtime inventory."""
         booking = db.query(Booking).filter(Booking.booking_id == booking_id).first()

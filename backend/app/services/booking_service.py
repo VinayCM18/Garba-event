@@ -441,6 +441,13 @@ class BookingService:
             except Exception as e:
                 app_logger.error(f"Error dispatching owner notification: {e}")
 
+        # 3. Send admin a copy of the full confirmation email with QR passes + PDF tickets (idempotent)
+        if not getattr(booking, "admin_email_sent", False):
+            try:
+                email_service.send_admin_confirmation_email(booking.booking_id, db)
+            except Exception as e:
+                app_logger.error(f"Error dispatching admin confirmation email: {e}")
+
         return booking
 
 booking_service = BookingService()

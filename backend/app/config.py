@@ -77,6 +77,9 @@ class Settings(BaseSettings):
     OWNER_NOTIFICATION_ENABLED: bool = True
     OWNER_WEBHOOK_URL: Optional[str] = None
 
+    # Admin Confirmation Email (receives same full QR+PDF confirmation email as customer)
+    ADMIN_NOTIFICATION_EMAIL: str = ""
+
     # Default Event Configuration
     DEFAULT_EVENT_NAME: str = "NAVRANG 2026"
     DEFAULT_EVENT_DATE: str = "October 17, 2026"

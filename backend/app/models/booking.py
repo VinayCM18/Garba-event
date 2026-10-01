@@ -62,6 +62,11 @@ class Booking(Base):
     owner_notified_at = Column(DateTime, nullable=True)
     owner_notify_error = Column(Text, nullable=True)
 
+    # Admin Confirmation Email Tracking (full QR+PDF confirmation to admin)
+    admin_email_sent = Column(Boolean, default=False, nullable=False)
+    admin_email_sent_at = Column(DateTime, nullable=True)
+    admin_email_error = Column(Text, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow, index=True, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
