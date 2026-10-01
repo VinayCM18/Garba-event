@@ -551,6 +551,44 @@ class EmailService:
                       </tr>
             """
 
+        # Generate the official NAVRANG 2026 Dandiya festive ticket pass image
+        festive_pass_card_html = ""
+        try:
+            from app.services.ticket_service import ticket_service
+            primary_ticket = booking.tickets[0] if (booking and booking.tickets) else None
+            tkt_img_bytes = ticket_service.generate_ticket_image_bytes(booking, primary_ticket, event_setting)
+            tkt_img_b64 = base64.b64encode(tkt_img_bytes).decode("utf-8")
+            tkt_img_src = f"data:image/jpeg;base64,{tkt_img_b64}"
+
+            multi_note = ""
+            if booking.ticket_count > 1:
+                multi_note = f"""
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 12px;">
+                    <tr>
+                      <td style="padding: 10px 14px; background: rgba(212, 175, 55, 0.12); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 8px; font-size: 11px; font-weight: 700; color: #f3e4b2; text-align: center;">
+                        🎟️ Pass 1 of {booking.ticket_count} displayed above. Individual passes for all {booking.ticket_count} attendees with their unique cryptographic QR codes are included in the attached printable PDF passbook.
+                      </td>
+                    </tr>
+                  </table>
+                """
+
+            festive_pass_card_html = f"""
+              <!-- Official NAVRANG 2026 Festive Admission Pass -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td align="center" style="background: radial-gradient(circle at 50% 30%, #3d0910 0%, #150205 100%); border: 1.5px solid #d4af37; border-radius: 14px; padding: 14px; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.7);">
+                    <div style="font-size: 11px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #f3e4b2; margin-bottom: 12px; text-align: center;">
+                      ✦ OFFICIAL ADMISSION PASS ✦
+                    </div>
+                    <img src="{tkt_img_src}" alt="Official NAVRANG 2026 Admission Ticket" width="552" style="display: block; width: 100%; max-width: 552px; height: auto; border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.4); box-shadow: 0 8px 24px rgba(0,0,0,0.6);" />
+                    {multi_note}
+                  </td>
+                </tr>
+              </table>
+            """
+        except Exception as tkt_err:
+            app_logger.warning(f"Could not generate festive ticket pass for email: {tkt_err}")
+
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -599,6 +637,8 @@ class EmailService:
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
                 Your reservation for <strong style="color: #f3e4b2;">{event_setting.event_name}</strong> is officially confirmed. Your cryptographically secured digital pass and tax receipt details are provided below.
               </p>
+
+              {festive_pass_card_html}
 
               <!-- Digital Pass Card -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: linear-gradient(145deg, #131724 0%, #0e111c 100%); border: 1px solid #282f48; border-radius: 14px; overflow: hidden; margin-bottom: 24px;">
