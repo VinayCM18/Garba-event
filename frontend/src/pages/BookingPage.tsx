@@ -785,6 +785,22 @@ export const BookingPage: React.FC = () => {
                       </div>
                       <h3 className="text-xl font-black text-white mt-1 font-['Outfit']">{offer.title}</h3>
                       <p className="text-xs text-slate-300 mt-2 leading-relaxed">{offer.description}</p>
+
+                      {/* Pass Inclusions */}
+                      <div className="mt-3 pt-3 border-t border-white/[0.08] space-y-1.5 text-xs text-slate-300">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>Complimentary food voucher</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>Complimentary welcome drink / mocktail</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>Dandiya sticks provided</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="mt-6 pt-5 border-t border-white/[0.08]">
@@ -915,6 +931,22 @@ export const BookingPage: React.FC = () => {
                         <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
                         <span>Aadhaar card / valid ID proof required at entry.</span>
                       </div>
+
+                      {/* Pass Inclusions */}
+                      <div className="mt-3 pt-3 border-t border-white/[0.08] space-y-1.5 text-xs text-slate-300">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>Complimentary food voucher</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>Complimentary welcome drink / mocktail</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>Dandiya sticks provided</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="mt-6 pt-5 border-t border-white/[0.08]">
@@ -1042,6 +1074,22 @@ export const BookingPage: React.FC = () => {
                     </div>
                     <h3 className="text-xl font-black text-slate-300 mt-1 font-['Outfit']">{offer.title}</h3>
                     <p className="text-xs text-slate-500 mt-2 leading-relaxed">{offer.description}</p>
+
+                    {/* Pass Inclusions */}
+                    <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-1.5 text-xs text-slate-500">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                        <span>Complimentary food voucher</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                        <span>Complimentary welcome drink / mocktail</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                        <span>Dandiya sticks provided</span>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mt-6 pt-5 border-t border-white/[0.06]">

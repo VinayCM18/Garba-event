@@ -609,6 +609,18 @@ export const HomePage: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Complimentary food voucher</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Complimentary welcome drink / mocktail</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Dandiya sticks provided</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>LIVE Gujarati Dhol, DJ & Dandiya Raas</span>
                 </div>
                 <div className="flex items-center gap-2.5">
@@ -667,6 +679,18 @@ export const HomePage: React.FC = () => {
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
                   <span>Full admission to NAVRANG 2026 celebration</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Complimentary food voucher</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Complimentary welcome drink / mocktail</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Dandiya sticks provided</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
@@ -751,6 +775,18 @@ export const HomePage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>Receive <strong>10 unique QR tickets</strong> — all 10 completely valid</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Complimentary <strong>food voucher</strong> for each person</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Complimentary <strong>welcome drink / mocktail</strong> for each person</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>Dandiya sticks provided</strong> for all 10 attendees</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
