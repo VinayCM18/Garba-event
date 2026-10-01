@@ -14,7 +14,7 @@ class Booking(Base):
     ticket_count = Column(Integer, nullable=False)
     ticket_price = Column(Float, nullable=False)
     regular_amount = Column(Float, default=0.0, nullable=False)   # ticket_count × ticket_price before discount
-    group_discount = Column(Float, default=0.0, nullable=False)   # BUY 10 PAY FOR 9 discount amount
+    group_discount = Column(Float, default=0.0, nullable=False)   # Group offer discount amount
     ticket_subtotal = Column(Float, default=0.0, nullable=False)  # after group discount
     convenience_fee = Column(Float, default=0.0, nullable=False)  # Payment Processing Fee
     payment_fee = Column(Float, default=0.0, nullable=False)      # Payment Processing Fee

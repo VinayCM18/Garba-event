@@ -223,7 +223,7 @@ def list_bookings(
             amount=b.amount,
             currency=b.currency,
             is_group_offer=is_grp,
-            offer_name=getattr(b, "offer_title", None) or ("BUY 10, PAY FOR 9" if is_grp else None),
+            offer_name=getattr(b, "offer_title", None) or ("Group of 10" if is_grp else None),
             offer_id=getattr(b, "offer_id", None),
             offer_title=getattr(b, "offer_title", None),
             child_name=getattr(b, "child_name", None),
@@ -307,7 +307,7 @@ def get_booking_details(
         amount=booking.amount,
         currency=booking.currency,
         is_group_offer=is_grp,
-        offer_name=getattr(booking, "offer_title", None) or ("BUY 10, PAY FOR 9" if is_grp else None),
+        offer_name=getattr(booking, "offer_title", None) or ("Group of 10" if is_grp else None),
         offer_id=getattr(booking, "offer_id", None),
         offer_title=getattr(booking, "offer_title", None),
         child_name=getattr(booking, "child_name", None),
@@ -479,7 +479,7 @@ def export_bookings_csv(
     for b in bookings:
         reg = getattr(b, "regular_amount", 0.0) or round(b.ticket_count * b.ticket_price, 2)
         disc = getattr(b, "group_discount", 0.0) or 0.0
-        offer = "BUY 10, PAY FOR 9" if disc > 0 else "None"
+        offer = "Group of 10" if disc > 0 else "None"
         subtotal = b.ticket_subtotal or (reg - disc)
         fee = b.payment_fee or 0.0
         gst = b.gst_amount or 0.0

@@ -596,12 +596,12 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Card 3: GROUP OFFER (BUY 10, PAY FOR 9) */}
+          {/* Card 3: GROUP OFFER (GROUP OF 10) */}
           <div className="p-7 sm:p-8 rounded-3xl glass-panel-gold border-2 border-[#d4af37]/70 flex flex-col justify-between relative overflow-hidden shadow-2xl shadow-[#d4af37]/20 group">
             {/* Badge in top right */}
             <div className="absolute top-4 right-4 flex items-center gap-1.5">
               <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm">
-                SAVE ₹{ticketPrice}
+                SAVE ₹991
               </span>
             </div>
 
@@ -611,12 +611,12 @@ export const HomePage: React.FC = () => {
                   POPULAR FOR SQUADS
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-black text-white mt-1 uppercase font-['Cinzel'] tracking-wide">
-                  BUY 10, PAY FOR 9
+                  GROUP OF 10
                 </h3>
                 <div className="mt-2 inline-flex items-center gap-2 text-xs font-bold text-[#f3e4b2] uppercase tracking-[0.2em]">
-                  <span className="px-3 py-0.5 rounded-md bg-white/[0.07] border border-white/10">10 TICKETS</span>
+                  <span className="px-3 py-0.5 rounded-md bg-white/[0.07] border border-white/10">10 PASSES</span>
                   <span>•</span>
-                  <span className="px-3 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-extrabold">1 TICKET FREE</span>
+                  <span className="px-3 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-extrabold">SAVE ₹991</span>
                 </div>
               </div>
 
@@ -625,9 +625,9 @@ export const HomePage: React.FC = () => {
                 <div>
                   <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">REGULAR</div>
                   <div className="text-base sm:text-lg font-bold font-mono text-slate-400 line-through decoration-rose-500 decoration-2 mt-1">
-                    ₹{(ticketPrice * 10).toLocaleString('en-IN')}
+                    ₹5,990
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">10 × ₹{ticketPrice}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">10 × ₹599</div>
                 </div>
 
                 <div className="text-xl font-black text-[#d4af37]">↓</div>
@@ -635,9 +635,9 @@ export const HomePage: React.FC = () => {
                 <div>
                   <div className="text-[10px] uppercase font-bold text-[#d4af37] tracking-wider">GROUP PASS</div>
                   <div className="text-2xl sm:text-3xl font-black font-mono bg-gradient-to-r from-white via-[#f3e4b2] to-[#d4af37] bg-clip-text text-transparent mt-0.5">
-                    ₹{(ticketPrice * 9).toLocaleString('en-IN')}
+                    ₹4,999
                   </div>
-                  <div className="text-[10px] font-bold text-emerald-400 mt-0.5">Pay for 9 Only</div>
+                  <div className="text-[10px] font-bold text-emerald-400 mt-0.5">Save ₹991</div>
                 </div>
               </div>
 
@@ -649,7 +649,7 @@ export const HomePage: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Save <strong>₹{ticketPrice} instantly</strong> on Early Bird tier</span>
+                  <span>Save <strong>₹991 instantly</strong> versus individual passes</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -660,7 +660,7 @@ export const HomePage: React.FC = () => {
 
             <div className="mt-7 pt-3 border-t border-white/[0.08]">
               <Link
-                to="/book?count=10&phase=EARLY_BIRD"
+                to="/book?count=10&offer=EARLY_BIRD_GROUP_10"
                 onClick={() => playDandiyaClick()}
                 className="festive-button w-full py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-[#d4af37]/30 touch-target cursor-pointer"
               >
@@ -679,16 +679,16 @@ export const HomePage: React.FC = () => {
             <span>COMING WITH YOUR FRIENDS?</span>
           </div>
           <h3 className="text-xl sm:text-2xl font-black text-white uppercase font-['Outfit']">
-            BUY 10, PAY FOR 9
+            GROUP OF 10 — SAVE ₹991
           </h3>
           <p className="mt-1 text-xs text-slate-300 max-w-md mx-auto">
-            Gather your squad, share the exclusive group offer, and save ₹{ticketPrice} together for NAVRANG 2026!
+            Gather your squad, get the exclusive Group of 10 pass for ₹4,999, and save ₹991 together for NAVRANG 2026!
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <a
               href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                `🔥 NAVRANG 2026 is here! In collaboration with The Happy Circle.\n\nBuy 10 tickets and pay for only 9!\n\n₹${ticketPrice} OFF\n\nLet's go together! 🎉\n` + (typeof window !== 'undefined' ? `${window.location.origin}/book?count=10` : '')
+                `🔥 NAVRANG 2026 is here! In collaboration with The Happy Circle.\n\nGet the Group of 10 Pass for ₹4,999 and save ₹991!\n\nLet's go together! 🎉\n` + (typeof window !== 'undefined' ? `${window.location.origin}/book?count=10&offer=EARLY_BIRD_GROUP_10` : '')
               )}`}
               target="_blank"
               rel="noreferrer"

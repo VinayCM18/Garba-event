@@ -87,11 +87,13 @@ class EmailService:
             or event_setting.smtp_port
             or 587
         )
+        is_prod = (settings.ENVIRONMENT == "production")
+
         smtp_from_email = (
             os.environ.get("FROM_EMAIL", "").strip()
             or (settings.FROM_EMAIL or "").strip()
             or (event_setting.smtp_from_email or "").strip()
-            or "onboarding@resend.dev"
+            or ("" if is_prod else "onboarding@resend.dev")
         )
         smtp_from_name = (
             os.environ.get("FROM_NAME", "").strip()
@@ -101,10 +103,12 @@ class EmailService:
         )
         smtp_use_tls = getattr(event_setting, "smtp_use_tls", True) if hasattr(event_setting, "smtp_use_tls") else settings.SMTP_USE_TLS
 
-        # Owner notification configuration (no hardcoded fallback)
+        # Owner notification configuration (environment variable takes precedence, NO hardcoded fallback)
         owner_email = (
             os.environ.get("OWNER_NOTIFICATION_EMAIL", "").strip()
             or (settings.OWNER_NOTIFICATION_EMAIL or "").strip()
+            or os.environ.get("ADMIN_NOTIFICATION_EMAIL", "").strip()
+            or getattr(settings, "ADMIN_NOTIFICATION_EMAIL", "").strip()
             or (getattr(event_setting, "owner_notification_email", None) or "").strip()
         )
         owner_phone = (
@@ -113,11 +117,14 @@ class EmailService:
         )
         owner_enabled = getattr(event_setting, "owner_notification_enabled", True)
         owner_webhook = getattr(event_setting, "owner_webhook_url", None) or settings.OWNER_WEBHOOK_URL
-        # Admin ticket confirmation notification email (server-side only, takes precedence from env)
+
+        # Admin ticket confirmation notification email (server-side only, takes precedence from env, NO hardcoded fallback)
         admin_email = (
             os.environ.get("ADMIN_NOTIFICATION_EMAIL", "").strip()
             or getattr(settings, "ADMIN_NOTIFICATION_EMAIL", "").strip()
-            or "Samaymadhyastha2005@gmail.com"
+            or os.environ.get("OWNER_NOTIFICATION_EMAIL", "").strip()
+            or getattr(settings, "OWNER_NOTIFICATION_EMAIL", "").strip()
+            or (getattr(event_setting, "owner_notification_email", None) or "").strip()
         )
 
         return {
@@ -159,7 +166,17 @@ class EmailService:
             )
 
         from_name = config.get("smtp_from_name") or "NAVRANG 2026"
-        from_email = config.get("smtp_from_email") or "onboarding@resend.dev"
+        from_email = (config.get("smtp_from_email") or "").strip()
+
+        if settings.ENVIRONMENT == "production":
+            if not from_email or "onboarding@resend.dev" in from_email.lower():
+                raise ValueError(
+                    "Production requires a configured and verified FROM_EMAIL (e.g. tickets@heritageproduction.online). "
+                    "Cannot silently use onboarding@resend.dev in production. Please set FROM_EMAIL in Railway environment variables."
+                )
+        elif not from_email:
+            from_email = "onboarding@resend.dev"
+
         from_header = f"{from_name} <{from_email}>"
 
         payload: Dict[str, Any] = {
@@ -207,8 +224,11 @@ class EmailService:
             except Exception:
                 err_msg = err_body or str(http_err)
 
-            # Auto-fallback: If custom domain is not yet verified in Resend,
-            # Resend requires sending from onboarding@resend.dev. Retry with onboarding@resend.dev!
+            # In production, do not silently fallback to onboarding@resend.dev! Fail clearly!
+            if settings.ENVIRONMENT == "production":
+                raise RuntimeError(f"Resend API Error (HTTP {http_err.code}): {err_msg}") from http_err
+
+            # Auto-fallback: For non-production development/test only
             if ("domain" in err_msg.lower() or "not verified" in err_msg.lower()) and "onboarding@resend.dev" not in from_email:
                 app_logger.warning(
                     f"Resend domain verification required for {from_email}. Falling back to onboarding@resend.dev for test dispatch."
@@ -310,17 +330,19 @@ class EmailService:
         # Validate recipient list and enforce placeholder protection
         allow_placeholders = getattr(settings, "ALLOW_PLACEHOLDER_EMAILS", False)
         clean_recipients: List[str] = []
-        for em in to_emails:
-            clean_em = (em or "").strip().lower()
-            if not clean_em:
-                continue
-            if not validate_email_format(clean_em):
-                app_logger.warning(f"{log_prefix} Rejected malformed recipient email: '{clean_em}'")
-                continue
-            if is_placeholder_email(clean_em) and not allow_placeholders:
-                app_logger.warning(f"{log_prefix} Blocked placeholder recipient email to prevent bounce: '{clean_em}'")
-                continue
-            clean_recipients.append(clean_em)
+        for raw_item in to_emails:
+            for em in (raw_item or "").replace(";", ",").split(","):
+                clean_em = em.strip().lower()
+                if not clean_em:
+                    continue
+                if not validate_email_format(clean_em):
+                    app_logger.warning(f"{log_prefix} Rejected malformed recipient email: '{clean_em}'")
+                    continue
+                if is_placeholder_email(clean_em) and not allow_placeholders:
+                    app_logger.warning(f"{log_prefix} Blocked placeholder recipient email to prevent bounce: '{clean_em}'")
+                    continue
+                if clean_em not in clean_recipients:
+                    clean_recipients.append(clean_em)
 
         if not clean_recipients:
             err = f"No deliverable recipient email address found. Refusing to send to placeholder/invalid address (given: {to_emails})."
@@ -452,7 +474,7 @@ class EmailService:
                   🎉 GROUP BOOKING CONFIRMED
                 </div>
                 <div style="font-size: 13px; font-weight: 800; color: #34d399; margin-top: 4px; letter-spacing: 0.5px;">
-                  BUY 10, PAY FOR 9 • {offer_title_display.upper()}
+                  BEST VALUE • SAVE ₹991 • {offer_title_display.upper()}
                 </div>
                 <div style="font-size: 12px; color: #cbd5e1; margin-top: 6px;">
                   10 Official Admission Passes • All passes include individual high-speed QR check-in
@@ -940,6 +962,8 @@ class EmailService:
                   </td>
                 </tr>
                 {f'<tr><td style="padding: 11px 18px; font-size: 13px; color: #94a3b8; border-bottom: 1px solid #1a1e30;">UTR / Ref No:</td><td style="padding: 11px 18px; font-size: 13px; font-family: monospace; font-weight: 700; color: #fbbf24; border-bottom: 1px solid #1a1e30; text-align: right;">{booking.utr_number}</td></tr>' if booking.utr_number else ''}
+                {f'<tr><td style="padding: 11px 18px; font-size: 13px; color: #94a3b8; border-bottom: 1px solid #1a1e30;">Razorpay Payment ID:</td><td style="padding: 11px 18px; font-size: 13px; font-family: monospace; font-weight: 700; color: #60a5fa; border-bottom: 1px solid #1a1e30; text-align: right;">{booking.razorpay_payment_id}</td></tr>' if getattr(booking, "razorpay_payment_id", None) else ''}
+                {f'<tr><td style="padding: 11px 18px; font-size: 13px; color: #94a3b8; border-bottom: 1px solid #1a1e30;">Razorpay Order ID:</td><td style="padding: 11px 18px; font-size: 13px; font-family: monospace; font-weight: 700; color: #94a3b8; border-bottom: 1px solid #1a1e30; text-align: right;">{booking.razorpay_order_id}</td></tr>' if getattr(booking, "razorpay_order_id", None) else ''}
                 <tr>
                   <td style="padding: 11px 18px; font-size: 13px; color: #94a3b8; border-bottom: 1px solid #1a1e30;">Booking Timestamp:</td>
                   <td style="padding: 11px 18px; font-size: 13px; font-weight: 700; color: #f3e4b2; border-bottom: 1px solid #1a1e30; text-align: right;">
@@ -1019,8 +1043,15 @@ class EmailService:
         event_setting = db.query(EventSetting).first() or EventSetting()
         config = cls.get_email_config(db)
         provider = (config.get("email_provider") or "resend").lower().strip()
-        admin_email = (config.get("admin_email") or "Samaymadhyastha2005@gmail.com").strip().lower()
-        admin_valid = bool(send_to_admin and admin_email and validate_email_format(admin_email))
+        raw_admin = (config.get("admin_email") or "").strip().lower()
+        admin_recipients: List[str] = []
+        if send_to_admin and raw_admin:
+            for em in raw_admin.replace(";", ",").split(","):
+                c = em.strip()
+                if c and validate_email_format(c) and c not in admin_recipients:
+                    admin_recipients.append(c)
+        admin_valid = bool(admin_recipients)
+        admin_email = admin_recipients[0] if admin_recipients else ""
 
         # Step 3: Verify provider credentials before attempting dispatch
         has_credentials = False
@@ -1072,7 +1103,7 @@ class EmailService:
             html_content = cls.render_confirmation_html(booking, event_setting, qr_base64, provider=provider)
             is_group = bool((getattr(booking, "group_discount", 0.0) or 0.0) > 0 or booking.ticket_count == 10)
             if is_group:
-                subject = f"🎉 GROUP BOOKING CONFIRMED (BUY 10, PAY FOR 9) — {event_setting.event_name} (#{booking.booking_id})"
+                subject = f"🎉 GROUP BOOKING CONFIRMED (GROUP OF 10 — SAVE ₹991) — {event_setting.event_name} (#{booking.booking_id})"
             else:
                 subject = f"🎟️ {event_setting.event_name} — Official Admission Pass & Invoice (#{booking.booking_id})"
 
@@ -1169,7 +1200,7 @@ class EmailService:
                     return False
 
             # Case 4: Dual recipient automatic confirmation [customer_email, admin_email]
-            recipient_list = [customer_email, admin_email]
+            recipient_list = [customer_email] + [a for a in admin_recipients if a != customer_email]
             try:
                 cls._dispatch_message(
                     to_emails=recipient_list,

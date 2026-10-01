@@ -71,12 +71,11 @@ class Settings(BaseSettings):
     FROM_NAME: str = "NAVRANG 2026"
     ALLOW_PLACEHOLDER_EMAILS: bool = False  # Blocks accidental delivery to example.com/test.com dummy addresses
 
-    # Owner / Admin Instant Notification Settings
     OWNER_NOTIFICATION_EMAIL: str = ""
     OWNER_NOTIFICATION_PHONE: str = ""
     OWNER_NOTIFICATION_ENABLED: bool = True
     OWNER_WEBHOOK_URL: Optional[str] = None
-    ADMIN_NOTIFICATION_EMAIL: str = "Samaymadhyastha2005@gmail.com"
+    ADMIN_NOTIFICATION_EMAIL: str = ""
 
     # Default Event Configuration
     DEFAULT_EVENT_NAME: str = "NAVRANG 2026"

@@ -50,7 +50,10 @@ def init_db():
     db.add(setting)
     db.commit()
     db.close()
-    yield
+    with patch.dict(os.environ, {"OWNER_NOTIFICATION_EMAIL": "", "ADMIN_NOTIFICATION_EMAIL": ""}, clear=False), \
+         patch.object(settings, "OWNER_NOTIFICATION_EMAIL", ""), \
+         patch.object(settings, "ADMIN_NOTIFICATION_EMAIL", ""):
+        yield
     Base.metadata.drop_all(bind=engine)
 
 
@@ -136,7 +139,7 @@ def test_customer_confirmation_email_resend_success():
 
         payload = json.loads(req.data.decode("utf-8"))
         assert "testbooker@garbanight.in" in payload["to"]
-        assert "samaymadhyastha2005@gmail.com" in payload["to"]
+        assert ("testadmin@garbanight.in" in payload["to"] or "samaymadhyastha2005@gmail.com" in payload["to"])
         assert len(payload["to"]) == 2
         assert "NAVRANG 2026" in payload["from"]
         assert "GN-2026-CONF01" in payload["subject"]
@@ -494,7 +497,7 @@ def test_real_customer_email_from_booking_record():
         req = mock_urlopen.call_args[0][0]
         payload = json.loads(req.data.decode("utf-8"))
         assert real_email in payload["to"]
-        assert "samaymadhyastha2005@gmail.com" in payload["to"]
+        assert ("testadmin@garbanight.in" in payload["to"] or "samaymadhyastha2005@gmail.com" in payload["to"])
         assert "booker@example.com" not in str(payload["to"])
 
     db.refresh(booking)
@@ -585,7 +588,7 @@ def test_dual_email_dispatch_booker_and_admin():
         # Both booker and admin must be in recipient list
         assert len(payload["to"]) == 2
         assert "testbooker@garbanight.in" in payload["to"]
-        assert "samaymadhyastha2005@gmail.com" in payload["to"]
+        assert ("testadmin@garbanight.in" in payload["to"] or "samaymadhyastha2005@gmail.com" in payload["to"])
 
         # Content must contain Booking ID, passes, pricing, and PDF attachment
         assert "GN-2026-DUAL01" in payload["subject"]
@@ -635,10 +638,12 @@ def test_admin_email_env_var_override():
 # 16. Deduplication When Booker Email Equals Admin Email
 # ---------------------------------------------------------------------------
 def test_deduplication_when_booker_is_admin():
-    """Verifies that if the booker email is Samaymadhyastha2005@gmail.com, only one email is dispatched."""
+    """Verifies that if the booker email is the admin email, only one email is dispatched."""
     db = TestingSession()
+    setting = db.query(EventSetting).first()
+    admin_addr = (setting.owner_notification_email or "testadmin@garbanight.in").lower()
     booking = create_sample_booking(db, "GN-2026-ADMINBOOK")
-    booking.email = "Samaymadhyastha2005@gmail.com"
+    booking.email = admin_addr
     db.commit()
     db.refresh(booking)
 
@@ -655,7 +660,7 @@ def test_deduplication_when_booker_is_admin():
         payload = json.loads(req.data.decode("utf-8"))
 
         # Exactly 1 recipient to avoid duplicate delivery to the admin
-        assert payload["to"] == ["samaymadhyastha2005@gmail.com"]
+        assert payload["to"] == [admin_addr]
 
     db.refresh(booking)
     assert booking.email_status == "SENT"
@@ -706,7 +711,7 @@ def test_recipient_level_status_tracking():
             raise RuntimeError("Combined batch dispatch simulated failure")
         if "testbooker@garbanight.in" in to_emails:
             return {"success": True, "to": to_emails}
-        if "samaymadhyastha2005@gmail.com" in to_emails:
+        if "testadmin@garbanight.in" in to_emails or "samaymadhyastha2005@gmail.com" in to_emails:
             raise RuntimeError("Admin mailbox rejected message")
         return {"success": True}
 

@@ -46,39 +46,53 @@ def test_public_config_offers_structure():
     assert "EARLY_BIRD_STAG" in offers
     assert offers["EARLY_BIRD_STAG"]["price"] == 599.0
     assert offers["EARLY_BIRD_STAG"]["per_unit_passes"] == 1
+    assert offers["EARLY_BIRD_STAG"]["type"] == "STAG"
+    assert offers["EARLY_BIRD_STAG"]["phase_status"] == "ACTIVE"
     assert offers["EARLY_BIRD_STAG"]["is_purchasable"] is True
 
     # Early Bird Group of 10
     assert "EARLY_BIRD_GROUP_10" in offers
     assert offers["EARLY_BIRD_GROUP_10"]["price"] == 4999.0
     assert offers["EARLY_BIRD_GROUP_10"]["per_unit_passes"] == 10
+    assert offers["EARLY_BIRD_GROUP_10"]["type"] == "GROUP"
+    assert offers["EARLY_BIRD_GROUP_10"]["phase_status"] == "ACTIVE"
     assert offers["EARLY_BIRD_GROUP_10"]["is_purchasable"] is True
 
     # Early Bird Couple
     assert "EARLY_BIRD_COUPLE" in offers
     assert offers["EARLY_BIRD_COUPLE"]["price"] == 999.0
     assert offers["EARLY_BIRD_COUPLE"]["per_unit_passes"] == 2
+    assert offers["EARLY_BIRD_COUPLE"]["type"] == "COUPLE"
+    assert offers["EARLY_BIRD_COUPLE"]["phase_status"] == "ACTIVE"
     assert offers["EARLY_BIRD_COUPLE"]["is_purchasable"] is True
 
     # Phase 1 Stag (Locked)
     assert "PHASE_1_STAG" in offers
     assert offers["PHASE_1_STAG"]["price"] == 799.0
+    assert offers["PHASE_1_STAG"]["type"] == "STAG"
+    assert offers["PHASE_1_STAG"]["phase_status"] in ("LOCKED", "COMING_SOON")
     assert offers["PHASE_1_STAG"]["is_purchasable"] is False
 
     # Phase 1 Group of 10 (Locked)
     assert "PHASE_1_GROUP_10" in offers
     assert offers["PHASE_1_GROUP_10"]["price"] == 6799.0
+    assert offers["PHASE_1_GROUP_10"]["type"] == "GROUP"
+    assert offers["PHASE_1_GROUP_10"]["phase_status"] in ("LOCKED", "COMING_SOON")
     assert offers["PHASE_1_GROUP_10"]["is_purchasable"] is False
 
     # Phase 1 Couple (Locked)
     assert "PHASE_1_COUPLE" in offers
     assert offers["PHASE_1_COUPLE"]["price"] == 1399.0
+    assert offers["PHASE_1_COUPLE"]["type"] == "COUPLE"
+    assert offers["PHASE_1_COUPLE"]["phase_status"] in ("LOCKED", "COMING_SOON")
     assert offers["PHASE_1_COUPLE"]["is_purchasable"] is False
 
     # Kids 5-12
     assert "KIDS_5_12" in offers
     assert offers["KIDS_5_12"]["price"] == 300.0
     assert offers["KIDS_5_12"]["per_unit_passes"] == 1
+    assert offers["KIDS_5_12"]["type"] == "KIDS"
+    assert offers["KIDS_5_12"]["phase_status"] == "ACTIVE"
     assert offers["KIDS_5_12"]["is_purchasable"] is True
     assert offers["KIDS_5_12"]["requires_id_proof"] is True
 

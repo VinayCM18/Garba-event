@@ -222,7 +222,39 @@ export const BookingPage: React.FC = () => {
       .then((cfg) => {
         setConfig(cfg);
         if (cfg.offers && cfg.offers.length > 0) {
-          setOffersList(cfg.offers as OfferItem[]);
+          const validatedOffers: OfferItem[] = cfg.offers.map((rawOffer: any) => {
+            const fallback = DEFAULT_OFFERS.find((d) => d.id === rawOffer.id) || DEFAULT_OFFERS[0];
+            const phaseStatus = ['ACTIVE', 'LOCKED', 'COMING_SOON'].includes(rawOffer.phase_status)
+              ? rawOffer.phase_status
+              : fallback.phase_status;
+            const offerType = ['STAG', 'GROUP', 'COUPLE', 'KIDS'].includes(rawOffer.type)
+              ? rawOffer.type
+              : fallback.type;
+            const perUnitPasses = typeof rawOffer.per_unit_passes === 'number'
+              ? rawOffer.per_unit_passes
+              : (typeof rawOffer.passes_per_unit === 'number' ? rawOffer.passes_per_unit : fallback.per_unit_passes);
+            const isPurchasable = typeof rawOffer.is_purchasable === 'boolean'
+              ? rawOffer.is_purchasable
+              : (phaseStatus === 'ACTIVE');
+
+            return {
+              id: rawOffer.id || fallback.id,
+              phase_code: rawOffer.phase_code || fallback.phase_code,
+              phase_name: rawOffer.phase_name || fallback.phase_name,
+              phase_status: phaseStatus as 'ACTIVE' | 'LOCKED' | 'COMING_SOON',
+              type: offerType as 'STAG' | 'GROUP' | 'COUPLE' | 'KIDS',
+              title: rawOffer.title || fallback.title,
+              price: typeof rawOffer.price === 'number' ? rawOffer.price : (rawOffer.price_per_unit || fallback.price),
+              per_unit_passes: perUnitPasses,
+              description: rawOffer.description || fallback.description,
+              badge: rawOffer.badge || fallback.badge,
+              is_purchasable: isPurchasable,
+              requires_id_proof: typeof rawOffer.requires_id_proof === 'boolean'
+                ? rawOffer.requires_id_proof
+                : (offerType === 'KIDS')
+            };
+          });
+          setOffersList(validatedOffers);
         }
       })
       .catch((err) => {

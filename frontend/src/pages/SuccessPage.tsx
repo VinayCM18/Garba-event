@@ -689,20 +689,20 @@ export const SuccessPage: React.FC = () => {
                 🎉 GROUP OFFER UNLOCKED!
               </div>
               <h2 className="text-2xl sm:text-4xl font-black text-white uppercase font-['Outfit']">
-                BUY 10, PAY FOR 9
+                GROUP OF 10 — BEST VALUE
               </h2>
               <p className="mt-1 text-xs sm:text-sm text-slate-300">
-                Congratulations! You qualified for the group promotion.
+                Congratulations! You saved ₹991 with the exclusive Group of 10 offer.
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-6 text-center">
                 <div className="p-3 rounded-2xl bg-black/40 border border-white/10">
                   <div className="text-[10px] text-slate-400 uppercase font-bold">You Received</div>
-                  <div className="text-lg font-black text-white mt-1">10 Tickets</div>
+                  <div className="text-lg font-black text-white mt-1">10 Passes</div>
                 </div>
                 <div className="p-3 rounded-2xl bg-black/40 border border-white/10">
-                  <div className="text-[10px] text-slate-400 uppercase font-bold">You Paid For</div>
-                  <div className="text-lg font-black text-[#f3e4b2] mt-1">9 Tickets</div>
+                  <div className="text-[10px] text-slate-400 uppercase font-bold">You Paid</div>
+                  <div className="text-lg font-black text-[#f3e4b2] mt-1">₹{ticketSubtotal.toLocaleString('en-IN')}</div>
                 </div>
                 <div className="p-3 rounded-2xl bg-black/40 border border-white/10">
                   <div className="text-[10px] text-slate-400 uppercase font-bold">You Saved</div>
@@ -979,10 +979,10 @@ export const SuccessPage: React.FC = () => {
               <span>COMING WITH YOUR FRIENDS?</span>
             </div>
             <h3 className="text-xl sm:text-2xl font-black text-white uppercase font-['Outfit']">
-              BUY 10, PAY FOR 9
+              GROUP OF 10 — SAVE ₹991
             </h3>
             <p className="mt-1 text-xs text-slate-300 max-w-md mx-auto">
-              Share the NAVRANG 2026 group promotion with your friends and family so they also get a free ticket!
+              Share the NAVRANG 2026 group promotion with your friends and family so they also save ₹991 on group passes!
             </p>
             <div className="mt-5 flex justify-center">
               <button

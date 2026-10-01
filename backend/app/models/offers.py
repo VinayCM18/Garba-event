@@ -11,6 +11,8 @@ OFFER_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "id": "EARLY_BIRD_STAG",
         "phase_code": "EARLY_BIRD",
         "phase_name": "EARLY BIRD",
+        "type": "STAG",
+        "default_phase_status": "ACTIVE",
         "title": "Stag Entry",
         "full_title": "Early Bird — Stag Entry",
         "badge": "EARLY BIRD",
@@ -19,26 +21,32 @@ OFFER_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "price_per_unit": 599.0,
         "unit_name": "Pass",
         "is_kids": False,
+        "requires_id_proof": False,
         "display_order": 1,
     },
     "EARLY_BIRD_GROUP_10": {
         "id": "EARLY_BIRD_GROUP_10",
         "phase_code": "EARLY_BIRD",
         "phase_name": "EARLY BIRD",
+        "type": "GROUP",
+        "default_phase_status": "ACTIVE",
         "title": "Group of 10",
         "full_title": "Early Bird — Group of 10",
-        "badge": "BEST VALUE",
-        "description": "Entry for 10 people.",
+        "badge": "BEST VALUE • SAVE ₹991",
+        "description": "Entry for 10 people. Save ₹991 versus 10 individual passes.",
         "passes_per_unit": 10,
         "price_per_unit": 4999.0,
         "unit_name": "Group Pass (10 People)",
         "is_kids": False,
+        "requires_id_proof": False,
         "display_order": 2,
     },
     "EARLY_BIRD_COUPLE": {
         "id": "EARLY_BIRD_COUPLE",
         "phase_code": "EARLY_BIRD",
         "phase_name": "EARLY BIRD",
+        "type": "COUPLE",
+        "default_phase_status": "ACTIVE",
         "title": "Couple Entry",
         "full_title": "Early Bird — Couple Entry",
         "badge": "POPULAR",
@@ -47,54 +55,66 @@ OFFER_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "price_per_unit": 999.0,
         "unit_name": "Couple Pass",
         "is_kids": False,
+        "requires_id_proof": False,
         "display_order": 3,
     },
     "PHASE_1_STAG": {
         "id": "PHASE_1_STAG",
         "phase_code": "PHASE_1",
         "phase_name": "PHASE 1",
+        "type": "STAG",
+        "default_phase_status": "LOCKED",
         "title": "Stag Entry",
         "full_title": "Phase 1 — Stag Entry",
-        "badge": "PHASE 1",
+        "badge": "COMING SOON",
         "description": "Single person entry.",
         "passes_per_unit": 1,
         "price_per_unit": 799.0,
         "unit_name": "Pass",
         "is_kids": False,
+        "requires_id_proof": False,
         "display_order": 4,
     },
     "PHASE_1_GROUP_10": {
         "id": "PHASE_1_GROUP_10",
         "phase_code": "PHASE_1",
         "phase_name": "PHASE 1",
+        "type": "GROUP",
+        "default_phase_status": "LOCKED",
         "title": "Group of 10",
         "full_title": "Phase 1 — Group of 10",
-        "badge": "GROUP OFFER",
+        "badge": "COMING SOON",
         "description": "Entry for 10 people.",
         "passes_per_unit": 10,
         "price_per_unit": 6799.0,
         "unit_name": "Group Pass (10 People)",
         "is_kids": False,
+        "requires_id_proof": False,
         "display_order": 5,
     },
     "PHASE_1_COUPLE": {
         "id": "PHASE_1_COUPLE",
         "phase_code": "PHASE_1",
         "phase_name": "PHASE 1",
+        "type": "COUPLE",
+        "default_phase_status": "LOCKED",
         "title": "Couple Entry",
         "full_title": "Phase 1 — Couple Entry",
-        "badge": "PHASE 1",
+        "badge": "COMING SOON",
         "description": "Entry for 2 people.",
         "passes_per_unit": 2,
         "price_per_unit": 1399.0,
         "unit_name": "Couple Pass",
         "is_kids": False,
+        "requires_id_proof": False,
         "display_order": 6,
     },
     "KIDS_5_12": {
         "id": "KIDS_5_12",
         "phase_code": "ALL",
         "phase_name": "KIDS (5–12)",
+        "type": "KIDS",
+        "default_phase_status": "ACTIVE",
         "title": "Kids (5–12 years)",
         "full_title": "Kids (5–12 years) — Entry",
         "badge": "KIDS PASS",
@@ -103,6 +123,7 @@ OFFER_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "price_per_unit": 300.0,
         "unit_name": "Child Pass",
         "is_kids": True,
+        "requires_id_proof": True,
         "id_proof_note": "Aadhaar card / valid ID proof required at entry.",
         "display_order": 7,
     },
@@ -115,8 +136,7 @@ def get_offer_by_id(offer_id: str) -> Optional[Dict[str, Any]]:
     return OFFER_DEFINITIONS.get(normalized_id)
 
 def get_all_offers(db: Session) -> List[Dict[str, Any]]:
-    """Returns all configured offers with their live active/locked status based on ticket_phases."""
-    # Look up phase statuses
+    """Returns all configured offers with authoritative schema including type, phase_status, and per_unit_passes."""
     phases = db.query(TicketPhase).all() if db else []
     phase_status_map = {p.phase_code: p.status for p in phases}
 
@@ -127,17 +147,26 @@ def get_all_offers(db: Session) -> List[Dict[str, Any]]:
     for offer in sorted(OFFER_DEFINITIONS.values(), key=lambda o: o["display_order"]):
         phase_code = offer["phase_code"]
         if phase_code == "ALL":
-            is_active = booking_open
-            status_text = "AVAILABLE NOW" if is_active else "CLOSED"
+            phase_status = "ACTIVE" if booking_open else "LOCKED"
         else:
-            p_status = phase_status_map.get(phase_code, "LOCKED" if phase_code != "EARLY_BIRD" else "ACTIVE")
-            is_active = (p_status == "ACTIVE") and booking_open
-            status_text = "AVAILABLE NOW" if is_active else "COMING SOON"
+            db_status = phase_status_map.get(phase_code)
+            if db_status in ("ACTIVE", "LOCKED", "COMING_SOON"):
+                phase_status = db_status
+            else:
+                phase_status = offer.get("default_phase_status", "LOCKED")
+            
+            if not booking_open and phase_status == "ACTIVE":
+                phase_status = "LOCKED"
+
+        is_purchasable = (phase_status == "ACTIVE") and booking_open
+        status_text = "AVAILABLE NOW" if is_purchasable else ("COMING SOON" if phase_status == "COMING_SOON" else "LOCKED")
 
         offers_list.append({
             "id": offer["id"],
             "phase_code": offer["phase_code"],
             "phase_name": offer["phase_name"],
+            "phase_status": phase_status,
+            "type": offer["type"],
             "title": offer["title"],
             "full_title": offer["full_title"],
             "badge": offer["badge"],
@@ -149,9 +178,9 @@ def get_all_offers(db: Session) -> List[Dict[str, Any]]:
             "unit_name": offer["unit_name"],
             "is_kids": offer["is_kids"],
             "id_proof_note": offer.get("id_proof_note"),
-            "is_active": is_active,
-            "is_purchasable": is_active,
-            "requires_id_proof": offer["is_kids"],
+            "is_active": is_purchasable,
+            "is_purchasable": is_purchasable,
+            "requires_id_proof": bool(offer.get("requires_id_proof", False)),
             "status_text": status_text,
         })
 
@@ -174,12 +203,23 @@ def calculate_offer_pricing(offer_id: str, quantity: int = 1, db: Session = None
     # Check phase status if tied to a specific phase
     phase_code = offer["phase_code"]
     phase_name = offer["phase_name"]
-    if phase_code != "ALL" and db:
-        phase = db.query(TicketPhase).filter(TicketPhase.phase_code == phase_code).first()
-        if phase and phase.status != "ACTIVE":
+    if phase_code != "ALL":
+        if db:
+            phase = db.query(TicketPhase).filter(TicketPhase.phase_code == phase_code).first()
+            if phase and phase.status != "ACTIVE":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Ticket phase '{phase.name}' is currently {phase.status.lower()} and cannot be purchased."
+                )
+            elif not phase and offer.get("default_phase_status") != "ACTIVE":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Ticket phase '{phase_name}' is currently locked and cannot be purchased."
+                )
+        elif offer.get("default_phase_status") != "ACTIVE":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Ticket phase '{phase.name}' is currently {phase.status.lower()} and cannot be purchased."
+                detail=f"Ticket phase '{phase_name}' is currently locked and cannot be purchased."
             )
 
     passes_count = offer["passes_per_unit"] * qty

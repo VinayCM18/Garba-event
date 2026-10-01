@@ -175,19 +175,23 @@ class BookingService:
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Child's full name is required for Kids ticket."
                     )
-                if child_age is not None:
-                    try:
-                        c_age = int(child_age)
-                        if c_age < 5 or c_age > 12:
-                            raise HTTPException(
-                                status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Kids ticket is only applicable for children aged 5 to 12 years."
-                            )
-                    except ValueError:
+                if child_age is None or str(child_age).strip() == "":
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Child's age is required for Kids ticket (ages 5 to 12)."
+                    )
+                try:
+                    c_age = int(child_age)
+                    if c_age < 5 or c_age > 12:
                         raise HTTPException(
                             status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Invalid child age specified."
+                            detail="Kids ticket is only applicable for children aged 5 to 12 years."
                         )
+                except (ValueError, TypeError):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid child age specified. Must be an integer between 5 and 12."
+                    )
         else:
             resolved_ticket_count = ticket_count or 1
             resolved_phase = ticket_phase or "EARLY_BIRD"

@@ -201,7 +201,7 @@ export const AdminTicketPhasesCard: React.FC = () => {
                   {phase.group_offer_eligible && (
                     <div className="mb-4 inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
                       <Sparkles className="w-3 h-3 text-emerald-400" />
-                      Eligible for Group Offer (Buy 10, Pay 9)
+                      Eligible for Group Offer (Group of 10)
                     </div>
                   )}
                 </div>
@@ -349,7 +349,7 @@ export const AdminTicketPhasesCard: React.FC = () => {
                     className="w-4 h-4 rounded text-[#d4af37] focus:ring-0 cursor-pointer accent-[#d4af37]"
                   />
                   <label htmlFor="edit_group_offer" className="text-slate-300 font-medium cursor-pointer">
-                    Eligible for "Buy 10, Pay for 9" group promotion
+                    Eligible for "Group of 10" promotion
                   </label>
                 </div>
               </div>

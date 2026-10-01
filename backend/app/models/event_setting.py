@@ -17,7 +17,7 @@ class EventSetting(Base):
     convenience_fee = Column(Float, default=0.0, nullable=False)
     total_capacity = Column(Integer, default=1500, nullable=False)
     max_per_booking = Column(Integer, default=10, nullable=False)
-    # Group Offer: BUY 10, PAY FOR 9
+    # Group Offer: Group of 10
     group_offer_enabled = Column(Boolean, default=True, nullable=False)
     group_offer_size = Column(Integer, default=10, nullable=False)       # number of tickets to qualify
     group_offer_free_tickets = Column(Integer, default=1, nullable=False) # free tickets given

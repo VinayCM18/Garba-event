@@ -115,31 +115,51 @@ def init_db_defaults():
 
         import warnings
 
-        # Admin and staff seed credentials are read from environment variables.
-        # Set these in Vercel → Settings → Environment Variables.
-        # Admin and staff seed credentials are read from environment variables.
-        # In production, these MUST be set in Railway environment variables.
-        admin_email  = os.environ.get("ADMIN_EMAIL",  "admin@garbanight.in")
-        admin_pass   = os.environ.get("ADMIN_PASSWORD", "GarbaNight@2026")
-        admin_name   = os.environ.get("ADMIN_NAME",   "Head Organizer (Super Admin)")
-        staff_email  = os.environ.get("STAFF_EMAIL",  "staff@garbanight.in")
-        staff_pass   = os.environ.get("STAFF_PASSWORD", "StaffEntry@2026")
-        staff_name   = os.environ.get("STAFF_NAME",   "Gate Security Staff")
+        is_prod = (settings.ENVIRONMENT == "production")
 
-        seed_accounts = [
-            (admin_email, admin_pass, admin_name, "SUPER_ADMIN"),
-            (staff_email, staff_pass, staff_name, "CHECKIN_STAFF"),
+        admin_email = os.environ.get("ADMIN_EMAIL", "admin@garbanight.in").strip()
+        admin_name = os.environ.get("ADMIN_NAME", "Head Organizer (Super Admin)")
+        staff_email = os.environ.get("STAFF_EMAIL", "staff@garbanight.in").strip()
+        staff_name = os.environ.get("STAFF_NAME", "Gate Security Staff")
+
+        # In production, seed passwords MUST come from secure environment variables
+        admin_pass = os.environ.get("ADMIN_SEED_PASSWORD") or os.environ.get("ADMIN_PASSWORD")
+        staff_pass = os.environ.get("STAFF_SEED_PASSWORD") or os.environ.get("STAFF_PASSWORD")
+        vinay_pass = os.environ.get("VINAY_ADMIN_PASSWORD")
+        samay_pass = os.environ.get("SAMAY_ADMIN_PASSWORD")
+
+        predictable_passwords = {
+            "garbanight@2026",
+            "staffentry@2026",
+            "admin123",
+            "password",
+            "admin",
+            "staff",
+            "123456",
+            "12345678",
+        }
+
+        seed_targets = [
+            (admin_email, admin_pass, admin_name, "SUPER_ADMIN", "ADMIN_SEED_PASSWORD", "GarbaNight@2026"),
+            (staff_email, staff_pass, staff_name, "CHECKIN_STAFF", "STAFF_SEED_PASSWORD", "StaffEntry@2026"),
+            ("vinay18744@gmail.com", vinay_pass, "Vinay (Super Admin)", "SUPER_ADMIN", "VINAY_ADMIN_PASSWORD", "GarbaNight@2026"),
+            ("samaymadhyastha2005@gmail.com", samay_pass, "Samay (Super Admin)", "SUPER_ADMIN", "SAMAY_ADMIN_PASSWORD", "GarbaNight@2026"),
         ]
 
-        # Optional organizers read from environment variables
-        vinay_pass = os.environ.get("VINAY_ADMIN_PASSWORD", admin_pass)
-        samay_pass = os.environ.get("SAMAY_ADMIN_PASSWORD", admin_pass)
-        seed_accounts.append(("vinay18744@gmail.com", vinay_pass, "Vinay (Super Admin)", "SUPER_ADMIN"))
-        seed_accounts.append(("samaymadhyastha2005@gmail.com", samay_pass, "Samay (Super Admin)", "SUPER_ADMIN"))
-
-        for seed_email, seed_pass, seed_name, seed_role in seed_accounts:
+        for seed_email, seed_pass, seed_name, seed_role, env_var_name, dev_fallback in seed_targets:
             existing = db.query(User).filter(func.lower(User.email) == seed_email.lower()).first()
             if not existing:
+                if is_prod:
+                    if not seed_pass or len(seed_pass) < 12 or seed_pass.lower() in predictable_passwords:
+                        raise RuntimeError(
+                            f"CRITICAL CONFIGURATION ERROR: Seed account '{seed_email}' does not exist, but required "
+                            f"production environment variable '{env_var_name}' is missing or weak (minimum 12 characters required, "
+                            f"predictable default passwords strictly prohibited). Set '{env_var_name}' in Railway environment variables."
+                        )
+                else:
+                    if not seed_pass:
+                        seed_pass = dev_fallback
+
                 if seed_pass:
                     new_user = User(
                         email=seed_email.lower(),
@@ -155,6 +175,8 @@ def init_db_defaults():
     except Exception as e:
         logger.error(f"Error seeding default database records: {e}")
         db.rollback()
+        if settings.ENVIRONMENT == "production":
+            raise
     finally:
         db.close()
 

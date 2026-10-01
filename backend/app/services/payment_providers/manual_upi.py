@@ -76,7 +76,7 @@ class ManualUPIPaymentProvider(BasePaymentProvider):
             group_discount = round(ticket_price * group_offer_free_tickets, 2)
             ticket_subtotal = round(regular_amount - group_discount, 2)
             is_group_offer = True
-            offer_name = f"BUY {group_offer_size}, PAY FOR {group_offer_size - group_offer_free_tickets}"
+            offer_name = "Group of 10"
             free_tickets = group_offer_free_tickets
         else:
             group_discount = 0.0

@@ -252,7 +252,7 @@ export const AdminBookingsPage: React.FC = () => {
                   const regularAmount = b.regular_amount ?? (b.ticket_count * b.ticket_price);
                   const discount = b.group_discount ?? 0.0;
                   const isGroup = Boolean(b.is_group_offer || discount > 0 || (b.ticket_count === 10 && discount > 0));
-                  const offerName = b.offer_name || (isGroup ? 'BUY 10 PAY FOR 9' : null);
+                  const offerName = b.offer_name || (isGroup ? 'GROUP OF 10' : null);
                   return (
                     <tr key={b.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-3.5 px-4 font-mono font-bold text-amber-400">
