@@ -435,6 +435,115 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
+      {/* ✨ EVERY PASS INCLUDES ✨ Single Compact Festive Section */}
+      <section id="inclusions" className="py-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="relative rounded-3xl bg-gradient-to-b from-[#38080E] via-[#2A060A] to-[#1C0407] border-2 border-[#D4AF37] p-6 sm:p-9 shadow-[0_20px_50px_rgba(0,0,0,0.7),0_0_35px_rgba(212,175,55,0.22)] overflow-hidden text-center"
+        >
+          {/* Subtle Background Mandala / Festive Pattern */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.06] flex items-center justify-center">
+            <svg className="w-[500px] h-[500px]" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="100" cy="100" r="90" stroke="#D4AF37" strokeWidth="1" strokeDasharray="3 3" />
+              <circle cx="100" cy="100" r="75" stroke="#D4AF37" strokeWidth="1" />
+              <circle cx="100" cy="100" r="60" stroke="#D4AF37" strokeWidth="0.75" strokeDasharray="4 2" />
+              <circle cx="100" cy="100" r="45" stroke="#D4AF37" strokeWidth="1" />
+              <circle cx="100" cy="100" r="30" stroke="#D4AF37" strokeWidth="0.75" />
+              <circle cx="100" cy="100" r="15" stroke="#D4AF37" strokeWidth="1" />
+              {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => (
+                <line
+                  key={deg}
+                  x1="100"
+                  y1="10"
+                  x2="100"
+                  y2="190"
+                  stroke="#D4AF37"
+                  strokeWidth="0.5"
+                  transform={`rotate(${deg} 100 100)`}
+                />
+              ))}
+            </svg>
+          </div>
+
+          {/* Festive Ambient Corner Glows */}
+          <div className="absolute top-0 right-0 w-36 h-36 bg-[#D4AF37]/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-36 h-36 bg-[#8B0000]/30 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Subtle inner decorative border */}
+          <div className="absolute inset-2 sm:inset-3 border border-[#D4AF37]/30 rounded-2xl pointer-events-none" />
+
+          {/* Corner Festive Accents */}
+          <div className="absolute top-3 left-3 text-[10px] text-[#D4AF37]/60 pointer-events-none select-none">✦</div>
+          <div className="absolute top-3 right-3 text-[10px] text-[#D4AF37]/60 pointer-events-none select-none">✦</div>
+          <div className="absolute bottom-3 left-3 text-[10px] text-[#D4AF37]/60 pointer-events-none select-none">✦</div>
+          <div className="absolute bottom-3 right-3 text-[10px] text-[#D4AF37]/60 pointer-events-none select-none">✦</div>
+
+          {/* Section Title */}
+          <div className="relative mb-6">
+            <h2 className="inline-flex items-center justify-center gap-2 text-base sm:text-xl font-extrabold uppercase tracking-[0.25em] text-[#FFD54F] font-['Cinzel'] drop-shadow-[0_2px_10px_rgba(212,175,55,0.4)]">
+              ✨ EVERY PASS INCLUDES ✨
+            </h2>
+            <div className="flex items-center justify-center gap-3 mt-2">
+              <span className="h-[1px] w-12 bg-gradient-to-r from-transparent to-[#D4AF37]/60" />
+              <span className="text-[#D4AF37] text-xs">❖</span>
+              <span className="h-[1px] w-12 bg-gradient-to-l from-transparent to-[#D4AF37]/60" />
+            </div>
+          </div>
+
+          {/* Three Inclusions Side-by-Side on Desktop, Stacked on Mobile */}
+          <div className="relative grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#D4AF37]/25">
+            {/* Item 1: Food */}
+            <div className="flex flex-col items-center justify-center py-4 md:py-2 px-3 sm:px-4">
+              <div className="w-12 h-12 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/40 flex items-center justify-center text-2xl shadow-inner mb-3">
+                🍽️
+              </div>
+              <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider font-['Outfit']">
+                FOOD
+              </h3>
+              <p className="text-xs sm:text-sm text-[#F3E4B2] font-medium mt-1 leading-relaxed">
+                Complimentary food voucher
+              </p>
+            </div>
+
+            {/* Item 2: Welcome Drink */}
+            <div className="flex flex-col items-center justify-center py-4 md:py-2 px-3 sm:px-4">
+              <div className="w-12 h-12 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/40 flex items-center justify-center text-2xl shadow-inner mb-3">
+                🥤
+              </div>
+              <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider font-['Outfit']">
+                WELCOME DRINK
+              </h3>
+              <p className="text-xs sm:text-sm text-[#F3E4B2] font-medium mt-1 leading-relaxed">
+                Complimentary welcome drink / mocktail
+              </p>
+            </div>
+
+            {/* Item 3: Dandiya Sticks */}
+            <div className="flex flex-col items-center justify-center py-4 md:py-2 px-3 sm:px-4">
+              <div className="w-12 h-12 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/40 flex items-center justify-center text-2xl shadow-inner mb-3">
+                🪄
+              </div>
+              <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider font-['Outfit']">
+                DANDIYA STICKS
+              </h3>
+              <p className="text-xs sm:text-sm text-[#F3E4B2] font-medium mt-1 leading-relaxed">
+                Dandiya sticks provided
+              </p>
+            </div>
+          </div>
+
+          {/* Supporting Line below the three items */}
+          <div className="relative mt-6 pt-5 border-t border-[#D4AF37]/30 max-w-xl mx-auto">
+            <p className="text-xs sm:text-sm text-[#F3E4B2] font-semibold leading-relaxed tracking-wide">
+              Every pass includes complimentary food voucher, welcome drink and dandiya sticks will be provided.
+            </p>
+          </div>
+        </motion.div>
+      </section>
+
       {/* Pricing & Ticket Phases Section */}
       <section id="pricing" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#d4af37] px-3.5 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/25 mb-3">
