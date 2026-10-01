@@ -305,8 +305,8 @@ export const HomePage: React.FC = () => {
           <CountdownTimer eventDate={eventDate} eventTime={eventTime} />
         </div>
 
-        {/* Hero CTAs (Section 4 Requirement: Primary "BOOK YOUR TICKETS", Secondary "EXPLORE EVENT") */}
-        <div className="mt-10 sm:mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto sm:max-w-none">
+        {/* Hero CTA */}
+        <div className="mt-10 sm:mt-12 flex items-center justify-center max-w-md mx-auto sm:max-w-none">
           <Link
             to="/book"
             onClick={() => playDandiyaClick()}
@@ -316,14 +316,6 @@ export const HomePage: React.FC = () => {
             <span>BOOK YOUR TICKETS</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
-
-          <a
-            href="#about"
-            className="luxury-outline-button w-full sm:w-auto px-8 py-4 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 touch-target cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-[#d4af37]" />
-            <span>EXPLORE EVENT</span>
-          </a>
         </div>
 
         {/* Requirement 1 & 14: Promotional Hero Banner */}
