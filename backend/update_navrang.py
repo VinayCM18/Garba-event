@@ -31,8 +31,8 @@ def update_event_to_navrang():
         setting.event_tagline = "Celebrate. Dance. Connect."
         setting.event_date = "October 17, 2026"
         setting.event_time = "06:30 PM - 10:00 PM"
-        setting.venue_name = "Green Acres"
-        setting.venue_address = "Green Acres, Mysuru"
+        setting.venue_name = "The Green Acres"
+        setting.venue_address = "The Green Acres, Mysuru"
         setting.venue_city = "Mysuru"
         setting.ticket_price = 599.0
         setting.convenience_fee = 0.0

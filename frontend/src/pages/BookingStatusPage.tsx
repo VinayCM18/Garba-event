@@ -374,7 +374,7 @@ export const BookingStatusPage: React.FC = () => {
               </div>
               <div className="flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-amber-400" />
-                <span>Green Acres, Mysuru</span>
+                <span>The Green Acres, Mysuru</span>
               </div>
             </div>
 

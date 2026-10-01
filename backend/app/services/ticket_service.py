@@ -58,9 +58,9 @@ class TicketService:
         - Heritage Productions × The Happy Circle collaboration header
         - Ornate 3D gold embossed NAVRANG DANDIYA 2026 central branding with crossed dandiya sticks
         - Scalloped royal ivory arch cartouche with dynamic Phase Name & Offer Type
-        - Event details with Date, 06:30 PM - 10:00 PM (Gate Opening: 5:30 PM), and Green Acres venue
+        - Event details with Date, 06:30 PM - 10:00 PM (Gate Opening: 5:30 PM), and The Green Acres venue
         - Vertical perforated tear-off stub with dynamic ticket number, pure white QR card, and SCAN TO VERIFY
-        - Clean sponsor footer strip (Location Partner: Green Acres) without gray placeholder circles
+        - Clean sponsor footer strip (Location Partner: The Green Acres) without gray placeholder circles
         Returns high-quality JPEG bytes.
         """
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -153,9 +153,9 @@ class TicketService:
         draw.text((608, 268), "06:30 PM - 10:00 PM", fill=(255, 248, 232), font=font_dt_bold)
         draw.text((608, 286), "Gate Opening: 5:30 PM", fill=(251, 191, 36), font=font_dt_gate)
 
-        # Configured Venue: Green Acres, Mysuru (as requested)
-        venue_name_str = (event_setting.venue_name or "GREEN ACRES").upper()
-        venue_sub_str = f"{event_setting.venue_address or 'Green Acres, Mysuru'}"
+        # Configured Venue: The Green Acres, Mysuru (as requested)
+        venue_name_str = (event_setting.venue_name or "The Green Acres").upper()
+        venue_sub_str = f"{event_setting.venue_address or 'The Green Acres, Mysuru'}"
         draw.text((608, 310), venue_name_str, fill=(255, 248, 232), font=font_dt_bold)
         draw.text((608, 328), venue_sub_str[:32], fill=(243, 228, 178), font=font_dt_sub)
 
@@ -204,9 +204,9 @@ class TicketService:
         # 4. Clean Sponsor Footer Strip (zero gray placeholder circles)
         draw.rectangle([35, 425, 975, 468], fill=(248, 241, 222))
 
-        # Location Partner: Green Acres
-        b_loc = draw.textbbox((0, 0), "GREEN ACRES", font=font_sp_val)
-        draw.text((150 - (b_loc[2] - b_loc[0]) // 2, 436), "GREEN ACRES", fill=(70, 15, 25), font=font_sp_val)
+        # Location Partner: The Green Acres
+        b_loc = draw.textbbox((0, 0), "The Green Acres", font=font_sp_val)
+        draw.text((150 - (b_loc[2] - b_loc[0]) // 2, 436), "The Green Acres", fill=(70, 15, 25), font=font_sp_val)
 
         # Main Sponsor: Heritage Productions
         b_main = draw.textbbox((0, 0), "HERITAGE PRODUCTIONS", font=font_sp_val)
@@ -253,7 +253,7 @@ class TicketService:
             "<b><font color='#78350F'>OFFICIAL ENTRY PASS GUIDELINES</font></b><br/>"
             "&bull; <b>Gate Opening:</b> Gates open promptly at <b>05:30 PM</b>. Please arrive early to avoid queue delays.<br/>"
             "&bull; <b>Event Timings:</b> 06:30 PM onwards till 10:00 PM. Turnstiles close at 10:00 PM.<br/>"
-            "&bull; <b>Venue:</b> Green Acres, Mysuru. Ample parking available on premise.<br/>"
+            "&bull; <b>Venue:</b> The Green Acres, Mysuru. Ample parking available on premise.<br/>"
             "&bull; <b>Entry Verification:</b> Present this physical or digital pass with the authentic QR code at security turnstiles.<br/>"
             "&bull; <b>One Pass per Attendee:</b> Each QR code is uniquely encrypted and allows exactly one entry.<br/>"
             "&bull; <b>Photo ID:</b> Please carry a government-issued photo ID matching the attendee name."
@@ -300,7 +300,7 @@ class TicketService:
             "<b><font color='#78350F'>OFFICIAL ENTRY PASS GUIDELINES</font></b><br/>"
             "&bull; <b>Gate Opening:</b> Gates open promptly at <b>05:30 PM</b>. Please arrive early to avoid queue delays.<br/>"
             "&bull; <b>Event Timings:</b> 06:30 PM onwards till 10:00 PM. Turnstiles close at 10:00 PM.<br/>"
-            "&bull; <b>Venue:</b> Green Acres, Mysuru. Ample parking available on premise.<br/>"
+            "&bull; <b>Venue:</b> The Green Acres, Mysuru. Ample parking available on premise.<br/>"
             "&bull; <b>Entry Verification:</b> Present this physical or digital pass with the authentic QR code at security turnstiles.<br/>"
             "&bull; <b>One Pass per Attendee:</b> Each QR code is uniquely encrypted and allows exactly one entry.<br/>"
             "&bull; <b>Photo ID:</b> Please carry a government-issued photo ID matching the attendee name."

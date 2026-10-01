@@ -702,8 +702,8 @@ class EmailService:
                   <tr>
                     <td width="24" style="vertical-align: top; padding: 4px 0; font-size: 14px;">📍</td>
                     <td style="padding: 4px 0;">
-                      <strong style="color: #FFF8E8; font-size: 13px;">GREEN ACRES</strong><br/>
-                      <span style="color: #F3E4B2; font-size: 11px;">Green Acres, Mysuru</span>
+                      <strong style="color: #FFF8E8; font-size: 13px;">THE GREEN ACRES</strong><br/>
+                      <span style="color: #F3E4B2; font-size: 11px;">The Green Acres, Mysuru</span>
                     </td>
                   </tr>
                 </table>
@@ -753,7 +753,7 @@ class EmailService:
                   <tr>
                     <td width="28%" style="border-right: 1px solid rgba(70,15,25,0.2); vertical-align: middle;">
                       <div style="font-size: 8px; font-weight: 800; color: #78350F; text-transform: uppercase;">LOCATION PARTNER</div>
-                      <div style="font-size: 11px; font-weight: 900; color: #460F19; margin-top: 2px;">GREEN ACRES</div>
+                      <div style="font-size: 11px; font-weight: 900; color: #460F19; margin-top: 2px;">THE GREEN ACRES</div>
                     </td>
                     <td width="26%" style="border-right: 1px solid rgba(70,15,25,0.2); vertical-align: middle;">
                       <div style="font-size: 8px; font-weight: 800; color: #78350F; text-transform: uppercase;">MAIN SPONSOR</div>

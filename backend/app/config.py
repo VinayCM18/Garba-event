@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     DEFAULT_EVENT_NAME: str = "NAVRANG 2026"
     DEFAULT_EVENT_DATE: str = "October 17, 2026"
     DEFAULT_EVENT_TIME: str = "06:30 PM - 10:00 PM"
-    DEFAULT_EVENT_VENUE: str = "Green Acres, Mysuru"
+    DEFAULT_EVENT_VENUE: str = "The Green Acres, Mysuru"
     DEFAULT_TICKET_PRICE: float = 599.00
     DEFAULT_CONVENIENCE_FEE: float = 0.00
     DEFAULT_TOTAL_CAPACITY: int = 1500

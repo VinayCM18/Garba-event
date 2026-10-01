@@ -37,7 +37,7 @@ export const Footer: React.FC = () => {
               </div>
             </Link>
             <p className="text-xs text-slate-400 leading-relaxed">
-              The premier cultural celebration NAVRANG 2026 at Green Acres, Mysuru in collaboration with The Happy Circle. An unforgettable evening of authentic Garba beats, live music, and encrypted digital entry passes.
+              The premier cultural celebration NAVRANG 2026 at The Green Acres, Mysuru in collaboration with The Happy Circle. An unforgettable evening of authentic Garba beats, live music, and encrypted digital entry passes.
             </p>
             <div className="pt-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -82,7 +82,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-3 text-xs">
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
-                <span>Green Acres, Mysuru</span>
+                <span>The Green Acres, Mysuru</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-[#d4af37] shrink-0" />

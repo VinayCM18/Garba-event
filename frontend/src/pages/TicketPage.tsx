@@ -210,10 +210,10 @@ export const TicketPage: React.FC = () => {
                 <span className="text-base sm:text-lg">📍</span>
                 <div>
                   <div className="font-extrabold tracking-wide text-white sm:text-base uppercase">
-                    {config?.venue_name || 'GREEN ACRES'}
+                    {config?.venue_name || 'The Green Acres'}
                   </div>
                   <div className="text-[11px] text-[#F3E4B2]">
-                    {config?.venue_address || 'Green Acres, Mysuru'}
+                    {config?.venue_address || 'The Green Acres, Mysuru'}
                   </div>
                 </div>
               </div>
@@ -280,12 +280,12 @@ export const TicketPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. Sponsor Strip (Location Partner: Green Acres, Main Sponsor, Co-Sponsor - Zero gray circles) */}
+        {/* 3. Sponsor Strip (Location Partner: The Green Acres, Main Sponsor, Co-Sponsor - Zero gray circles) */}
         <div className="bg-[#FAF3E0] border-t border-[#D4AF37] p-3 sm:p-3.5 text-[#460F19]">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs divide-x divide-[#460F19]/15">
             <div className="px-2">
               <div className="text-[8px] sm:text-[9px] font-black uppercase text-[#78350F] tracking-wider">LOCATION PARTNER</div>
-              <div className="text-[11px] sm:text-xs font-black text-[#460F19] mt-0.5">GREEN ACRES</div>
+              <div className="text-[11px] sm:text-xs font-black text-[#460F19] mt-0.5">The Green Acres</div>
             </div>
             <div className="px-2">
               <div className="text-[8px] sm:text-[9px] font-black uppercase text-[#78350F] tracking-wider">MAIN SPONSOR</div>

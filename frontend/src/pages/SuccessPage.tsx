@@ -946,7 +946,7 @@ export const SuccessPage: React.FC = () => {
                             Gate Opening: 5:30 PM (Event: 06:30 PM - 10:00 PM)
                           </div>
                           <div className="text-[10px] text-slate-400 truncate">
-                            📍 Green Acres, Mysuru
+                            📍 The Green Acres, Mysuru
                           </div>
                         </div>
                       </div>

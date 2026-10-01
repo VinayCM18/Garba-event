@@ -1393,7 +1393,7 @@ export const BookingPage: React.FC = () => {
                   in collaboration with The Happy Circle
                 </div>
                 <div className="text-[11px] text-slate-400 mt-1">
-                  {config?.event_date || 'October 17, 2026'} • {config?.venue_name || 'Green Acres, Mysuru'}
+                  {config?.event_date || 'October 17, 2026'} • {config?.venue_name || 'The Green Acres, Mysuru'}
                 </div>
               </div>
 
