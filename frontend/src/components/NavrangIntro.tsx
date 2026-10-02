@@ -204,20 +204,6 @@ export const NavrangIntro: React.FC<NavrangIntroProps> = ({ onComplete }) => {
                   >
                     THE HAPPY CIRCLE
                   </motion.h2>
-
-                  {/* IN COLLABORATION WITH */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.55, duration: 0.55 }}
-                    className="mt-3 flex items-center gap-3"
-                  >
-                    <span className="h-px w-8 sm:w-16 bg-gradient-to-r from-transparent to-[#d4af37]/60" />
-                    <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.32em] uppercase text-[#d4af37] font-['Cinzel']">
-                      IN COLLABORATION WITH
-                    </span>
-                    <span className="h-px w-8 sm:w-16 bg-gradient-to-l from-transparent to-[#d4af37]/60" />
-                  </motion.div>
                 </motion.div>
               )}
 

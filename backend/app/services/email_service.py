@@ -911,7 +911,7 @@ class EmailService:
                       </tr>
                       <tr>
                         <td style="color: #94a3b8;">Timings:</td>
-                        <td style="color: #ffffff; font-weight: 600;">Gates open at 06:30 PM • Event: {event_setting.event_time}</td>
+                        <td style="color: #ffffff; font-weight: 600;">Gates open at 05:30 PM • Event: {event_setting.event_time}</td>
                       </tr>
                       <tr>
                         <td style="color: #94a3b8; vertical-align: top;">Venue:</td>
@@ -952,7 +952,7 @@ class EmailService:
                     <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #94a3b8; line-height: 1.7;">
                       <li>Each digital QR code is cryptographically unique and permits exactly one admission.</li>
                       <li>Traditional festive attire (Chaniya Choli / Kurta Pajama / Kediyu) or smart cultural dress is encouraged.</li>
-                      <li>Entry starts promptly at 06:30 PM. Gates close at 10:00 PM. Please arrive early to ensure seamless security processing.</li>
+                      <li>Gates open at 05:30 PM. Event runs from 06:30 PM till 10:00 PM. Please arrive early to ensure seamless security processing.</li>
                       <li>All sales are non-refundable and non-transferable under official event guidelines.</li>
                     </ul>
                   </td>
@@ -1249,7 +1249,7 @@ class EmailService:
                 <tr>
                   <td style="padding: 11px 18px; font-size: 13px; color: #94a3b8;">Venue & Schedule:</td>
                   <td style="padding: 11px 18px; font-size: 12px; color: #cbd5e1; text-align: right;">
-                    <strong>Gates Open: 06:30 PM</strong> | Event: <strong>{event_setting.event_time}</strong><br/>
+                    <strong>Gates Open: 05:30 PM</strong> | Event: <strong>{event_setting.event_time}</strong><br/>
                     {event_setting.venue_name}, {event_setting.venue_address}
                   </td>
                 </tr>

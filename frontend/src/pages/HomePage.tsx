@@ -52,7 +52,8 @@ export const HomePage: React.FC = () => {
   const eventName = config?.event_name || 'NAVRANG 2026';
   const eventDate = config?.event_date || 'October 17, 2026';
   const eventTime = config?.event_time || '06:30 PM - 10:00 PM';
-  const venueName = config?.venue_name || 'The Green Acres';
+  const rawVenueName = (config?.venue_name || 'The Green Acres').trim();
+  const venueName = /^the\s+/i.test(rawVenueName) ? rawVenueName : `The ${rawVenueName}`;
   const venueAddress = config?.venue_address || 'The Green Acres, Mysuru';
   const venueCity = config?.venue_city || 'Mysuru';
   const ticketPrice = config?.ticket_price || 599;
@@ -207,16 +208,8 @@ export const HomePage: React.FC = () => {
             A premium Garba & cultural celebration experience
           </p>
 
-          {/* IN COLLABORATION WITH THE HAPPY CIRCLE */}
-          <div className="pt-4 pb-2 flex flex-col items-center justify-center">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="h-px w-10 sm:w-20 bg-gradient-to-r from-transparent to-[#d4af37]/70" />
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.32em] text-[#e5c97b] font-['Outfit'] drop-shadow-[0_2px_10px_rgba(212,175,55,0.5)]">
-                IN COLLABORATION WITH
-              </span>
-              <span className="h-px w-10 sm:w-20 bg-gradient-to-l from-transparent to-[#d4af37]/70" />
-            </div>
-
+          {/* Official Logos Side by Side */}
+          <div className="pt-5 sm:pt-6 pb-2 flex flex-col items-center justify-center">
             {/* Official Logos Side by Side */}
             <div className="flex items-center justify-center gap-4 sm:gap-8">
               {/* Logo 1: Heritage Productions */}
@@ -308,7 +301,7 @@ export const HomePage: React.FC = () => {
             <div className="text-base sm:text-lg font-black text-white font-['Outfit']">
               {venueCity}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">{venueName}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">{venueName || 'The Green Acres'}</div>
           </div>
 
           <div className="p-4 rounded-2xl glass-card-interactive border border-white/[0.09] shadow-lg shadow-black/40">
@@ -319,7 +312,7 @@ export const HomePage: React.FC = () => {
             <div className="text-base sm:text-lg font-black text-white font-['Outfit']">
               {eventTime}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Gates open at 06:30 PM</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Gates open at 05:30 PM</div>
           </div>
         </motion.div>
 
