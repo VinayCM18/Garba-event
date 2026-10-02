@@ -121,7 +121,7 @@ def test_early_bird_stag_pricing_and_order():
     order_data = order_res.json()
     assert order_data["amount"] in (599.0, 613.14)
     assert order_data["passes_count"] == 1
-    assert order_data["offer_title"] == "Early Bird — Stag Entry"
+    assert order_data["offer_title"] == "Early Bird — Single Entry"
 
 def test_early_bird_group_of_10_pricing_and_order():
     """Verify Early Bird Group of 10 is ₹4,999 and allocates 10 passes."""

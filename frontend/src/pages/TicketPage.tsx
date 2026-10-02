@@ -69,7 +69,7 @@ export const TicketPage: React.FC = () => {
   const isPhase1 = combinedOffer.includes('phase 1') || combinedOffer.includes('phase_1');
   const phaseName = isEarly ? 'EARLY BIRD' : isPhase1 ? 'PHASE 1' : 'EARLY BIRD';
 
-  let offerType = 'STAG ENTRY';
+  let offerType = 'SINGLE ENTRY';
   if (combinedOffer.includes('group')) {
     offerType = 'GROUP OF 10';
   } else if (combinedOffer.includes('couple')) {
@@ -167,60 +167,53 @@ export const TicketPage: React.FC = () => {
 
         {/* 2. Main Ticket Body: Left (Perks & Attendee), Right (Stub + QR + Event Details) */}
         <div className="grid grid-cols-1 md:grid-cols-12 relative">
-          {/* Left / Center Section: Festival Perks & Attendee Details (Non-duplicated content) */}
-          <div className="md:col-span-7 p-5 sm:p-6 flex flex-col justify-between gap-5 relative z-10">
+          {/* Left / Center Section: Festival Perks & Attendee Details (Centered and Non-duplicated) */}
+          <div className="md:col-span-7 p-5 sm:p-6 flex flex-col justify-center gap-5 relative z-10">
             {/* Festival Perks Card */}
-            <div className="bg-[#2E080E] border border-[#D4AF37]/40 rounded-2xl p-4 sm:p-5 text-center shadow-md relative overflow-hidden">
+            <div className="bg-[#2E080E] border border-[#D4AF37]/40 rounded-2xl p-5 sm:p-6 text-center shadow-md relative overflow-hidden flex flex-col items-center justify-center">
               <div className="text-[10px] sm:text-xs font-black text-[#FBBF24] uppercase tracking-widest">
-                ❖ ALL-INCLUSIVE PASS PERKS ❖
+                = FESTIVAL PERKS =
               </div>
               <div className="text-xl sm:text-2xl font-black text-white font-['Cinzel'] tracking-wider mt-2">
-                LIVE GUJARATI DHOL & DJ
+                LIVE GUJARATI DHOL
               </div>
-              <div className="text-xs text-[#F3E4B2] mt-1">
-                Dandiya Raas • 360° Photo Booth
+              <div className="text-xs text-[#F3E4B2] mt-1.5">
+                DJ Night • Dandiya Raas • 360° Booth
               </div>
               <div className="text-xs font-bold text-[#FBBF24] mt-2">
-                Complimentary Food Voucher • Drinks • Sticks
+                Complimentary Food Voucher Included
               </div>
 
-              {/* Inclusions Row */}
-              <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-[#D4AF37]/20 text-[11px] text-slate-200">
-                <div className="p-2 rounded-lg bg-black/40">
-                  <span className="block text-base mb-1">🍽️</span>
-                  <span className="font-bold text-white text-[10px] block">FOOD</span>
-                  <span className="text-[9px] text-[#F3E4B2]">Voucher</span>
-                </div>
-                <div className="p-2 rounded-lg bg-black/40">
-                  <span className="block text-base mb-1">🥤</span>
-                  <span className="font-bold text-white text-[10px] block">DRINK</span>
-                  <span className="text-[9px] text-[#F3E4B2]">Welcome</span>
-                </div>
-                <div className="p-2 rounded-lg bg-black/40">
-                  <span className="block text-base mb-1">🪄</span>
-                  <span className="font-bold text-white text-[10px] block">STICKS</span>
-                  <span className="text-[9px] text-[#F3E4B2]">Provided</span>
-                </div>
+              {/* Centered Divider */}
+              <div className="w-4/5 border-t border-dashed border-[#D4AF37]/30 my-4" />
+
+              {/* Pass Holder & Admission Details - Perfectly Centered */}
+              <div className="text-[10px] uppercase font-bold text-[#F3E4B2]/80 tracking-wider">
+                PASS HOLDER
+              </div>
+              <div className="text-base sm:text-lg font-black text-white tracking-wide mt-0.5">
+                {ticket.customer_name}
+              </div>
+
+              <div className="text-xs font-extrabold text-emerald-400 mt-3">
+                = ADMIT 1 PERSON =
+              </div>
+              <div className="text-[10px] font-bold text-[#F3E4B2]/80 mt-0.5 tracking-wider">
+                NON-TRANSFERABLE
               </div>
             </div>
 
-            {/* Attendee info badge */}
-            <div className="p-3.5 rounded-xl bg-black/50 border border-[#D4AF37]/30 flex items-center justify-between text-xs">
-              <div>
-                <div className="text-[9px] uppercase font-bold text-[#F3E4B2]/70">PASS HOLDER</div>
-                <div className="text-sm font-black text-white truncate max-w-[200px] sm:max-w-none">{ticket.customer_name}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[9px] uppercase font-bold text-[#F3E4B2]/70">ADMISSION STATUS</div>
-                <div className="text-xs font-bold text-emerald-400 flex items-center gap-1 justify-end">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>{isUsed ? 'CHECKED IN' : isCancelled ? 'CANCELLED' : 'VALID ENTRY PASS'}</span>
-                </div>
-              </div>
+            {/* Admission status badge */}
+            <div className="p-3 rounded-xl bg-black/40 border border-[#D4AF37]/30 flex items-center justify-between text-xs">
+              <span className="text-[10px] uppercase font-bold text-[#F3E4B2]/70">ENTRY STATUS</span>
+              <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{isUsed ? 'CHECKED IN' : isCancelled ? 'CANCELLED' : 'VALID ADMISSION PASS'}</span>
+              </span>
             </div>
           </div>
 
-          {/* Right Section: Authoritative Single Admission Panel (approx 5 cols) */}
+          {/* Right Section: Authoritative Single Admission Panel */}
           <div className="md:col-span-5 p-5 sm:p-6 bg-[#350A11] border-t-2 md:border-t-0 md:border-l-2 border-dashed border-[#D4AF37] flex flex-col items-center justify-center text-center relative">
             {/* Perforation Seam Cutout Notches */}
             <div className="hidden md:block absolute -top-3 -left-3 w-6 h-6 rounded-full bg-[#0a0a0c] border border-[#D4AF37]/30" />
@@ -271,29 +264,64 @@ export const TicketPage: React.FC = () => {
                 <span>{config?.event_time || '06:30 PM - 10:00 PM'}</span>
               </div>
               <div className="text-[11px] font-black text-[#FBBF24]">
-                Gate Opening: 5:30 PM
+                Gate Opening: 05:30 PM
               </div>
               <div className="text-xs font-black text-white uppercase mt-1 flex items-center justify-center gap-1.5">
                 <span>📍</span>
                 <span>{config?.venue_name || 'The Green Acres'}</span>
               </div>
               <div className="text-[10px] text-[#F3E4B2]">
-                {config?.venue_address || 'The Green Acres, Mysuru'}
-              </div>
-              <div className="text-[10px] text-amber-300/80 font-bold mt-1">
-                Admit 1 Person
+                Mysuru
               </div>
             </div>
           </div>
         </div>
 
-        {/* 3. Single Unified Footer Statement (Zero Sponsor Boxes/Labels/Placeholders) */}
-        <div className="bg-[#FAF3E0] border-t-2 border-[#D4AF37] p-3.5 sm:p-4 text-center">
-          <div className="text-xs sm:text-sm font-black font-['Cinzel'] text-[#460F19]">
-            An event by Heritage Production,
-          </div>
-          <div className="text-[11px] sm:text-xs font-bold text-[#78350F] mt-0.5">
-            curated by The Happy Circle in association with Wedeos Entertainment
+        {/* 3. New Bottom Branding / Sponsor Section (3-Column Layout with Gold Dividers) */}
+        <div className="bg-[#000000] border-t-2 border-[#D4AF37] p-4 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-12 items-center gap-4 text-center">
+            {/* Left: Happy Circle Logo */}
+            <div className="md:col-span-3 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[#D4AF37]/40 pb-3 md:pb-0 md:pr-4">
+              <span className="text-[9px] uppercase font-bold tracking-widest text-[#F3E4B2]/70 mb-1.5">
+                CURATED BY
+              </span>
+              <img
+                src="/images/happy-circle-logo.png"
+                alt="The Happy Circle"
+                className="h-10 sm:h-11 w-auto object-contain mx-auto"
+              />
+              <span className="text-[10px] font-bold text-[#FFF8E8] mt-1.5">
+                The Happy Circle
+              </span>
+            </div>
+
+            {/* Center: Sponsors / Partners */}
+            <div className="md:col-span-6 flex flex-col items-center justify-center px-2 py-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#FBBF24]">
+                SPONSORS
+              </span>
+              <div className="text-xs sm:text-sm font-black font-['Cinzel'] text-[#FFF8E8] mt-1">
+                Heritage Production × The Happy Circle
+              </div>
+              <div className="text-[10px] sm:text-xs font-semibold text-[#F3E4B2] mt-0.5">
+                Production partner Wedeos Entertainment
+              </div>
+            </div>
+
+            {/* Right: Wedeos Entertainment Logo */}
+            <div className="md:col-span-3 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-[#D4AF37]/40 pt-3 md:pt-0 md:pl-4">
+              <span className="text-[9px] uppercase font-bold tracking-widest text-[#F3E4B2]/70 mb-1.5">
+                PRODUCTION PARTNER
+              </span>
+              <img
+                src="/images/wedeos-logo.jpg"
+                alt="Wedeos Entertainment"
+                className="h-9 sm:h-10 w-auto object-contain mx-auto"
+              />
+              <span className="text-[10px] font-bold text-[#FFF8E8] mt-1.5">
+                Wedeos Entertainment
+              </span>
+            </div>
           </div>
         </div>
       </motion.div>

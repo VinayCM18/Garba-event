@@ -77,6 +77,10 @@ class TicketService:
         draw = ImageDraw.Draw(img)
         w, h = img.size
 
+        # Patch top border notch if present
+        patch = img.crop((785, 0, 814, 25))
+        img.paste(patch, (825, 0))
+
         # Resolve Phase Label and Offer Type dynamically
         offer_title = getattr(booking, "offer_title", "") or ""
         ticket_offer = getattr(ticket, "offer_title", "") or ""
@@ -107,74 +111,91 @@ class TicketService:
         elif "kid" in combined_offer or "child" in combined_offer:
             offer_label = "KIDS ENTRY"
         else:
-            offer_label = "STAG ENTRY"
+            offer_label = "SINGLE ENTRY"
 
         # Fonts
         font_georgia_12 = cls._get_font("georgia.ttf", 12)
+        font_georgiab_14 = cls._get_font("georgiab.ttf", 14)
         font_georgiab_15 = cls._get_font("georgiab.ttf", 15)
         font_arial_10 = cls._get_font("arial.ttf", 10)
         font_arialbd_9 = cls._get_font("arialbd.ttf", 9)
         font_arialbd_10 = cls._get_font("arialbd.ttf", 10)
         font_arialbd_11 = cls._get_font("arialbd.ttf", 11)
         font_arialbd_12 = cls._get_font("arialbd.ttf", 12)
-        font_footer = cls._get_font("georgiab.ttf", 13)
-        font_footer_sub = cls._get_font("georgiab.ttf", 11)
+        font_arialbd_13 = cls._get_font("arialbd.ttf", 13)
 
         # 1. Clean and draw Middle Decorative Card (Attendee & Inclusions - zero duplication)
-        draw.rectangle([545, 90, 825, 400], fill=(68, 14, 22))
-        draw.rounded_rectangle([565, 125, 805, 365], radius=14, fill=(58, 12, 20), outline=(212, 175, 55, 140), width=1)
+        draw.rectangle([545, 80, 822, 402], fill=(68, 14, 22))
+        draw.rounded_rectangle([560, 115, 810, 375], radius=14, fill=(58, 12, 20), outline=(212, 175, 55, 140), width=1)
 
         mid_cx = 685
-        draw.text((mid_cx - 55, 145), "❖ FESTIVAL PERKS ❖", fill=(251, 191, 36), font=font_arialbd_9)
-        draw.text((mid_cx - 65, 170), "LIVE GUJARATI DHOL", fill=(255, 248, 232), font=font_georgiab_15)
-        draw.text((mid_cx - 75, 195), "DJ Night • Dandiya Raas • 360° Booth", fill=(243, 228, 178), font=font_arial_10)
-        draw.text((mid_cx - 85, 215), "Complimentary Food Voucher Included", fill=(251, 191, 36), font=font_arialbd_9)
+
+        # FESTIVAL PERKS - centered along vertical axis
+        bb_perks = draw.textbbox((0, 0), "= FESTIVAL PERKS =", font=font_arialbd_9)
+        draw.text((mid_cx - (bb_perks[2] - bb_perks[0]) // 2, 132), "= FESTIVAL PERKS =", fill=(251, 191, 36), font=font_arialbd_9)
+
+        bb_dhol = draw.textbbox((0, 0), "LIVE GUJARATI DHOL", font=font_georgiab_15)
+        draw.text((mid_cx - (bb_dhol[2] - bb_dhol[0]) // 2, 153), "LIVE GUJARATI DHOL", fill=(255, 248, 232), font=font_georgiab_15)
+
+        bb_sub1 = draw.textbbox((0, 0), "DJ Night • Dandiya Raas • 360° Booth", font=font_arial_10)
+        draw.text((mid_cx - (bb_sub1[2] - bb_sub1[0]) // 2, 176), "DJ Night • Dandiya Raas • 360° Booth", fill=(243, 228, 178), font=font_arial_10)
+
+        bb_sub2 = draw.textbbox((0, 0), "Complimentary Food Voucher Included", font=font_arialbd_9)
+        draw.text((mid_cx - (bb_sub2[2] - bb_sub2[0]) // 2, 196), "Complimentary Food Voucher Included", fill=(251, 191, 36), font=font_arialbd_9)
 
         # Divider line inside badge
-        draw.line([(585, 242), (785, 242)], fill=(212, 175, 55, 100), width=1)
+        draw.line([(585, 220), (785, 220)], fill=(212, 175, 55, 120), width=1)
 
-        # Attendee info
+        # PASS HOLDER - centered along same axis
+        bb_ph = draw.textbbox((0, 0), "PASS HOLDER", font=font_arialbd_9)
+        draw.text((mid_cx - (bb_ph[2] - bb_ph[0]) // 2, 232), "PASS HOLDER", fill=(243, 228, 178), font=font_arialbd_9)
+
         cust_name = getattr(ticket, "customer_name", None) or getattr(booking, "customer_name", "Valued Guest")
-        draw.text((mid_cx - 45, 255), "PASS HOLDER", fill=(243, 228, 178), font=font_arialbd_9)
-        draw.text((mid_cx - 40, 275), str(cust_name)[:20], fill=(255, 255, 255), font=font_arialbd_12)
-        draw.text((mid_cx - 45, 305), "✓ ADMIT 1 PERSON", fill=(52, 211, 153), font=font_arialbd_10)
-        draw.text((mid_cx - 40, 330), "NON-TRANSFERABLE", fill=(243, 228, 178), font=font_arial_10)
+        bb_nm = draw.textbbox((0, 0), str(cust_name)[:26], font=font_arialbd_13)
+        draw.text((mid_cx - (bb_nm[2] - bb_nm[0]) // 2, 250), str(cust_name)[:26], fill=(255, 255, 255), font=font_arialbd_13)
+
+        # ADMISSION SECTION - centered
+        bb_adm = draw.textbbox((0, 0), "= ADMIT 1 PERSON =", font=font_arialbd_11)
+        draw.text((mid_cx - (bb_adm[2] - bb_adm[0]) // 2, 282), "= ADMIT 1 PERSON =", fill=(52, 211, 153), font=font_arialbd_11)
+
+        bb_nt = draw.textbbox((0, 0), "NON-TRANSFERABLE", font=font_arialbd_9)
+        draw.text((mid_cx - (bb_nt[2] - bb_nt[0]) // 2, 305), "NON-TRANSFERABLE", fill=(243, 228, 178), font=font_arialbd_9)
 
         # Perforation seam line at x=825
-        for y_dash in range(28, 400, 10):
+        for y_dash in range(26, 400, 10):
             draw.line([(825, y_dash), (825, y_dash + 5)], fill=(212, 175, 55), width=2)
-        draw.ellipse([818, 18, 832, 32], fill=(6, 7, 12))
+        draw.ellipse([818, 16, 832, 30], fill=(6, 7, 12))
         draw.ellipse([818, 396, 832, 410], fill=(6, 7, 12))
 
         # 2. Clean and draw Authoritative Right-Side Ticket Stub (Renders EXACTLY ONCE)
-        draw.rectangle([826, 25, 1012, 400], fill=(53, 10, 17))
-        stub_cx = 918
-        y_cur = 28
+        draw.rectangle([826, 18, 1014, 404], fill=(53, 10, 17))
+        stub_cx = 920
+        y_cur = 26
 
         # A. ENTRY PASS
-        bs1 = draw.textbbox((0, 0), "ENTRY PASS", font=font_georgia_12)
-        draw.text((stub_cx - (bs1[2] - bs1[0]) // 2, y_cur), "ENTRY PASS", fill=(255, 245, 230), font=font_georgia_12)
-        y_cur += 16
+        bb_ep = draw.textbbox((0, 0), "ENTRY PASS", font=font_georgia_12)
+        draw.text((stub_cx - (bb_ep[2] - bb_ep[0]) // 2, y_cur), "ENTRY PASS", fill=(255, 245, 230), font=font_georgia_12)
+        y_cur += 17
 
         # B. Phase Label (EARLY BIRD / PHASE 1)
-        bs2 = draw.textbbox((0, 0), phase_label, font=font_georgiab_15)
-        draw.text((stub_cx - (bs2[2] - bs2[0]) // 2, y_cur), phase_label, fill=(251, 191, 36), font=font_georgiab_15)
+        bb_eb = draw.textbbox((0, 0), phase_label, font=font_georgiab_15)
+        draw.text((stub_cx - (bb_eb[2] - bb_eb[0]) // 2, y_cur), phase_label, fill=(251, 191, 36), font=font_georgiab_15)
         y_cur += 18
 
-        # C. Offer Label (STAG ENTRY, COUPLE, GROUP OF 10)
-        bs2b = draw.textbbox((0, 0), offer_label, font=font_arialbd_10)
-        draw.text((stub_cx - (bs2b[2] - bs2b[0]) // 2, y_cur), offer_label, fill=(255, 245, 230), font=font_arialbd_10)
+        # C. Offer Label (SINGLE ENTRY, COUPLE, GROUP OF 10)
+        bb_se = draw.textbbox((0, 0), offer_label, font=font_arialbd_10)
+        draw.text((stub_cx - (bb_se[2] - bb_se[0]) // 2, y_cur), offer_label, fill=(255, 245, 230), font=font_arialbd_10)
         y_cur += 15
 
         # D. TICKET NO.
-        bs4 = draw.textbbox((0, 0), "TICKET NO.", font=font_arialbd_9)
-        draw.text((stub_cx - (bs4[2] - bs4[0]) // 2, y_cur), "TICKET NO.", fill=(243, 228, 178), font=font_arialbd_9)
+        bb_tkt = draw.textbbox((0, 0), "TICKET NO.", font=font_arialbd_9)
+        draw.text((stub_cx - (bb_tkt[2] - bb_tkt[0]) // 2, y_cur), "TICKET NO.", fill=(243, 228, 178), font=font_arialbd_9)
         y_cur += 12
 
         # E. Unique Ticket ID
         tkt_no_str = getattr(ticket, "ticket_id", None) or f"{booking.booking_id}-01"
-        bs5 = draw.textbbox((0, 0), tkt_no_str, font=font_arialbd_10)
-        draw.text((stub_cx - (bs5[2] - bs5[0]) // 2, y_cur), tkt_no_str, fill=(255, 255, 255), font=font_arialbd_10)
+        bb_tid = draw.textbbox((0, 0), tkt_no_str, font=font_arialbd_10)
+        draw.text((stub_cx - (bb_tid[2] - bb_tid[0]) // 2, y_cur), tkt_no_str, fill=(255, 255, 255), font=font_arialbd_10)
         y_cur += 16
 
         # F. Scannable Pure White QR Code Card (High-Contrast, Pure White Quiet Zone)
@@ -183,61 +204,110 @@ class TicketService:
         qr.add_data(qr_token)
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color="#000000", back_color="#FFFFFF").convert("RGB")
-        qr_img = qr_img.resize((102, 102), PILImage.Resampling.LANCZOS)
+        qr_img = qr_img.resize((100, 100), PILImage.Resampling.LANCZOS)
 
-        draw.rounded_rectangle([stub_cx - 55, y_cur, stub_cx + 55, y_cur + 110], radius=6, fill=(255, 255, 255))
-        img.paste(qr_img, (stub_cx - 51, y_cur + 4))
-        y_cur += 114
+        draw.rounded_rectangle([stub_cx - 54, y_cur, stub_cx + 54, y_cur + 108], radius=6, fill=(255, 255, 255))
+        img.paste(qr_img, (stub_cx - 50, y_cur + 4))
+        y_cur += 112
 
         # G. SCAN TO VERIFY
-        bs6 = draw.textbbox((0, 0), "SCAN TO VERIFY", font=font_arialbd_9)
-        draw.text((stub_cx - (bs6[2] - bs6[0]) // 2, y_cur), "SCAN TO VERIFY", fill=(255, 245, 230), font=font_arialbd_9)
+        bb_sc = draw.textbbox((0, 0), "SCAN TO VERIFY", font=font_arialbd_9)
+        draw.text((stub_cx - (bb_sc[2] - bb_sc[0]) // 2, y_cur), "SCAN TO VERIFY", fill=(255, 245, 230), font=font_arialbd_9)
         y_cur += 16
 
         # H. Dynamic Event Date
         event_date_str = str(event_setting.event_date or "17 OCT 2026").upper()
         if "OCTOBER" in event_date_str:
             event_date_str = event_date_str.replace("OCTOBER", "OCT")
-        b_dt = draw.textbbox((0, 0), event_date_str, font=font_arialbd_11)
-        draw.text((stub_cx - (b_dt[2] - b_dt[0]) // 2, y_cur), event_date_str, fill=(255, 248, 232), font=font_arialbd_11)
+        bb_dt = draw.textbbox((0, 0), event_date_str, font=font_arialbd_11)
+        draw.text((stub_cx - (bb_dt[2] - bb_dt[0]) // 2, y_cur), event_date_str, fill=(255, 248, 232), font=font_arialbd_11)
         y_cur += 15
 
         # I. Event Timings (06:30 PM - 10:00 PM)
-        b_tm = draw.textbbox((0, 0), "06:30 PM - 10:00 PM", font=font_arial_10)
-        draw.text((stub_cx - (b_tm[2] - b_tm[0]) // 2, y_cur), "06:30 PM - 10:00 PM", fill=(255, 248, 232), font=font_arial_10)
+        bb_tm = draw.textbbox((0, 0), "06:30 PM - 10:00 PM", font=font_arial_10)
+        draw.text((stub_cx - (bb_tm[2] - bb_tm[0]) // 2, y_cur), "06:30 PM - 10:00 PM", fill=(255, 248, 232), font=font_arial_10)
         y_cur += 13
 
         # J. Gate Opening Time (05:30 PM)
-        b_gate = draw.textbbox((0, 0), "Gate Opening: 05:30 PM", font=font_arialbd_9)
-        draw.text((stub_cx - (b_gate[2] - b_gate[0]) // 2, y_cur), "Gate Opening: 05:30 PM", fill=(251, 191, 36), font=font_arialbd_9)
+        bb_gt = draw.textbbox((0, 0), "Gate Opening: 05:30 PM", font=font_arialbd_9)
+        draw.text((stub_cx - (bb_gt[2] - bb_gt[0]) // 2, y_cur), "Gate Opening: 05:30 PM", fill=(251, 191, 36), font=font_arialbd_9)
         y_cur += 15
 
         # K. Authoritative Venue: THE GREEN ACRES, Mysuru
         venue_name_str = (event_setting.venue_name or "The Green Acres").upper()
-        b_vn = draw.textbbox((0, 0), venue_name_str, font=font_arialbd_11)
-        draw.text((stub_cx - (b_vn[2] - b_vn[0]) // 2, y_cur), venue_name_str, fill=(255, 248, 232), font=font_arialbd_11)
+        bb_vn = draw.textbbox((0, 0), venue_name_str, font=font_arialbd_11)
+        draw.text((stub_cx - (bb_vn[2] - bb_vn[0]) // 2, y_cur), venue_name_str, fill=(255, 248, 232), font=font_arialbd_11)
         y_cur += 13
 
-        b_cty = draw.textbbox((0, 0), "Mysuru", font=font_arial_10)
-        draw.text((stub_cx - (b_cty[2] - b_cty[0]) // 2, y_cur), "Mysuru", fill=(243, 228, 178), font=font_arial_10)
+        bb_my = draw.textbbox((0, 0), "Mysuru", font=font_arial_10)
+        draw.text((stub_cx - (bb_my[2] - bb_my[0]) // 2, y_cur), "Mysuru", fill=(243, 228, 178), font=font_arial_10)
 
         # L. Multi-pass Counter (if applicable)
         if total_passes > 1:
             pass_order_str = f"PASS {pass_idx} OF {total_passes}"
-            b_cnt = draw.textbbox((0, 0), pass_order_str, font=font_arialbd_9)
-            draw.text((stub_cx - (b_cnt[2] - b_cnt[0]) // 2, y_cur + 13), pass_order_str, fill=(251, 191, 36), font=font_arialbd_9)
+            bb_cnt = draw.textbbox((0, 0), pass_order_str, font=font_arialbd_9)
+            draw.text((stub_cx - (bb_cnt[2] - bb_cnt[0]) // 2, y_cur + 13), pass_order_str, fill=(251, 191, 36), font=font_arialbd_9)
 
-        # 3. Clean Single Unified Footer Banner (Zero sponsor boxes/circles/labels)
-        draw.rounded_rectangle([18, 400, 1006, 488], radius=10, fill=(250, 243, 224), outline=(212, 175, 55), width=2)
+        # 3. New Bottom Branding / Sponsor Section (3-Column Layout with Pure Black Fill & Gold Border)
+        draw.rounded_rectangle([18, 400, 1006, 492], radius=10, fill=(0, 0, 0), outline=(212, 175, 55), width=2)
+        draw.line([(290, 410), (290, 482)], fill=(212, 175, 55), width=1)
+        draw.line([(734, 410), (734, 482)], fill=(212, 175, 55), width=1)
 
-        footer_l1 = "An event by Heritage Production,"
-        footer_l2 = "curated by The Happy Circle in association with Wedeos Entertainment"
+        # LEFT COLUMN: Happy Circle
+        left_cx = (18 + 290) // 2
+        bb_cur = draw.textbbox((0, 0), "CURATED BY", font=font_arialbd_9)
+        draw.text((left_cx - (bb_cur[2] - bb_cur[0]) // 2, 407), "CURATED BY", fill=(243, 228, 178), font=font_arialbd_9)
 
-        b_f1 = draw.textbbox((0, 0), footer_l1, font=font_footer)
-        draw.text((512 - (b_f1[2] - b_f1[0]) // 2, 420), footer_l1, fill=(70, 15, 25), font=font_footer)
+        hc_logo_path = os.path.join(base_dir, "static", "happy-circle-logo.png")
+        if os.path.exists(hc_logo_path):
+            try:
+                hc_im = PILImage.open(hc_logo_path)
+                hc_h = 44
+                hc_w = int(hc_h * (hc_im.width / hc_im.height))
+                hc_resized = hc_im.resize((hc_w, hc_h), PILImage.Resampling.LANCZOS)
+                hc_x = left_cx - hc_w // 2
+                hc_y = 422
+                if hc_resized.mode == "RGBA":
+                    img.paste(hc_resized, (hc_x, hc_y), hc_resized)
+                else:
+                    img.paste(hc_resized, (hc_x, hc_y))
+            except Exception:
+                pass
 
-        b_f2 = draw.textbbox((0, 0), footer_l2, font=font_footer_sub)
-        draw.text((512 - (b_f2[2] - b_f2[0]) // 2, 444), footer_l2, fill=(120, 53, 15), font=font_footer_sub)
+        bb_hcn = draw.textbbox((0, 0), "The Happy Circle", font=font_arialbd_9)
+        draw.text((left_cx - (bb_hcn[2] - bb_hcn[0]) // 2, 471), "The Happy Circle", fill=(255, 248, 232), font=font_arialbd_9)
+
+        # CENTER COLUMN: SPONSORS & PARTNERS
+        center_cx = (290 + 734) // 2
+        bb_sp = draw.textbbox((0, 0), "SPONSORS", font=font_arialbd_10)
+        draw.text((center_cx - (bb_sp[2] - bb_sp[0]) // 2, 410), "SPONSORS", fill=(251, 191, 36), font=font_arialbd_10)
+
+        bb_st1 = draw.textbbox((0, 0), "Heritage Production × The Happy Circle", font=font_georgiab_14)
+        draw.text((center_cx - (bb_st1[2] - bb_st1[0]) // 2, 432), "Heritage Production × The Happy Circle", fill=(255, 248, 232), font=font_georgiab_14)
+
+        bb_st2 = draw.textbbox((0, 0), "Production partner Wedeos Entertainment", font=font_arial_10)
+        draw.text((center_cx - (bb_st2[2] - bb_st2[0]) // 2, 458), "Production partner Wedeos Entertainment", fill=(243, 228, 178), font=font_arial_10)
+
+        # RIGHT COLUMN: Wedeos Entertainment
+        right_cx = (734 + 1006) // 2
+        bb_prod = draw.textbbox((0, 0), "PRODUCTION PARTNER", font=font_arialbd_9)
+        draw.text((right_cx - (bb_prod[2] - bb_prod[0]) // 2, 407), "PRODUCTION PARTNER", fill=(243, 228, 178), font=font_arialbd_9)
+
+        wedeos_logo_path = os.path.join(base_dir, "static", "wedeos-logo.jpg")
+        if os.path.exists(wedeos_logo_path):
+            try:
+                w_im = PILImage.open(wedeos_logo_path)
+                w_h = 36
+                w_w = int(w_h * (w_im.width / w_im.height))
+                w_resized = w_im.resize((w_w, w_h), PILImage.Resampling.LANCZOS)
+                w_x = right_cx - w_w // 2
+                w_y = 424
+                img.paste(w_resized, (w_x, w_y))
+            except Exception:
+                pass
+
+        bb_wnm = draw.textbbox((0, 0), "Wedeos Entertainment", font=font_arialbd_9)
+        draw.text((right_cx - (bb_wnm[2] - bb_wnm[0]) // 2, 471), "Wedeos Entertainment", fill=(255, 248, 232), font=font_arialbd_9)
 
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG", quality=95)
@@ -260,7 +330,7 @@ class TicketService:
         # 1. Official NAVRANG 2026 Entry Pass Visual
         tkt_img_bytes = cls.generate_ticket_image_bytes(booking, ticket, event_setting)
         img_w = 7.8 * inch
-        img_h = img_w * (494.0 / 1024.0)
+        img_h = img_w * (506.0 / 1024.0)
         story.append(Image(io.BytesIO(tkt_img_bytes), width=img_w, height=img_h))
         story.append(Spacer(1, 14))
 
@@ -332,7 +402,7 @@ class TicketService:
 
             tkt_img_bytes = cls.generate_ticket_image_bytes(booking, ticket, event_setting)
             img_w = 7.8 * inch
-            img_h = img_w * (494.0 / 1024.0)
+            img_h = img_w * (506.0 / 1024.0)
             story.append(Image(io.BytesIO(tkt_img_bytes), width=img_w, height=img_h))
             story.append(Spacer(1, 14))
 

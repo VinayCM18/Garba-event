@@ -459,7 +459,7 @@ class EmailService:
             elif getattr(booking, "child_name", None) or booking.ticket_price == 300.0:
                 offer_title_display = "Kids (5–12 years)"
             else:
-                offer_title_display = "Early Bird — Stag Entry" if booking.amount == 599.0 else "Stag Entry"
+                offer_title_display = "Early Bird — Single Entry" if booking.amount == 599.0 else "Single Entry"
 
         child_row_html = ""
         if getattr(booking, "child_name", None):
@@ -626,7 +626,7 @@ class EmailService:
         elif getattr(booking, "child_name", None) or "kid" in combined_offer or "child" in combined_offer:
             offer_label = "KIDS ENTRY"
         else:
-            offer_label = "STAG ENTRY"
+            offer_label = "SINGLE ENTRY"
 
         multi_pass_notice = ""
         if booking.ticket_count > 1:
@@ -665,32 +665,35 @@ class EmailService:
 
             <!-- Main Body: Left (Perks & Holder), Right (Stub + QR + Details) -->
             <tr>
-              <!-- Left Section: Festival Perks & Attendee Info (Non-duplicated content) -->
+              <!-- Left Section: Festival Perks & Attendee Info (Centered and Aligned) -->
               <td width="60%" style="padding: 16px; vertical-align: middle;">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #2E080E; border: 1px solid rgba(212, 175, 55, 0.4); border-radius: 12px; padding: 14px; text-align: center;">
                   <tr>
-                    <td>
-                      <div style="font-size: 10px; font-weight: 800; color: #FBBF24; letter-spacing: 1.5px; text-transform: uppercase;">
-                        &#10070; ALL-INCLUSIVE PASS PERKS &#10070;
+                    <td align="center">
+                      <div style="font-size: 10px; font-weight: 800; color: #FBBF24; letter-spacing: 1px; text-transform: uppercase;">
+                        = FESTIVAL PERKS =
                       </div>
                       <div style="font-size: 16px; font-weight: 900; color: #FFF8E8; font-family: Georgia, serif; letter-spacing: 1px; margin-top: 6px;">
-                        LIVE GUJARATI DHOL &bull; DJ
+                        LIVE GUJARATI DHOL
                       </div>
                       <div style="font-size: 11px; color: #F3E4B2; margin-top: 4px;">
-                        Dandiya Raas &bull; 360&deg; Photo Booth
+                        DJ Night &bull; Dandiya Raas &bull; 360&deg; Booth
                       </div>
                       <div style="font-size: 11px; font-weight: 800; color: #FBBF24; margin-top: 4px;">
-                        Complimentary Food Voucher &bull; Drinks &bull; Sticks
+                        Complimentary Food Voucher Included
                       </div>
-                      <div style="border-top: 1px dashed rgba(212, 175, 55, 0.4); margin: 10px 0;"></div>
+                      <div style="border-top: 1px dashed rgba(212, 175, 55, 0.4); margin: 12px auto; width: 85%;"></div>
                       <div style="font-size: 9px; font-weight: 800; color: #F3E4B2; text-transform: uppercase; letter-spacing: 1px;">
                         PASS HOLDER
                       </div>
                       <div style="font-size: 14px; font-weight: 900; color: #FFFFFF; margin-top: 2px;">
                         {getattr(booking, 'customer_name', 'Valued Attendee')}
                       </div>
-                      <div style="font-size: 11px; font-weight: 800; color: #34D399; margin-top: 4px;">
-                        &#10003; VALID ADMISSION PASS
+                      <div style="font-size: 11px; font-weight: 800; color: #34D399; margin-top: 6px;">
+                        = ADMIT 1 PERSON =
+                      </div>
+                      <div style="font-size: 9px; font-weight: 700; color: #F3E4B2; margin-top: 2px;">
+                        NON-TRANSFERABLE
                       </div>
                     </td>
                   </tr>
@@ -749,13 +752,47 @@ class EmailService:
               </td>
             </tr>
 
-            <!-- Single Unified Footer Statement (Zero Sponsor Boxes/Labels/Placeholders) -->
+            <!-- New Bottom Branding / Sponsor Section (3 Columns with thin gold dividers) -->
             <tr>
-              <td colspan="2" style="background: #FAF3E0; border-top: 2px solid #D4AF37; padding: 12px 16px; text-align: center;">
-                <div style="font-size: 12px; font-weight: 900; color: #460F19; font-family: Georgia, serif; line-height: 1.4;">
-                  An event by Heritage Production,<br/>
-                  <span style="font-size: 11px; font-weight: 700; color: #78350F;">curated by The Happy Circle in association with Wedeos Entertainment</span>
-                </div>
+              <td colspan="2" style="background: #000000; border-top: 2px solid #D4AF37; padding: 10px 12px; text-align: center;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <!-- Left: Happy Circle -->
+                    <td width="28%" align="center" style="vertical-align: middle; border-right: 1px solid #D4AF37; padding: 4px 6px;">
+                      <div style="font-size: 8px; font-weight: 800; color: #F3E4B2; letter-spacing: 0.5px; text-transform: uppercase;">
+                        CURATED BY
+                      </div>
+                      <img src="https://www.heritageproduction.online/images/happy-circle-logo.png" alt="The Happy Circle" width="48" height="32" style="display: block; margin: 4px auto; object-fit: contain;" />
+                      <div style="font-size: 8.5px; font-weight: 800; color: #FFF8E8;">
+                        The Happy Circle
+                      </div>
+                    </td>
+
+                    <!-- Center: Sponsors / Partners -->
+                    <td width="44%" align="center" style="vertical-align: middle; padding: 4px 8px;">
+                      <div style="font-size: 9px; font-weight: 800; color: #FBBF24; letter-spacing: 1px; text-transform: uppercase;">
+                        SPONSORS
+                      </div>
+                      <div style="font-size: 11px; font-weight: 900; color: #FFF8E8; font-family: Georgia, serif; margin-top: 3px;">
+                        Heritage Production &times; The Happy Circle
+                      </div>
+                      <div style="font-size: 9px; font-weight: 600; color: #F3E4B2; margin-top: 2px;">
+                        Production partner Wedeos Entertainment
+                      </div>
+                    </td>
+
+                    <!-- Right: Wedeos Entertainment -->
+                    <td width="28%" align="center" style="vertical-align: middle; border-left: 1px solid #D4AF37; padding: 4px 6px;">
+                      <div style="font-size: 8px; font-weight: 800; color: #F3E4B2; letter-spacing: 0.5px; text-transform: uppercase;">
+                        PRODUCTION PARTNER
+                      </div>
+                      <img src="https://www.heritageproduction.online/images/wedeos-logo.jpg" alt="Wedeos Entertainment" width="76" height="26" style="display: block; margin: 4px auto; object-fit: contain;" />
+                      <div style="font-size: 8.5px; font-weight: 800; color: #FFF8E8;">
+                        Wedeos Entertainment
+                      </div>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
           </table>
@@ -964,7 +1001,7 @@ class EmailService:
             "Early Bird — Group of 10" if booking.ticket_count == 10
             else "Early Bird — Couple Entry" if booking.ticket_count == 2
             else "Kids (5–12 years)" if getattr(booking, "child_name", None) or booking.ticket_price == 300.0
-            else "Early Bird — Stag Entry"
+            else "Early Bird — Single Entry"
         )
         child_alert_row = ""
         if getattr(booking, "child_name", None):
