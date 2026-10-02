@@ -59,8 +59,8 @@ class TicketService:
         - Ornate 3D gold embossed NAVRANG DANDIYA 2026 central branding with crossed dandiya sticks
         - Scalloped royal ivory arch cartouche with dynamic Phase Name & Offer Type
         - Event details with Date, 06:30 PM - 10:00 PM (Gate Opening: 5:30 PM), and The Green Acres venue
-        - Vertical perforated tear-off stub with dynamic ticket number, pure white QR card, and SCAN TO VERIFY
-        - Clean sponsor footer strip (Location Partner: The Green Acres) without gray placeholder circles
+        - Vertical perforated tear-off stub with dynamic ticket number, pure white QR card, and event admission details
+        - Single unified footer statement ("An event by Heritage Production, curated by The Happy Circle in association with Wedeos Entertainment")
         Returns high-quality JPEG bytes.
         """
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -72,7 +72,7 @@ class TicketService:
         elif os.path.exists(fallback_tpl):
             img = PILImage.open(fallback_tpl).convert("RGB")
         else:
-            img = PILImage.new("RGB", (1024, 494), "#4A0E17")
+            img = PILImage.new("RGB", (1024, 506), "#4A0E17")
 
         draw = ImageDraw.Draw(img)
         w, h = img.size
@@ -110,115 +110,134 @@ class TicketService:
             offer_label = "STAG ENTRY"
 
         # Fonts
-        font_cart_sub = cls._get_font("georgia.ttf", 13)
-        font_cart_phase = cls._get_font("georgiab.ttf", 20)
-        font_cart_type = cls._get_font("arialbd.ttf", 10)
+        font_georgia_12 = cls._get_font("georgia.ttf", 12)
+        font_georgiab_15 = cls._get_font("georgiab.ttf", 15)
+        font_arial_10 = cls._get_font("arial.ttf", 10)
+        font_arialbd_9 = cls._get_font("arialbd.ttf", 9)
+        font_arialbd_10 = cls._get_font("arialbd.ttf", 10)
+        font_arialbd_11 = cls._get_font("arialbd.ttf", 11)
+        font_arialbd_12 = cls._get_font("arialbd.ttf", 12)
+        font_footer = cls._get_font("georgiab.ttf", 13)
+        font_footer_sub = cls._get_font("georgiab.ttf", 11)
 
-        font_dt_bold = cls._get_font("arialbd.ttf", 13)
-        font_dt_sub = cls._get_font("arial.ttf", 11)
-        font_dt_gate = cls._get_font("arialbd.ttf", 11)
+        # 1. Clean and draw Middle Decorative Card (Attendee & Inclusions - zero duplication)
+        draw.rectangle([545, 90, 825, 400], fill=(68, 14, 22))
+        draw.rounded_rectangle([565, 125, 805, 365], radius=14, fill=(58, 12, 20), outline=(212, 175, 55, 140), width=1)
 
-        font_stub_sub = cls._get_font("georgia.ttf", 12)
-        font_stub_phase = cls._get_font("georgiab.ttf", 15)
-        font_stub_type = cls._get_font("arialbd.ttf", 9)
-        font_stub_div = cls._get_font("georgia.ttf", 11)
-        font_stub_lbl = cls._get_font("arialbd.ttf", 9)
-        font_stub_id = cls._get_font("arialbd.ttf", 11)
-        font_stub_scan = cls._get_font("arialbd.ttf", 9)
-        font_sp_val = cls._get_font("arialbd.ttf", 10)
+        mid_cx = 685
+        draw.text((mid_cx - 55, 145), "❖ FESTIVAL PERKS ❖", fill=(251, 191, 36), font=font_arialbd_9)
+        draw.text((mid_cx - 65, 170), "LIVE GUJARATI DHOL", fill=(255, 248, 232), font=font_georgiab_15)
+        draw.text((mid_cx - 75, 195), "DJ Night • Dandiya Raas • 360° Booth", fill=(243, 228, 178), font=font_arial_10)
+        draw.text((mid_cx - 85, 215), "Complimentary Food Voucher Included", fill=(251, 191, 36), font=font_arialbd_9)
 
-        # 1. Clean and draw Cartouche text (centered around x=675, y=166)
-        cart_cx = 675
-        draw.rounded_rectangle([605, 126, 745, 205], radius=8, fill=(255, 248, 232))
+        # Divider line inside badge
+        draw.line([(585, 242), (785, 242)], fill=(212, 175, 55, 100), width=1)
 
-        b1 = draw.textbbox((0, 0), "ENTRY PASS", font=font_cart_sub)
-        draw.text((cart_cx - (b1[2] - b1[0]) // 2, 134), "ENTRY PASS", fill=(70, 15, 25), font=font_cart_sub)
+        # Attendee info
+        cust_name = getattr(ticket, "customer_name", None) or getattr(booking, "customer_name", "Valued Guest")
+        draw.text((mid_cx - 45, 255), "PASS HOLDER", fill=(243, 228, 178), font=font_arialbd_9)
+        draw.text((mid_cx - 40, 275), str(cust_name)[:20], fill=(255, 255, 255), font=font_arialbd_12)
+        draw.text((mid_cx - 45, 305), "✓ ADMIT 1 PERSON", fill=(52, 211, 153), font=font_arialbd_10)
+        draw.text((mid_cx - 40, 330), "NON-TRANSFERABLE", fill=(243, 228, 178), font=font_arial_10)
 
-        b2 = draw.textbbox((0, 0), phase_label, font=font_cart_phase)
-        draw.text((cart_cx - (b2[2] - b2[0]) // 2, 153), phase_label, fill=(70, 15, 25), font=font_cart_phase)
+        # Perforation seam line at x=825
+        for y_dash in range(28, 400, 10):
+            draw.line([(825, y_dash), (825, y_dash + 5)], fill=(212, 175, 55), width=2)
+        draw.ellipse([818, 18, 832, 32], fill=(6, 7, 12))
+        draw.ellipse([818, 396, 832, 410], fill=(6, 7, 12))
 
-        b3 = draw.textbbox((0, 0), f"❖ {offer_label} ❖", font=font_cart_type)
-        draw.text((cart_cx - (b3[2] - b3[0]) // 2, 182), f"❖ {offer_label} ❖", fill=(180, 83, 9), font=font_cart_type)
+        # 2. Clean and draw Authoritative Right-Side Ticket Stub (Renders EXACTLY ONCE)
+        draw.rectangle([826, 25, 1012, 400], fill=(53, 10, 17))
+        stub_cx = 918
+        y_cur = 28
 
-        # 2. Clean and draw Event Details text (preserving the 3 white icons at x=580..604)
-        draw.rounded_rectangle([606, 236, 795, 355], radius=6, fill=(80, 19, 28))
+        # A. ENTRY PASS
+        bs1 = draw.textbbox((0, 0), "ENTRY PASS", font=font_georgia_12)
+        draw.text((stub_cx - (bs1[2] - bs1[0]) // 2, y_cur), "ENTRY PASS", fill=(255, 245, 230), font=font_georgia_12)
+        y_cur += 16
 
-        # Dynamic Event Date
-        event_date_str = str(event_setting.event_date or "17 OCT 2026").upper()
-        if "OCTOBER" in event_date_str:
-            event_date_str = event_date_str.replace("OCTOBER", "OCT")
-        draw.text((608, 242), event_date_str, fill=(255, 248, 232), font=font_dt_bold)
+        # B. Phase Label (EARLY BIRD / PHASE 1)
+        bs2 = draw.textbbox((0, 0), phase_label, font=font_georgiab_15)
+        draw.text((stub_cx - (bs2[2] - bs2[0]) // 2, y_cur), phase_label, fill=(251, 191, 36), font=font_georgiab_15)
+        y_cur += 18
 
-        # Synchronized Timings & Explicit Gate Opening 5:30 PM (as requested)
-        draw.text((608, 268), "06:30 PM - 10:00 PM", fill=(255, 248, 232), font=font_dt_bold)
-        draw.text((608, 286), "Gate Opening: 5:30 PM", fill=(251, 191, 36), font=font_dt_gate)
+        # C. Offer Label (STAG ENTRY, COUPLE, GROUP OF 10)
+        bs2b = draw.textbbox((0, 0), offer_label, font=font_arialbd_10)
+        draw.text((stub_cx - (bs2b[2] - bs2b[0]) // 2, y_cur), offer_label, fill=(255, 245, 230), font=font_arialbd_10)
+        y_cur += 15
 
-        # Configured Venue: The Green Acres, Mysuru (as requested)
-        venue_name_str = (event_setting.venue_name or "The Green Acres").upper()
-        venue_sub_str = f"{event_setting.venue_address or 'The Green Acres, Mysuru'}"
-        draw.text((608, 310), venue_name_str, fill=(255, 248, 232), font=font_dt_bold)
-        draw.text((608, 328), venue_sub_str[:32], fill=(243, 228, 178), font=font_dt_sub)
+        # D. TICKET NO.
+        bs4 = draw.textbbox((0, 0), "TICKET NO.", font=font_arialbd_9)
+        draw.text((stub_cx - (bs4[2] - bs4[0]) // 2, y_cur), "TICKET NO.", fill=(243, 228, 178), font=font_arialbd_9)
+        y_cur += 12
 
-        # 3. Clean and draw Stub Area (x=848 to 1010)
-        draw.rectangle([848, 28, 1010, 375], fill=(78, 20, 30))
-        stub_cx = 928
-
-        bs1 = draw.textbbox((0, 0), "ENTRY PASS", font=font_stub_sub)
-        draw.text((stub_cx - (bs1[2] - bs1[0]) // 2, 34), "ENTRY PASS", fill=(255, 245, 230), font=font_stub_sub)
-
-        bs2 = draw.textbbox((0, 0), phase_label, font=font_stub_phase)
-        draw.text((stub_cx - (bs2[2] - bs2[0]) // 2, 50), phase_label, fill=(251, 191, 36), font=font_stub_phase)
-
-        bs2b = draw.textbbox((0, 0), offer_label, font=font_stub_type)
-        draw.text((stub_cx - (bs2b[2] - bs2b[0]) // 2, 69), offer_label, fill=(255, 245, 230), font=font_stub_type)
-
-        bs3 = draw.textbbox((0, 0), "✦ ❖ ✦", font=font_stub_div)
-        draw.text((stub_cx - (bs3[2] - bs3[0]) // 2, 83), "✦ ❖ ✦", fill=(212, 175, 55), font=font_stub_div)
-
-        bs4 = draw.textbbox((0, 0), "TICKET NO.", font=font_stub_lbl)
-        draw.text((stub_cx - (bs4[2] - bs4[0]) // 2, 100), "TICKET NO.", fill=(243, 228, 178), font=font_stub_lbl)
-
+        # E. Unique Ticket ID
         tkt_no_str = getattr(ticket, "ticket_id", None) or f"{booking.booking_id}-01"
-        bs5 = draw.textbbox((0, 0), tkt_no_str, font=font_stub_id)
-        draw.text((stub_cx - (bs5[2] - bs5[0]) // 2, 114), tkt_no_str, fill=(255, 255, 255), font=font_stub_id)
+        bs5 = draw.textbbox((0, 0), tkt_no_str, font=font_arialbd_10)
+        draw.text((stub_cx - (bs5[2] - bs5[0]) // 2, y_cur), tkt_no_str, fill=(255, 255, 255), font=font_arialbd_10)
+        y_cur += 16
 
-        # Scannable White QR Code Card (High-Contrast, Pure White Quiet Zone)
+        # F. Scannable Pure White QR Code Card (High-Contrast, Pure White Quiet Zone)
         qr_token = getattr(ticket, "qr_token_raw", None) or getattr(ticket, "ticket_id", None) or getattr(booking, "booking_id", "NAV2026")
         qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=3, border=1)
         qr.add_data(qr_token)
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color="#000000", back_color="#FFFFFF").convert("RGB")
-        qr_img = qr_img.resize((124, 124), PILImage.Resampling.LANCZOS)
+        qr_img = qr_img.resize((102, 102), PILImage.Resampling.LANCZOS)
 
-        draw.rounded_rectangle([860, 136, 996, 272], radius=6, fill=(255, 255, 255))
-        img.paste(qr_img, (866, 142))
+        draw.rounded_rectangle([stub_cx - 55, y_cur, stub_cx + 55, y_cur + 110], radius=6, fill=(255, 255, 255))
+        img.paste(qr_img, (stub_cx - 51, y_cur + 4))
+        y_cur += 114
 
-        bs6 = draw.textbbox((0, 0), "SCAN TO VERIFY", font=font_stub_scan)
-        draw.text((stub_cx - (bs6[2] - bs6[0]) // 2, 280), "SCAN TO VERIFY", fill=(255, 245, 230), font=font_stub_scan)
+        # G. SCAN TO VERIFY
+        bs6 = draw.textbbox((0, 0), "SCAN TO VERIFY", font=font_arialbd_9)
+        draw.text((stub_cx - (bs6[2] - bs6[0]) // 2, y_cur), "SCAN TO VERIFY", fill=(255, 245, 230), font=font_arialbd_9)
+        y_cur += 16
 
+        # H. Dynamic Event Date
+        event_date_str = str(event_setting.event_date or "17 OCT 2026").upper()
+        if "OCTOBER" in event_date_str:
+            event_date_str = event_date_str.replace("OCTOBER", "OCT")
+        b_dt = draw.textbbox((0, 0), event_date_str, font=font_arialbd_11)
+        draw.text((stub_cx - (b_dt[2] - b_dt[0]) // 2, y_cur), event_date_str, fill=(255, 248, 232), font=font_arialbd_11)
+        y_cur += 15
+
+        # I. Event Timings (06:30 PM - 10:00 PM)
+        b_tm = draw.textbbox((0, 0), "06:30 PM - 10:00 PM", font=font_arial_10)
+        draw.text((stub_cx - (b_tm[2] - b_tm[0]) // 2, y_cur), "06:30 PM - 10:00 PM", fill=(255, 248, 232), font=font_arial_10)
+        y_cur += 13
+
+        # J. Gate Opening Time (05:30 PM)
+        b_gate = draw.textbbox((0, 0), "Gate Opening: 05:30 PM", font=font_arialbd_9)
+        draw.text((stub_cx - (b_gate[2] - b_gate[0]) // 2, y_cur), "Gate Opening: 05:30 PM", fill=(251, 191, 36), font=font_arialbd_9)
+        y_cur += 15
+
+        # K. Authoritative Venue: THE GREEN ACRES, Mysuru
+        venue_name_str = (event_setting.venue_name or "The Green Acres").upper()
+        b_vn = draw.textbbox((0, 0), venue_name_str, font=font_arialbd_11)
+        draw.text((stub_cx - (b_vn[2] - b_vn[0]) // 2, y_cur), venue_name_str, fill=(255, 248, 232), font=font_arialbd_11)
+        y_cur += 13
+
+        b_cty = draw.textbbox((0, 0), "Mysuru", font=font_arial_10)
+        draw.text((stub_cx - (b_cty[2] - b_cty[0]) // 2, y_cur), "Mysuru", fill=(243, 228, 178), font=font_arial_10)
+
+        # L. Multi-pass Counter (if applicable)
         if total_passes > 1:
             pass_order_str = f"PASS {pass_idx} OF {total_passes}"
-            bs7 = draw.textbbox((0, 0), pass_order_str, font=font_stub_lbl)
-            draw.text((stub_cx - (bs7[2] - bs7[0]) // 2, 296), pass_order_str, fill=(251, 191, 36), font=font_stub_lbl)
+            b_cnt = draw.textbbox((0, 0), pass_order_str, font=font_arialbd_9)
+            draw.text((stub_cx - (b_cnt[2] - b_cnt[0]) // 2, y_cur + 13), pass_order_str, fill=(251, 191, 36), font=font_arialbd_9)
 
-        # 4. Clean Sponsor Footer Strip (zero gray placeholder circles)
-        draw.rectangle([35, 425, 975, 468], fill=(248, 241, 222))
+        # 3. Clean Single Unified Footer Banner (Zero sponsor boxes/circles/labels)
+        draw.rounded_rectangle([18, 400, 1006, 488], radius=10, fill=(250, 243, 224), outline=(212, 175, 55), width=2)
 
-        # Location Partner: The Green Acres
-        b_loc = draw.textbbox((0, 0), "The Green Acres", font=font_sp_val)
-        draw.text((150 - (b_loc[2] - b_loc[0]) // 2, 436), "The Green Acres", fill=(70, 15, 25), font=font_sp_val)
+        footer_l1 = "An event by Heritage Production,"
+        footer_l2 = "curated by The Happy Circle in association with Wedeos Entertainment"
 
-        # Main Sponsor: Heritage Productions
-        b_main = draw.textbbox((0, 0), "HERITAGE PRODUCTIONS", font=font_sp_val)
-        draw.text((370 - (b_main[2] - b_main[0]) // 2, 436), "HERITAGE PRODUCTIONS", fill=(70, 15, 25), font=font_sp_val)
+        b_f1 = draw.textbbox((0, 0), footer_l1, font=font_footer)
+        draw.text((512 - (b_f1[2] - b_f1[0]) // 2, 420), footer_l1, fill=(70, 15, 25), font=font_footer)
 
-        # Co-Sponsor: The Happy Circle
-        b_co = draw.textbbox((0, 0), "THE HAPPY CIRCLE", font=font_sp_val)
-        draw.text((580 - (b_co[2] - b_co[0]) // 2, 436), "THE HAPPY CIRCLE", fill=(70, 15, 25), font=font_sp_val)
-
-        # Event Partners
-        b_oth = draw.textbbox((0, 0), "OFFICIAL ADMISSION PASS • 2026", font=font_sp_val)
-        draw.text((830 - (b_oth[2] - b_oth[0]) // 2, 436), "OFFICIAL ADMISSION PASS • 2026", fill=(70, 15, 25), font=font_sp_val)
+        b_f2 = draw.textbbox((0, 0), footer_l2, font=font_footer_sub)
+        draw.text((512 - (b_f2[2] - b_f2[0]) // 2, 444), footer_l2, fill=(120, 53, 15), font=font_footer_sub)
 
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG", quality=95)

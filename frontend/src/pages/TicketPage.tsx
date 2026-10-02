@@ -165,78 +165,63 @@ export const TicketPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. Main Ticket Body: Left (Cartouche + Details), Right (Stub + QR) */}
+        {/* 2. Main Ticket Body: Left (Perks & Attendee), Right (Stub + QR + Event Details) */}
         <div className="grid grid-cols-1 md:grid-cols-12 relative">
-          {/* Left / Center Section (approx 8 cols) */}
-          <div className="md:col-span-8 p-5 sm:p-6 flex flex-col justify-between gap-5 relative z-10">
-            {/* Scalloped Royal Ivory Arch Cartouche */}
-            <div className="bg-[#FFF9E8] border-2 border-[#D4AF37] rounded-2xl p-4 sm:p-5 text-center shadow-md relative overflow-hidden">
-              <div className="text-[10px] sm:text-xs font-black text-[#460F19] uppercase tracking-widest">
-                ENTRY PASS
+          {/* Left / Center Section: Festival Perks & Attendee Details (Non-duplicated content) */}
+          <div className="md:col-span-7 p-5 sm:p-6 flex flex-col justify-between gap-5 relative z-10">
+            {/* Festival Perks Card */}
+            <div className="bg-[#2E080E] border border-[#D4AF37]/40 rounded-2xl p-4 sm:p-5 text-center shadow-md relative overflow-hidden">
+              <div className="text-[10px] sm:text-xs font-black text-[#FBBF24] uppercase tracking-widest">
+                ❖ ALL-INCLUSIVE PASS PERKS ❖
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-[#460F19] font-['Cinzel'] tracking-wider mt-1">
-                {phaseName}
+              <div className="text-xl sm:text-2xl font-black text-white font-['Cinzel'] tracking-wider mt-2">
+                LIVE GUJARATI DHOL & DJ
               </div>
-              <div className="text-[11px] sm:text-xs font-bold text-[#B45309] uppercase tracking-wider mt-1">
-                ❖ {offerType} ❖
+              <div className="text-xs text-[#F3E4B2] mt-1">
+                Dandiya Raas • 360° Photo Booth
               </div>
-            </div>
+              <div className="text-xs font-bold text-[#FBBF24] mt-2">
+                Complimentary Food Voucher • Drinks • Sticks
+              </div>
 
-            {/* Event Details Grid (Date, Time, Gate, Venue) */}
-            <div className="space-y-3.5 text-xs sm:text-sm text-[#FFF8E8]">
-              <div className="flex items-start gap-3">
-                <span className="text-base sm:text-lg">📅</span>
-                <div>
-                  <div className="font-extrabold tracking-wide text-white sm:text-base">
-                    {config?.event_date || '17 OCT 2026'}
-                  </div>
-                  <div className="text-[11px] text-[#F3E4B2]">Official Gala Night</div>
+              {/* Inclusions Row */}
+              <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-[#D4AF37]/20 text-[11px] text-slate-200">
+                <div className="p-2 rounded-lg bg-black/40">
+                  <span className="block text-base mb-1">🍽️</span>
+                  <span className="font-bold text-white text-[10px] block">FOOD</span>
+                  <span className="text-[9px] text-[#F3E4B2]">Voucher</span>
                 </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="text-base sm:text-lg">🕐</span>
-                <div>
-                  <div className="font-extrabold tracking-wide text-white sm:text-base">
-                    {config?.event_time || '06:30 PM - 10:00 PM'}
-                  </div>
-                  <div className="text-xs font-black text-[#FBBF24]">
-                    Gate Opening: 5:30 PM
-                  </div>
+                <div className="p-2 rounded-lg bg-black/40">
+                  <span className="block text-base mb-1">🥤</span>
+                  <span className="font-bold text-white text-[10px] block">DRINK</span>
+                  <span className="text-[9px] text-[#F3E4B2]">Welcome</span>
                 </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="text-base sm:text-lg">📍</span>
-                <div>
-                  <div className="font-extrabold tracking-wide text-white sm:text-base uppercase">
-                    {config?.venue_name || 'The Green Acres'}
-                  </div>
-                  <div className="text-[11px] text-[#F3E4B2]">
-                    {config?.venue_address || 'The Green Acres, Mysuru'}
-                  </div>
+                <div className="p-2 rounded-lg bg-black/40">
+                  <span className="block text-base mb-1">🪄</span>
+                  <span className="font-bold text-white text-[10px] block">STICKS</span>
+                  <span className="text-[9px] text-[#F3E4B2]">Provided</span>
                 </div>
               </div>
             </div>
 
             {/* Attendee info badge */}
-            <div className="p-3 rounded-xl bg-black/40 border border-[#D4AF37]/30 flex items-center justify-between text-xs">
+            <div className="p-3.5 rounded-xl bg-black/50 border border-[#D4AF37]/30 flex items-center justify-between text-xs">
               <div>
-                <div className="text-[9px] uppercase font-bold text-[#F3E4B2]/70">ATTENDEE NAME</div>
+                <div className="text-[9px] uppercase font-bold text-[#F3E4B2]/70">PASS HOLDER</div>
                 <div className="text-sm font-black text-white truncate max-w-[200px] sm:max-w-none">{ticket.customer_name}</div>
               </div>
               <div className="text-right">
-                <div className="text-[9px] uppercase font-bold text-[#F3E4B2]/70">STATUS</div>
+                <div className="text-[9px] uppercase font-bold text-[#F3E4B2]/70">ADMISSION STATUS</div>
                 <div className="text-xs font-bold text-emerald-400 flex items-center gap-1 justify-end">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>{isUsed ? 'CHECKED IN' : isCancelled ? 'CANCELLED' : 'VALID ENTRY'}</span>
+                  <span>{isUsed ? 'CHECKED IN' : isCancelled ? 'CANCELLED' : 'VALID ENTRY PASS'}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Section: Tear-off Stub (approx 4 cols) */}
-          <div className="md:col-span-4 p-5 sm:p-6 bg-[#350A11] border-t-2 md:border-t-0 md:border-l-2 border-dashed border-[#D4AF37] flex flex-col items-center justify-center text-center relative">
+          {/* Right Section: Authoritative Single Admission Panel (approx 5 cols) */}
+          <div className="md:col-span-5 p-5 sm:p-6 bg-[#350A11] border-t-2 md:border-t-0 md:border-l-2 border-dashed border-[#D4AF37] flex flex-col items-center justify-center text-center relative">
             {/* Perforation Seam Cutout Notches */}
             <div className="hidden md:block absolute -top-3 -left-3 w-6 h-6 rounded-full bg-[#0a0a0c] border border-[#D4AF37]/30" />
             <div className="hidden md:block absolute -bottom-3 -left-3 w-6 h-6 rounded-full bg-[#0a0a0c] border border-[#D4AF37]/30" />
@@ -244,10 +229,10 @@ export const TicketPage: React.FC = () => {
             <div className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-[#F3E4B2]">
               ENTRY PASS
             </div>
-            <div className="text-sm font-black text-[#FBBF24] font-['Cinzel'] tracking-wider mt-0.5">
+            <div className="text-base sm:text-lg font-black text-[#FBBF24] font-['Cinzel'] tracking-wider mt-0.5">
               {phaseName}
             </div>
-            <div className="text-[10px] font-bold text-white uppercase tracking-wider">
+            <div className="text-xs font-bold text-white uppercase tracking-wider">
               {offerType}
             </div>
 
@@ -258,7 +243,7 @@ export const TicketPage: React.FC = () => {
             <div className="text-[9px] uppercase font-bold tracking-widest text-[#F3E4B2]/70">
               TICKET NO.
             </div>
-            <div className="text-xs sm:text-sm font-black font-mono text-white tracking-wider mb-3">
+            <div className="text-xs sm:text-sm font-black font-mono text-white tracking-wider mb-2.5">
               {ticket.ticket_id}
             </div>
 
@@ -271,34 +256,44 @@ export const TicketPage: React.FC = () => {
               />
             </div>
 
-            <div className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#FFF8E8] mt-2.5">
+            <div className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#FFF8E8] mt-2">
               SCAN TO VERIFY
             </div>
-            <div className="text-[10px] text-[#F3E4B2]/80 mt-1">
-              Admit 1 Person
+
+            {/* Event Details: Date, Time, Gate, Venue (Rendered EXACTLY ONCE) */}
+            <div className="mt-3 pt-3 border-t border-[#D4AF37]/30 w-full space-y-1 text-center">
+              <div className="text-xs font-black text-white flex items-center justify-center gap-1.5">
+                <span>📅</span>
+                <span>{config?.event_date || '17 OCT 2026'}</span>
+              </div>
+              <div className="text-[11px] text-[#F3E4B2] flex items-center justify-center gap-1.5">
+                <span>🕐</span>
+                <span>{config?.event_time || '06:30 PM - 10:00 PM'}</span>
+              </div>
+              <div className="text-[11px] font-black text-[#FBBF24]">
+                Gate Opening: 5:30 PM
+              </div>
+              <div className="text-xs font-black text-white uppercase mt-1 flex items-center justify-center gap-1.5">
+                <span>📍</span>
+                <span>{config?.venue_name || 'The Green Acres'}</span>
+              </div>
+              <div className="text-[10px] text-[#F3E4B2]">
+                {config?.venue_address || 'The Green Acres, Mysuru'}
+              </div>
+              <div className="text-[10px] text-amber-300/80 font-bold mt-1">
+                Admit 1 Person
+              </div>
             </div>
           </div>
         </div>
 
-        {/* 3. Sponsor Strip (Location Partner: The Green Acres, Main Sponsor, Co-Sponsor - Zero gray circles) */}
-        <div className="bg-[#FAF3E0] border-t border-[#D4AF37] p-3 sm:p-3.5 text-[#460F19]">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs divide-x divide-[#460F19]/15">
-            <div className="px-2">
-              <div className="text-[8px] sm:text-[9px] font-black uppercase text-[#78350F] tracking-wider">LOCATION PARTNER</div>
-              <div className="text-[11px] sm:text-xs font-black text-[#460F19] mt-0.5">The Green Acres</div>
-            </div>
-            <div className="px-2">
-              <div className="text-[8px] sm:text-[9px] font-black uppercase text-[#78350F] tracking-wider">MAIN SPONSOR</div>
-              <div className="text-[10px] sm:text-[11px] font-black text-[#460F19] mt-0.5">HERITAGE PRODUCTIONS</div>
-            </div>
-            <div className="px-2">
-              <div className="text-[8px] sm:text-[9px] font-black uppercase text-[#78350F] tracking-wider">CO-SPONSOR</div>
-              <div className="text-[10px] sm:text-[11px] font-black text-[#460F19] mt-0.5">THE HAPPY CIRCLE</div>
-            </div>
-            <div className="px-2">
-              <div className="text-[8px] sm:text-[9px] font-black uppercase text-[#78350F] tracking-wider">PASS STATUS</div>
-              <div className="text-[10px] sm:text-[11px] font-black text-[#15803D] mt-0.5">✓ VALID ENTRY</div>
-            </div>
+        {/* 3. Single Unified Footer Statement (Zero Sponsor Boxes/Labels/Placeholders) */}
+        <div className="bg-[#FAF3E0] border-t-2 border-[#D4AF37] p-3.5 sm:p-4 text-center">
+          <div className="text-xs sm:text-sm font-black font-['Cinzel'] text-[#460F19]">
+            An event by Heritage Production,
+          </div>
+          <div className="text-[11px] sm:text-xs font-bold text-[#78350F] mt-0.5">
+            curated by The Happy Circle in association with Wedeos Entertainment
           </div>
         </div>
       </motion.div>

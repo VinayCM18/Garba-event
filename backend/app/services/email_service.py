@@ -663,54 +663,42 @@ class EmailService:
               </td>
             </tr>
 
-            <!-- Main Body: Left (Cartouche + Details), Right (Stub + QR) -->
+            <!-- Main Body: Left (Perks & Holder), Right (Stub + QR + Details) -->
             <tr>
-              <!-- Left Section -->
-              <td width="64%" style="padding: 16px; vertical-align: top;">
-                <!-- Scalloped Royal Ivory Arch Cartouche -->
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #FFF9E8; border: 2px solid #D4AF37; border-radius: 10px; margin-bottom: 14px; text-align: center;">
+              <!-- Left Section: Festival Perks & Attendee Info (Non-duplicated content) -->
+              <td width="60%" style="padding: 16px; vertical-align: middle;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #2E080E; border: 1px solid rgba(212, 175, 55, 0.4); border-radius: 12px; padding: 14px; text-align: center;">
                   <tr>
-                    <td style="padding: 10px 14px;">
-                      <div style="font-size: 11px; font-weight: 800; color: #460F19; letter-spacing: 1.5px; text-transform: uppercase;">
-                        ENTRY PASS
+                    <td>
+                      <div style="font-size: 10px; font-weight: 800; color: #FBBF24; letter-spacing: 1.5px; text-transform: uppercase;">
+                        &#10070; ALL-INCLUSIVE PASS PERKS &#10070;
                       </div>
-                      <div style="font-size: 20px; font-weight: 900; color: #460F19; font-family: Georgia, serif; letter-spacing: 1px; margin-top: 2px;">
-                        {phase_label}
+                      <div style="font-size: 16px; font-weight: 900; color: #FFF8E8; font-family: Georgia, serif; letter-spacing: 1px; margin-top: 6px;">
+                        LIVE GUJARATI DHOL &bull; DJ
                       </div>
-                      <div style="font-size: 10px; font-weight: 800; color: #B45309; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">
-                        &#10070; {offer_label} &#10070;
+                      <div style="font-size: 11px; color: #F3E4B2; margin-top: 4px;">
+                        Dandiya Raas &bull; 360&deg; Photo Booth
                       </div>
-                    </td>
-                  </tr>
-                </table>
-
-                <!-- Event Details (Date, Time, Gate, Venue) -->
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="color: #FFF8E8; font-size: 12px; line-height: 1.45;">
-                  <tr>
-                    <td width="24" style="vertical-align: top; padding: 4px 0; font-size: 14px;">📅</td>
-                    <td style="padding: 4px 0;">
-                      <strong style="color: #FFF8E8; font-size: 13px;">17 OCT 2026</strong>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="24" style="vertical-align: top; padding: 4px 0; font-size: 14px;">🕐</td>
-                    <td style="padding: 4px 0;">
-                      <strong style="color: #FFF8E8; font-size: 13px;">06:30 PM - 10:00 PM</strong><br/>
-                      <span style="color: #FBBF24; font-weight: 800; font-size: 11px;">Gate Opening: 5:30 PM</span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="24" style="vertical-align: top; padding: 4px 0; font-size: 14px;">📍</td>
-                    <td style="padding: 4px 0;">
-                      <strong style="color: #FFF8E8; font-size: 13px;">THE GREEN ACRES</strong><br/>
-                      <span style="color: #F3E4B2; font-size: 11px;">The Green Acres, Mysuru</span>
+                      <div style="font-size: 11px; font-weight: 800; color: #FBBF24; margin-top: 4px;">
+                        Complimentary Food Voucher &bull; Drinks &bull; Sticks
+                      </div>
+                      <div style="border-top: 1px dashed rgba(212, 175, 55, 0.4); margin: 10px 0;"></div>
+                      <div style="font-size: 9px; font-weight: 800; color: #F3E4B2; text-transform: uppercase; letter-spacing: 1px;">
+                        PASS HOLDER
+                      </div>
+                      <div style="font-size: 14px; font-weight: 900; color: #FFFFFF; margin-top: 2px;">
+                        {getattr(booking, 'customer_name', 'Valued Attendee')}
+                      </div>
+                      <div style="font-size: 11px; font-weight: 800; color: #34D399; margin-top: 4px;">
+                        &#10003; VALID ADMISSION PASS
+                      </div>
                     </td>
                   </tr>
                 </table>
               </td>
 
-              <!-- Right Section: Perforated Tear-Off Stub -->
-              <td width="36%" style="padding: 14px; vertical-align: top; border-left: 2px dashed #D4AF37; text-align: center; background: #350A11;">
+              <!-- Right Section: Authoritative Single Admission Panel -->
+              <td width="40%" style="padding: 14px 12px; vertical-align: top; border-left: 2px dashed #D4AF37; text-align: center; background: #350A11;">
                 <div style="font-size: 11px; font-weight: 800; color: #F3E4B2; letter-spacing: 1px; text-transform: uppercase;">
                   ENTRY PASS
                 </div>
@@ -720,7 +708,7 @@ class EmailService:
                 <div style="font-size: 9px; font-weight: 800; color: #FFF8E8; text-transform: uppercase; margin-top: 1px;">
                   {offer_label}
                 </div>
-                <div style="font-size: 10px; color: #D4AF37; margin: 3px 0;">
+                <div style="font-size: 9px; color: #D4AF37; margin: 3px 0;">
                   &#10022; &#10070; &#10022;
                 </div>
                 <div style="font-size: 9px; font-weight: 700; color: #F3E4B2; text-transform: uppercase; letter-spacing: 0.5px;">
@@ -734,7 +722,7 @@ class EmailService:
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="background: #ffffff; padding: 6px; border-radius: 8px; border: 1px solid #CBD5E1; box-shadow: 0 2px 8px rgba(0,0,0,0.25);">
                   <tr>
                     <td align="center">
-                      <img src="{qr_src}" alt="Scan QR Code" width="118" height="118" style="display: block; width: 118px; height: 118px; border: none;" />
+                      <img src="{qr_src}" alt="Scan QR Code" width="112" height="112" style="display: block; width: 112px; height: 112px; border: none;" />
                     </td>
                   </tr>
                 </table>
@@ -742,33 +730,32 @@ class EmailService:
                 <div style="font-size: 10px; font-weight: 800; color: #FFF8E8; text-transform: uppercase; letter-spacing: 1px; margin-top: 6px;">
                   SCAN TO VERIFY
                 </div>
-                {f'<div style="font-size: 9px; font-weight: 800; color: #FBBF24; margin-top: 3px;">PASS 1 OF {booking.ticket_count}</div>' if booking.ticket_count > 1 else ''}
+                <div style="font-size: 11px; font-weight: 800; color: #FFFFFF; margin-top: 6px;">
+                  17 OCT 2026
+                </div>
+                <div style="font-size: 10px; color: #F3E4B2;">
+                  06:30 PM - 10:00 PM
+                </div>
+                <div style="font-size: 10px; font-weight: 800; color: #FBBF24; margin-top: 1px;">
+                  Gate Opening: 05:30 PM
+                </div>
+                <div style="font-size: 11px; font-weight: 900; color: #FFF8E8; margin-top: 4px; text-transform: uppercase;">
+                  THE GREEN ACRES
+                </div>
+                <div style="font-size: 10px; color: #F3E4B2;">
+                  Mysuru
+                </div>
+                {f'<div style="font-size: 9px; font-weight: 800; color: #FBBF24; margin-top: 4px;">PASS 1 OF {booking.ticket_count}</div>' if booking.ticket_count > 1 else ''}
               </td>
             </tr>
 
-            <!-- Sponsor Strip: Cream and Gold (Zero Placeholder Gray Circles) -->
+            <!-- Single Unified Footer Statement (Zero Sponsor Boxes/Labels/Placeholders) -->
             <tr>
-              <td colspan="2" style="background: #FAF3E0; border-top: 1px solid #D4AF37; padding: 10px 14px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 10px; text-align: center; color: #460F19;">
-                  <tr>
-                    <td width="28%" style="border-right: 1px solid rgba(70,15,25,0.2); vertical-align: middle;">
-                      <div style="font-size: 8px; font-weight: 800; color: #78350F; text-transform: uppercase;">LOCATION PARTNER</div>
-                      <div style="font-size: 11px; font-weight: 900; color: #460F19; margin-top: 2px;">THE GREEN ACRES</div>
-                    </td>
-                    <td width="26%" style="border-right: 1px solid rgba(70,15,25,0.2); vertical-align: middle;">
-                      <div style="font-size: 8px; font-weight: 800; color: #78350F; text-transform: uppercase;">MAIN SPONSOR</div>
-                      <div style="font-size: 10px; font-weight: 900; color: #460F19; margin-top: 2px;">HERITAGE PRODUCTIONS</div>
-                    </td>
-                    <td width="26%" style="border-right: 1px solid rgba(70,15,25,0.2); vertical-align: middle;">
-                      <div style="font-size: 8px; font-weight: 800; color: #78350F; text-transform: uppercase;">CO-SPONSOR</div>
-                      <div style="font-size: 10px; font-weight: 900; color: #460F19; margin-top: 2px;">THE HAPPY CIRCLE</div>
-                    </td>
-                    <td width="20%" style="vertical-align: middle;">
-                      <div style="font-size: 8px; font-weight: 800; color: #78350F; text-transform: uppercase;">PASS STATUS</div>
-                      <div style="font-size: 10px; font-weight: 900; color: #15803D; margin-top: 2px;">&#10003; VALID ENTRY</div>
-                    </td>
-                  </tr>
-                </table>
+              <td colspan="2" style="background: #FAF3E0; border-top: 2px solid #D4AF37; padding: 12px 16px; text-align: center;">
+                <div style="font-size: 12px; font-weight: 900; color: #460F19; font-family: Georgia, serif; line-height: 1.4;">
+                  An event by Heritage Production,<br/>
+                  <span style="font-size: 11px; font-weight: 700; color: #78350F;">curated by The Happy Circle in association with Wedeos Entertainment</span>
+                </div>
               </td>
             </tr>
           </table>
