@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
+from app.utils.timezone import UtcDatetime
 
 class TicketResponse(BaseModel):
     ticket_id: str
@@ -9,8 +10,8 @@ class TicketResponse(BaseModel):
     event_name: str
     ticket_status: str
     checkin_status: bool
-    checked_in_at: Optional[datetime] = None
-    created_at: datetime
+    checked_in_at: Optional[UtcDatetime] = None
+    created_at: UtcDatetime
     qr_token_raw: Optional[str] = None
     qr_code_base64: Optional[str] = None
     ticket_url: Optional[str] = None
@@ -30,7 +31,7 @@ class VerifyQRResponse(BaseModel):
     event_name: Optional[str] = None
     ticket_status: Optional[str] = None
     checkin_status: Optional[bool] = None
-    checked_in_at: Optional[datetime] = None
+    checked_in_at: Optional[UtcDatetime] = None
     qr_token_raw: Optional[str] = None
 
 class CheckInRequest(BaseModel):
@@ -45,5 +46,5 @@ class CheckInResponse(BaseModel):
     ticket_id: Optional[str] = None
     booking_id: Optional[str] = None
     customer_name: Optional[str] = None
-    checked_in_at: Optional[datetime] = None
+    checked_in_at: Optional[UtcDatetime] = None
     staff_name: Optional[str] = None

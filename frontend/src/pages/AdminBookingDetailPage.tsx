@@ -31,6 +31,7 @@ import {
 } from '../services/api';
 import { Booking } from '../types';
 import { useToast } from '../components/Toast';
+import { formatDateTimeIST } from '../utils/dateUtils';
 
 export const AdminBookingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -353,7 +354,7 @@ export const AdminBookingDetailPage: React.FC = () => {
             <div>
               <div className="text-[10px] text-slate-500 uppercase">Registration Date</div>
               <div className="text-slate-300 mt-0.5">
-                {new Date(booking.created_at).toLocaleString('en-IN')}
+                {formatDateTimeIST(booking.created_at)}
               </div>
             </div>
           </div>
@@ -452,7 +453,7 @@ export const AdminBookingDetailPage: React.FC = () => {
                   {booking.verified_at && (
                     <div className="flex justify-between text-slate-400">
                       <span>Verified At:</span>
-                      <span className="text-slate-300">{new Date(booking.verified_at).toLocaleString('en-IN')}</span>
+                      <span className="text-slate-300">{formatDateTimeIST(booking.verified_at)}</span>
                     </div>
                   )}
                   {booking.rejection_reason && (
@@ -474,7 +475,7 @@ export const AdminBookingDetailPage: React.FC = () => {
                   {booking.verified_at && (
                     <div className="flex justify-between text-slate-400">
                       <span>Paid / Verified At:</span>
-                      <span className="text-slate-300 font-mono">{new Date(booking.verified_at).toLocaleString('en-IN')}</span>
+                      <span className="text-slate-300 font-mono">{formatDateTimeIST(booking.verified_at)}</span>
                     </div>
                   )}
                 </>
@@ -527,7 +528,7 @@ export const AdminBookingDetailPage: React.FC = () => {
               </div>
               {booking.email_sent_at && (
                 <div className="text-[10px] text-slate-400 mt-1">
-                  Sent: {new Date(booking.email_sent_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  Sent: {formatDateTimeIST(booking.email_sent_at)}
                 </div>
               )}
               {booking.email_error && (
@@ -552,7 +553,7 @@ export const AdminBookingDetailPage: React.FC = () => {
               </div>
               {booking.owner_notified_at && (
                 <div className="text-[10px] text-slate-400 mt-1">
-                  Sent: {new Date(booking.owner_notified_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  Sent: {formatDateTimeIST(booking.owner_notified_at)}
                 </div>
               )}
               {booking.owner_notify_error && !booking.owner_notified && (
@@ -597,7 +598,7 @@ export const AdminBookingDetailPage: React.FC = () => {
                   </span>
                   {t.checked_in_at && (
                     <span className="text-[10px] text-slate-400">
-                      at {new Date(t.checked_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                      at {formatDateTimeIST(t.checked_in_at)}
                     </span>
                   )}
                 </div>

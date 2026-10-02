@@ -38,6 +38,7 @@ import {
 import { DashboardAnalytics, CheckInRecord, RecentNotification } from '../types';
 import { useToast } from '../components/Toast';
 import { AdminTicketPhasesCard } from '../components/AdminTicketPhasesCard';
+import { formatDateTimeIST } from '../utils/dateUtils';
 
 export const AdminDashboardPage: React.FC = () => {
   const [data, setData] = useState<DashboardAnalytics | null>(null);
@@ -405,10 +406,7 @@ export const AdminDashboardPage: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-[10px] text-slate-500 mt-1">
-                      {new Date(b.created_at).toLocaleTimeString('en-IN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {formatDateTimeIST(b.created_at)}
                     </div>
                   </div>
                 </div>
@@ -478,10 +476,7 @@ export const AdminDashboardPage: React.FC = () => {
                       {item.result}
                     </span>
                     <div className="text-[10px] text-slate-500 mt-0.5">
-                      {new Date(item.checked_in_at).toLocaleTimeString('en-IN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {formatDateTimeIST(item.checked_in_at)}
                     </div>
                   </div>
                 </div>

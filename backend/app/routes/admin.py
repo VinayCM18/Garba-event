@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, or_
 from datetime import datetime, timedelta
+from app.utils.timezone import utc_to_ist, format_ist_datetime
 from app.database import get_db
 from app.models.user import User
 from app.models.booking import Booking
@@ -122,10 +123,11 @@ def get_analytics(current_user: User = Depends(require_admin), db: Session = Dep
             count=0 # Will populate dynamically from checkins
         ))
 
-    # Populate real check-in counts from db
+    # Populate real check-in counts from db (aggregated in IST event night hours)
     checkin_records = db.query(CheckIn).filter(CheckIn.result == "SUCCESS").all()
     for ci in checkin_records:
-        h = ci.checked_in_at.strftime("%I %p")
+        ist_dt = utc_to_ist(ci.checked_in_at)
+        h = ist_dt.strftime("%I %p") if ist_dt else ""
         for item in checkin_trend:
             if item.hour == h:
                 item.count += 1
@@ -512,7 +514,7 @@ def export_bookings_csv(
         "Ticket Count", "Ticket Price (INR)", "Regular Amount (INR)", "Group Discount (INR)", "Offer Name",
         "Subtotal (INR)", "Payment Fee (INR)", "GST (INR)", "Total Paid (INR)",
         "Payment Status", "Booking Status", "Razorpay Payment ID",
-        "Email Status", "Created At"
+        "Email Status", "Created At (IST)"
     ])
 
     for b in bookings:
@@ -540,7 +542,7 @@ def export_bookings_csv(
             b.booking_status,
             b.razorpay_payment_id or "N/A",
             b.email_status,
-            b.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            format_ist_datetime(b.created_at, "%d %b %Y, %I:%M %p")
         ])
 
     csv_data = output.getvalue()

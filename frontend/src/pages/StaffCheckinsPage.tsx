@@ -3,6 +3,7 @@ import { ClipboardList, CheckCircle2, AlertTriangle, XCircle, RefreshCw } from '
 import { fetchStaffCheckins } from '../services/api';
 import { StaffRecentCheckIn } from '../types';
 import { useToast } from '../components/Toast';
+import { formatDateTimeIST } from '../utils/dateUtils';
 
 export const StaffCheckinsPage: React.FC = () => {
   const [logs, setLogs] = useState<StaffRecentCheckIn[]>([]);
@@ -118,15 +119,7 @@ export const StaffCheckinsPage: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap font-mono text-[11px]">
-                      {log.checked_in_at
-                        ? new Date(log.checked_in_at).toLocaleString([], {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit'
-                          })
-                        : 'N/A'}
+                      {formatDateTimeIST(log.checked_in_at, { includeSeconds: true })}
                     </td>
                     <td className="py-3.5 px-4 text-slate-500">
                       {log.device_information || 'Staff Terminal'}

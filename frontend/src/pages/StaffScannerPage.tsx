@@ -19,6 +19,7 @@ import {
 import { staffVerifyTicket, staffCheckInTicket } from '../services/api';
 import { QRVerifyResult, CheckInResult } from '../types';
 import { useToast } from '../components/Toast';
+import { formatDateTimeIST, formatTimeIST } from '../utils/dateUtils';
 
 export const StaffScannerPage: React.FC = () => {
   const { success, error, warning } = useToast();
@@ -339,7 +340,7 @@ export const StaffScannerPage: React.FC = () => {
           ticketId: res.ticket_id || tokenToSubmit,
           customerName: res.customer_name || 'Guest',
           result: 'SUCCESS',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          time: formatTimeIST(new Date(), { includeSeconds: true })
         },
         ...prev.slice(0, 19)
       ]);
@@ -593,7 +594,7 @@ export const StaffScannerPage: React.FC = () => {
                     </div>
                     <div className="text-xs text-amber-300/90 mt-1 font-mono">
                       {scanResult.checked_in_at
-                        ? `Time: ${new Date(scanResult.checked_in_at).toLocaleTimeString()}`
+                        ? `Time: ${formatDateTimeIST(scanResult.checked_in_at, { includeSeconds: true })}`
                         : 'Already Scanned'}
                     </div>
                     <div className="text-[11px] text-amber-200/80 mt-1">

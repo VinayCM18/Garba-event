@@ -350,7 +350,8 @@ def checkin_ticket(
         db.add(checkin_log)
         db.commit()
 
-        time_str = ticket.checked_in_at.strftime("%I:%M %p") if ticket.checked_in_at else "Earlier"
+        from app.utils.timezone import utc_to_ist
+        time_str = utc_to_ist(ticket.checked_in_at).strftime("%I:%M %p") if ticket.checked_in_at else "Earlier"
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"⚠️ TICKET ALREADY USED! Checked in at {time_str}. Duplicate entry rejected."

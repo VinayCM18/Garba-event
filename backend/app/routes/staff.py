@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, or_
 from datetime import datetime
+from app.utils.timezone import UtcDatetime, utc_to_ist
 from typing import List, Optional
 from pydantic import BaseModel
 
@@ -32,7 +33,7 @@ class StaffVerifyResponse(BaseModel):
     event_name: Optional[str] = None
     ticket_status: Optional[str] = None
     checkin_status: Optional[bool] = None
-    checked_in_at: Optional[datetime] = None
+    checked_in_at: Optional[UtcDatetime] = None
     qr_token_raw: Optional[str] = None
 
 class StaffCheckInRequest(BaseModel):
@@ -47,14 +48,14 @@ class StaffCheckInResponse(BaseModel):
     ticket_id: Optional[str] = None
     booking_id: Optional[str] = None
     customer_name: Optional[str] = None
-    checked_in_at: Optional[datetime] = None
+    checked_in_at: Optional[UtcDatetime] = None
     staff_name: Optional[str] = None
 
 class StaffRecentCheckIn(BaseModel):
     id: int
     ticket_id: str
     customer_name: str
-    checked_in_at: Optional[datetime] = None
+    checked_in_at: Optional[UtcDatetime] = None
     result: str
     device_information: Optional[str] = None
 
@@ -75,7 +76,7 @@ class StaffSearchItem(BaseModel):
     phone: Optional[str] = None
     ticket_status: str
     checkin_status: bool
-    checked_in_at: Optional[datetime] = None
+    checked_in_at: Optional[UtcDatetime] = None
 
 
 # --- Endpoints ---
@@ -175,7 +176,7 @@ def staff_verify_ticket(
         )
 
     if ticket.checkin_status:
-        time_str = ticket.checked_in_at.strftime("%I:%M %p") if ticket.checked_in_at else "Earlier"
+        time_str = utc_to_ist(ticket.checked_in_at).strftime("%I:%M %p") if ticket.checked_in_at else "Earlier"
         return StaffVerifyResponse(
             valid=False,
             status="USED",
@@ -270,7 +271,7 @@ def staff_checkin_ticket(
         db.add(checkin_log)
         db.commit()
 
-        time_str = ticket.checked_in_at.strftime("%I:%M %p") if ticket.checked_in_at else "Earlier"
+        time_str = utc_to_ist(ticket.checked_in_at).strftime("%I:%M %p") if ticket.checked_in_at else "Earlier"
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"⚠️ Ticket Already Checked In at {time_str} (Ticket: {ticket.ticket_id})"

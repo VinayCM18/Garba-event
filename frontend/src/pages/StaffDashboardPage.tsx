@@ -15,6 +15,7 @@ import {
 import { fetchStaffDashboard } from '../services/api';
 import { StaffDashboardStats } from '../types';
 import { useToast } from '../components/Toast';
+import { formatDateTimeIST } from '../utils/dateUtils';
 
 export const StaffDashboardPage: React.FC = () => {
   const [stats, setStats] = useState<StaffDashboardStats | null>(null);
@@ -270,7 +271,7 @@ export const StaffDashboardPage: React.FC = () => {
                       </td>
                       <td className="py-3 px-3 text-slate-400 whitespace-nowrap">
                         {log.checked_in_at
-                          ? new Date(log.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                          ? formatDateTimeIST(log.checked_in_at, { includeSeconds: true })
                           : 'Just now'}
                       </td>
                       <td className="py-3 px-3 text-slate-500 truncate max-w-[120px]">

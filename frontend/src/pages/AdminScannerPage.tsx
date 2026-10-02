@@ -19,6 +19,7 @@ import {
 import { verifyQR, checkInQR } from '../services/api';
 import { QRVerifyResult, CheckInResult } from '../types';
 import { useToast } from '../components/Toast';
+import { formatDateTimeIST, formatTimeIST } from '../utils/dateUtils';
 
 export const AdminScannerPage: React.FC = () => {
   const { success, error, warning } = useToast();
@@ -429,7 +430,7 @@ export const AdminScannerPage: React.FC = () => {
           ticketId: res.ticket_id || scanResult?.ticket_id || 'N/A',
           customerName: res.customer_name || scanResult?.customer_name || 'Attendee',
           result: 'Admitted',
-          time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          time: formatTimeIST(new Date(), { includeSeconds: true }),
         },
         ...prev,
       ]);
@@ -696,11 +697,7 @@ export const AdminScannerPage: React.FC = () => {
             <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-amber-300">
               Original Admission Timestamp:{' '}
               <strong>
-                {new Date(scanResult.checked_in_at).toLocaleTimeString('en-IN', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                })}
+                {formatDateTimeIST(scanResult.checked_in_at, { includeSeconds: true })}
               </strong>
               . Duplicate entry denied.
             </div>
@@ -736,10 +733,7 @@ export const AdminScannerPage: React.FC = () => {
               </div>
               <div>
                 Admitted at:{' '}
-                {new Date(checkinSuccessInfo.checked_in_at || Date.now()).toLocaleTimeString('en-IN', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}{' '}
+                {formatDateTimeIST(checkinSuccessInfo.checked_in_at || Date.now())}{' '}
                 by {checkinSuccessInfo.staff_name || 'Turnstile Staff'}.
               </div>
             </div>

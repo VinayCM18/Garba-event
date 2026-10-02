@@ -28,6 +28,7 @@ import {
 } from '../services/api';
 import { PaymentVerificationItem } from '../types';
 import { useToast } from '../components/Toast';
+import { formatDateTimeIST } from '../utils/dateUtils';
 
 export const AdminPaymentVerificationPage: React.FC = () => {
   const { success, error, info } = useToast();
@@ -329,7 +330,7 @@ export const AdminPaymentVerificationPage: React.FC = () => {
 
                     <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-slate-500" />
-                      <span>{new Date(item.created_at).toLocaleString('en-IN')}</span>
+                      <span>{formatDateTimeIST(item.created_at)}</span>
                     </div>
 
                     <div className="pt-1">

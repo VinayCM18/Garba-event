@@ -125,6 +125,8 @@ class EventSettingUpdateRequest(BaseModel):
     razorpay_key_secret: Optional[str] = None
     razorpay_webhook_secret: Optional[str] = None
 
+from app.utils.timezone import UtcDatetime
+
 class PaymentVerificationItem(BaseModel):
     id: int
     booking_id: str
@@ -140,11 +142,11 @@ class PaymentVerificationItem(BaseModel):
     screenshot_url: Optional[str] = None
     payment_status: str
     booking_status: str
-    submitted_at: Optional[datetime] = None
+    submitted_at: Optional[UtcDatetime] = None
     verified_by: Optional[str] = None
-    verified_at: Optional[datetime] = None
+    verified_at: Optional[UtcDatetime] = None
     rejection_reason: Optional[str] = None
-    created_at: datetime
+    created_at: UtcDatetime
 
 class PaymentRejectRequest(BaseModel):
     reason: str
@@ -164,7 +166,7 @@ class RecentNotificationItem(BaseModel):
     booking_status: str
     email_status: str
     owner_notified: bool
-    created_at: datetime
+    created_at: UtcDatetime
 
 class CheckInLogItem(BaseModel):
     id: int
@@ -173,7 +175,7 @@ class CheckInLogItem(BaseModel):
     customer_name: str
     staff_name: Optional[str] = None
     result: str
-    checked_in_at: datetime
+    checked_in_at: UtcDatetime
     ip_address: Optional[str] = None
     device_information: Optional[str] = None
 
@@ -186,4 +188,4 @@ class AuditLogItem(BaseModel):
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
     details: Optional[str] = None
-    timestamp: datetime
+    timestamp: UtcDatetime

@@ -3,6 +3,7 @@ import { ShieldAlert, RefreshCw, User, Clock, Terminal } from 'lucide-react';
 import { fetchAdminAuditLogs } from '../services/api';
 import { AuditLogRecord } from '../types';
 import { useToast } from '../components/Toast';
+import { formatDateTimeIST } from '../utils/dateUtils';
 
 export const AdminAuditLogsPage: React.FC = () => {
   const [logs, setLogs] = useState<AuditLogRecord[]>([]);
@@ -85,13 +86,7 @@ export const AdminAuditLogsPage: React.FC = () => {
                       {log.details || '—'}
                     </td>
                     <td className="py-3.5 px-4 text-right text-slate-400">
-                      {new Date(log.timestamp).toLocaleDateString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}
+                      {formatDateTimeIST(log.timestamp, { includeSeconds: true })}
                     </td>
                   </tr>
                 ))

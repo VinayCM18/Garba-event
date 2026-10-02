@@ -22,6 +22,8 @@ class BookingCreateRequest(BaseModel):
     ticket_count: int = Field(..., ge=1, le=10)
     idempotency_key: Optional[str] = None
 
+from app.utils.timezone import UtcDatetime
+
 class BookingDetailResponse(BaseModel):
     id: int
     booking_id: str
@@ -49,22 +51,22 @@ class BookingDetailResponse(BaseModel):
     utr_number: Optional[str] = None
     payment_screenshot: Optional[str] = None
     verified_by: Optional[str] = None
-    verified_at: Optional[datetime] = None
+    verified_at: Optional[UtcDatetime] = None
     rejection_reason: Optional[str] = None
     razorpay_order_id: Optional[str] = None
     razorpay_payment_id: Optional[str] = None
     payment_status: str
     booking_status: str
     email_status: str
-    email_sent_at: Optional[datetime] = None
+    email_sent_at: Optional[UtcDatetime] = None
     email_error: Optional[str] = None
     admin_email_status: Optional[str] = "PENDING"
-    admin_email_sent_at: Optional[datetime] = None
+    admin_email_sent_at: Optional[UtcDatetime] = None
     admin_email_error: Optional[str] = None
     owner_notified: bool = False
-    owner_notified_at: Optional[datetime] = None
+    owner_notified_at: Optional[UtcDatetime] = None
     owner_notify_error: Optional[str] = None
-    created_at: datetime
+    created_at: UtcDatetime
     tickets: List[TicketResponse] = []
     items: List[BookingItemResponse] = []
     children_details: Optional[List[Dict[str, Any]]] = None

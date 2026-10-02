@@ -28,6 +28,7 @@ import {
 } from '../services/api';
 import { Booking } from '../types';
 import { useToast } from '../components/Toast';
+import { formatDateTimeIST } from '../utils/dateUtils';
 
 export const AdminBookingsPage: React.FC = () => {
   const { success, error, info } = useToast();
@@ -341,25 +342,13 @@ export const AdminBookingsPage: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4 text-slate-400 text-[11px] whitespace-nowrap">
-                        {new Date(b.created_at).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {formatDateTimeIST(b.created_at)}
                       </td>
 
                       <td className="py-3.5 px-4 text-slate-400 text-[11px] whitespace-nowrap font-mono">
                         {b.verified_at ? (
                           <span className="text-emerald-300">
-                            {new Date(b.verified_at).toLocaleDateString('en-IN', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {formatDateTimeIST(b.verified_at)}
                           </span>
                         ) : (
                           <span className="text-slate-600">—</span>

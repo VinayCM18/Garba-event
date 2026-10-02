@@ -3,6 +3,7 @@ import { RefreshCw, ShieldCheck, CheckCircle2, AlertTriangle, XCircle, Search } 
 import { fetchAdminCheckins } from '../services/api';
 import { CheckInRecord } from '../types';
 import { useToast } from '../components/Toast';
+import { formatDateTimeIST } from '../utils/dateUtils';
 
 export const AdminCheckinsPage: React.FC = () => {
   const [checkins, setCheckins] = useState<CheckInRecord[]>([]);
@@ -132,13 +133,7 @@ export const AdminCheckinsPage: React.FC = () => {
                     </td>
 
                     <td className="py-3.5 px-4 text-right text-slate-400 text-[11px]">
-                      {new Date(r.checked_in_at).toLocaleDateString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}
+                      {formatDateTimeIST(r.checked_in_at, { includeSeconds: true })}
                     </td>
                   </tr>
                 ))

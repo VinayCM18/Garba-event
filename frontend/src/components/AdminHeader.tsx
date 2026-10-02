@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, QrCode, Clock, ShieldCheck } from 'lucide-react';
 
+import { formatTimeIST } from '../utils/dateUtils';
+
 interface AdminHeaderProps {
   title: string;
   onOpenMobileSidebar: () => void;
@@ -12,8 +14,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileSid
 
   useEffect(() => {
     const updateTime = () => {
-      const now = new Date();
-      setTimeStr(now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }));
+      setTimeStr(formatTimeIST(new Date(), { includeSeconds: true }));
     };
     updateTime();
     const timer = setInterval(updateTime, 1000);
