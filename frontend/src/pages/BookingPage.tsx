@@ -178,6 +178,8 @@ declare global {
   }
 }
 
+
+
 export const BookingPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -788,17 +790,29 @@ export const BookingPage: React.FC = () => {
 
                       {/* Pass Inclusions */}
                       <div className="mt-3 pt-3 border-t border-white/[0.08] space-y-1.5 text-xs text-slate-300">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>Complimentary food voucher</span>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Complimentary food (Jain food available)</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>Complimentary welcome drink / mocktail</span>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Complimentary drinks</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>Dandiya sticks provided</span>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Complimentary Dandiya sticks</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Two DJs for the first time in Mysuru!</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Special high-energy DJ Jamming Session</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>A grand Dandiya night filled with music, dance, and entertainment!</span>
                         </div>
                       </div>
                     </div>
@@ -934,17 +948,29 @@ export const BookingPage: React.FC = () => {
 
                       {/* Pass Inclusions */}
                       <div className="mt-3 pt-3 border-t border-white/[0.08] space-y-1.5 text-xs text-slate-300">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>Complimentary food voucher</span>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Complimentary food (Jain food available)</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>Complimentary welcome drink / mocktail</span>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Complimentary drinks</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>Dandiya sticks provided</span>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Complimentary Dandiya sticks</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Two DJs for the first time in Mysuru!</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Special high-energy DJ Jamming Session</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>A grand Dandiya night filled with music, dance, and entertainment!</span>
                         </div>
                       </div>
                     </div>
@@ -1077,17 +1103,29 @@ export const BookingPage: React.FC = () => {
 
                     {/* Pass Inclusions */}
                     <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-1.5 text-xs text-slate-500">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                        <span>Complimentary food voucher</span>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
+                        <span>Complimentary food (Jain food available)</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                        <span>Complimentary welcome drink / mocktail</span>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
+                        <span>Complimentary drinks</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                        <span>Dandiya sticks provided</span>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
+                        <span>Complimentary Dandiya sticks</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
+                        <span>Two DJs for the first time in Mysuru!</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
+                        <span>Special high-energy DJ Jamming Session</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
+                        <span>A grand Dandiya night filled with music, dance, and entertainment!</span>
                       </div>
                     </div>
                   </div>
