@@ -277,16 +277,13 @@ class TicketService:
         bb_hcn = draw.textbbox((0, 0), "The Happy Circle", font=font_arialbd_9)
         draw.text((left_cx - (bb_hcn[2] - bb_hcn[0]) // 2, 471), "The Happy Circle", fill=(255, 248, 232), font=font_arialbd_9)
 
-        # CENTER COLUMN: SPONSORS & PARTNERS
+        # CENTER COLUMN: Collaboration & Production Partner
         center_cx = (290 + 734) // 2
-        bb_sp = draw.textbbox((0, 0), "SPONSORS", font=font_arialbd_10)
-        draw.text((center_cx - (bb_sp[2] - bb_sp[0]) // 2, 410), "SPONSORS", fill=(251, 191, 36), font=font_arialbd_10)
-
         bb_st1 = draw.textbbox((0, 0), "Heritage Production × The Happy Circle", font=font_georgiab_14)
-        draw.text((center_cx - (bb_st1[2] - bb_st1[0]) // 2, 432), "Heritage Production × The Happy Circle", fill=(255, 248, 232), font=font_georgiab_14)
+        draw.text((center_cx - (bb_st1[2] - bb_st1[0]) // 2, 424), "Heritage Production × The Happy Circle", fill=(255, 248, 232), font=font_georgiab_14)
 
         bb_st2 = draw.textbbox((0, 0), "Production partner Wedeos Entertainment", font=font_arial_10)
-        draw.text((center_cx - (bb_st2[2] - bb_st2[0]) // 2, 458), "Production partner Wedeos Entertainment", fill=(243, 228, 178), font=font_arial_10)
+        draw.text((center_cx - (bb_st2[2] - bb_st2[0]) // 2, 452), "Production partner Wedeos Entertainment", fill=(243, 228, 178), font=font_arial_10)
 
         # RIGHT COLUMN: Wedeos Entertainment
         right_cx = (734 + 1006) // 2

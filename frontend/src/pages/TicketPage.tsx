@@ -295,15 +295,12 @@ export const TicketPage: React.FC = () => {
               </span>
             </div>
 
-            {/* Center: Sponsors / Partners */}
+            {/* Center: Partners / Collaboration */}
             <div className="md:col-span-6 flex flex-col items-center justify-center px-2 py-1">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#FBBF24]">
-                SPONSORS
-              </span>
-              <div className="text-xs sm:text-sm font-black font-['Cinzel'] text-[#FFF8E8] mt-1">
+              <div className="text-xs sm:text-sm font-black font-['Cinzel'] text-[#FFF8E8]">
                 Heritage Production × The Happy Circle
               </div>
-              <div className="text-[10px] sm:text-xs font-semibold text-[#F3E4B2] mt-0.5">
+              <div className="text-[10px] sm:text-xs font-semibold text-[#F3E4B2] mt-1">
                 Production partner Wedeos Entertainment
               </div>
             </div>

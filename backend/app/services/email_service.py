@@ -768,15 +768,12 @@ class EmailService:
                       </div>
                     </td>
 
-                    <!-- Center: Sponsors / Partners -->
+                    <!-- Center: Partners / Collaboration -->
                     <td width="44%" align="center" style="vertical-align: middle; padding: 4px 8px;">
-                      <div style="font-size: 9px; font-weight: 800; color: #FBBF24; letter-spacing: 1px; text-transform: uppercase;">
-                        SPONSORS
-                      </div>
-                      <div style="font-size: 11px; font-weight: 900; color: #FFF8E8; font-family: Georgia, serif; margin-top: 3px;">
+                      <div style="font-size: 11px; font-weight: 900; color: #FFF8E8; font-family: Georgia, serif;">
                         Heritage Production &times; The Happy Circle
                       </div>
-                      <div style="font-size: 9px; font-weight: 600; color: #F3E4B2; margin-top: 2px;">
+                      <div style="font-size: 9px; font-weight: 600; color: #F3E4B2; margin-top: 3px;">
                         Production partner Wedeos Entertainment
                       </div>
                     </td>
