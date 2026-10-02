@@ -53,18 +53,13 @@ export const Navbar: React.FC = () => {
               />
             </div>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg sm:text-xl font-extrabold tracking-[0.08em] bg-gradient-to-r from-white via-[#f7e8c3] to-[#d4af37] bg-clip-text text-transparent uppercase font-['Cinzel']">
-                NAVRANG
-              </span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#d4af37]/15 text-[#f7e8c3] border border-[#d4af37]/35 tracking-wider font-['Cinzel']">
-                2026
-              </span>
-            </div>
-            <p className="text-[10px] text-[#e5c97b]/90 tracking-[0.14em] uppercase font-bold font-['Plus_Jakarta_Sans']">
-              in collab with The Happy Circle
-            </p>
+          <div className="flex items-center gap-2">
+            <span className="text-lg sm:text-xl font-extrabold tracking-[0.08em] bg-gradient-to-r from-white via-[#f7e8c3] to-[#d4af37] bg-clip-text text-transparent uppercase font-['Cinzel']">
+              NAVRANG
+            </span>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#d4af37]/15 text-[#f7e8c3] border border-[#d4af37]/35 tracking-wider font-['Cinzel']">
+              2026
+            </span>
           </div>
         </Link>
 

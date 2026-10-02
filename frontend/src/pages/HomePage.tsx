@@ -57,7 +57,7 @@ export const HomePage: React.FC = () => {
   const venueCity = config?.venue_city || 'Mysuru';
   const ticketPrice = config?.ticket_price || 599;
   const remaining = config?.remaining_tickets ?? 1460;
-  const mapsUrl = 'https://maps.google.com/?q=Green+Acres+Mysuru';
+  const mapsUrl = 'https://maps.google.com/?q=The+Green+Acres+Mysuru';
 
   const highlights = [
     {
