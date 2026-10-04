@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { AdminSidebar } from '../components/AdminSidebar';
 import { AdminHeader } from '../components/AdminHeader';
 import { AccessDenied } from '../components/AccessDenied';
+import { isTokenExpired } from '../services/api';
 
 export const AdminLayout: React.FC = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -13,14 +14,21 @@ export const AdminLayout: React.FC = () => {
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
     const userJson = localStorage.getItem('admin_user');
-    if (!token || !userJson) {
-      navigate('/management', { replace: true });
+    if (!token || !userJson || isTokenExpired(token)) {
+      if (token && isTokenExpired(token)) {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+        sessionStorage.setItem('auth_expired_notice', 'Your session has expired. Please log in again.');
+      }
+      navigate('/management?session_expired=true', { replace: true });
       return;
     }
     try {
       const user = JSON.parse(userJson);
       setUserRole(user.role);
     } catch {
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
       navigate('/management', { replace: true });
     }
   }, [navigate]);

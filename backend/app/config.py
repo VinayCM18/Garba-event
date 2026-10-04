@@ -102,8 +102,9 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     def effective_jwt_secret(self) -> str:
         """Return the JWT secret, caching an ephemeral one in dev only."""
-        if self.JWT_SECRET and self.JWT_SECRET not in _INSECURE_MARKERS:
-            return self.JWT_SECRET
+        clean_secret = (self.JWT_SECRET or "").strip().strip("'\"")
+        if clean_secret and clean_secret not in _INSECURE_MARKERS:
+            return clean_secret
         if self.ENVIRONMENT == "production":
             raise RuntimeError(
                 "JWT_SECRET must be set to a strong random value in production. "
@@ -124,8 +125,9 @@ class Settings(BaseSettings):
 
     def effective_qr_salt(self) -> str:
         """Return the QR secret salt, caching an ephemeral one in dev only."""
-        if self.QR_SECRET_SALT and self.QR_SECRET_SALT not in _INSECURE_MARKERS:
-            return self.QR_SECRET_SALT
+        clean_salt = (self.QR_SECRET_SALT or "").strip().strip("'\"")
+        if clean_salt and clean_salt not in _INSECURE_MARKERS:
+            return clean_salt
         if self.ENVIRONMENT == "production":
             raise RuntimeError(
                 "QR_SECRET_SALT must be set to a strong random value in production."

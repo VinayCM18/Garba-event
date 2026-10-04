@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, KeyRound, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
-import { adminLogin } from '../services/api';
+import { adminLogin, isTokenExpired } from '../services/api';
 import { useToast } from '../components/Toast';
 
 export const ManagementLoginPage: React.FC = () => {
@@ -15,11 +15,32 @@ export const ManagementLoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Auto redirect if already authenticated
+  // Auto redirect if already authenticated with a valid (unexpired) session
   useEffect(() => {
+    // Check if redirected due to expired/invalid session
+    const expiredNotice = sessionStorage.getItem('auth_expired_notice');
+    const searchParams = new URLSearchParams(window.location.search);
+    const hasExpiredParam = searchParams.get('session_expired') === 'true';
+
+    if (expiredNotice || hasExpiredParam) {
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      sessionStorage.removeItem('auth_expired_notice');
+      const message = expiredNotice || 'Your session has expired. Please log in again.';
+      setErrorMsg(message);
+      return;
+    }
+
     const token = localStorage.getItem('admin_token');
     const userJson = localStorage.getItem('admin_user');
+
     if (token && userJson) {
+      if (isTokenExpired(token)) {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+        setErrorMsg('Your session has expired. Please log in again.');
+        return;
+      }
       try {
         const user = JSON.parse(userJson);
         if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {

@@ -42,23 +42,74 @@ export const api = axios.create({
   },
 });
 
-// Attach bearer token if stored
+export const isTokenExpired = (token: string | null | undefined): boolean => {
+  if (!token || typeof token !== 'string') return true;
+  const trimmed = token.trim();
+  if (trimmed === '' || trimmed === 'undefined' || trimmed === 'null') return true;
+  try {
+    const parts = trimmed.split('.');
+    if (parts.length !== 3) return true;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const payload = JSON.parse(jsonPayload);
+    if (!payload || typeof payload !== 'object') return true;
+    if (!payload.exp) return false;
+    // Expired if current time exceeds expiration (with 10-second margin for clock skew)
+    return Date.now() >= payload.exp * 1000 - 10000;
+  } catch {
+    return true;
+  }
+};
+
+// Attach bearer token if stored and valid
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('admin_token');
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (token && typeof token === 'string' && token.trim() !== '' && token !== 'undefined' && token !== 'null') {
+    if (config.headers) {
+      config.headers.Authorization = `Bearer ${token.trim()}`;
+    }
   }
   return config;
 });
 
-// Non-blocking response error logging for development & troubleshooting
+// Guard against duplicate concurrent redirects
+let isRedirectingToLogin = false;
+
+// Robust 401 response interceptor & logging
 api.interceptors.response.use(
   (response) => response,
   (err) => {
+    const status = err.response?.status;
+    const url = err.config?.url || '';
+
+    // Ignore 401 on login endpoint so user sees invalid credentials form error
+    const isLoginEndpoint = url.includes('/api/auth/login');
+
+    if (status === 401 && !isLoginEndpoint) {
+      // 1. Clear stale authentication state
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+
+      // 2. Set flash notice for the login page
+      sessionStorage.setItem('auth_expired_notice', 'Your session has expired. Please log in again.');
+
+      // 3. Immediately redirect to management login page to stop infinite polling loops
+      if (!isRedirectingToLogin && typeof window !== 'undefined' && !window.location.pathname.startsWith('/management')) {
+        isRedirectingToLogin = true;
+        window.location.href = '/management?session_expired=true';
+      }
+    }
+
     if (import.meta.env.DEV) {
       console.warn(
-        `[API] ${err.config?.method?.toUpperCase()} ${err.config?.url} failed:`,
-        err.response?.status || 'Network / Connection Refused',
+        `[API] ${err.config?.method?.toUpperCase()} ${url} failed:`,
+        status || 'Network / Connection Refused',
         err.response?.data || err.message
       );
     }
@@ -224,9 +275,13 @@ export const adminLogin = async (payload: { email: string; password: string }) =
 export const adminLogout = async () => {
   try {
     await api.post('/api/auth/logout');
+  } catch {
+    // Gracefully ignore backend logout errors (e.g., if token was already expired)
   } finally {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_user');
+    sessionStorage.removeItem('auth_expired_notice');
+    isRedirectingToLogin = false;
   }
 };
 

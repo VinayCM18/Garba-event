@@ -24,7 +24,8 @@ import {
   resendOwnerAlert,
   cancelBooking,
   getExportCSVUrl,
-  getDownloadUrl
+  getDownloadUrl,
+  isTokenExpired
 } from '../services/api';
 import { Booking } from '../types';
 import { useToast } from '../components/Toast';
@@ -75,7 +76,12 @@ export const AdminBookingsPage: React.FC = () => {
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(() => {
-      loadBookings(false);
+      const token = localStorage.getItem('admin_token');
+      if (token && !isTokenExpired(token)) {
+        loadBookings(false);
+      } else {
+        clearInterval(interval);
+      }
     }, 8000);
     return () => clearInterval(interval);
   }, [page, paymentStatus, bookingStatus, search, autoRefresh]);

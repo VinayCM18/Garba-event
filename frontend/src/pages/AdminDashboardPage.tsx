@@ -33,7 +33,8 @@ import {
   fetchAdminCheckins,
   fetchRecentNotifications,
   fetchPendingPaymentVerifications,
-  getExportCSVUrl
+  getExportCSVUrl,
+  isTokenExpired
 } from '../services/api';
 import { DashboardAnalytics, CheckInRecord, RecentNotification } from '../types';
 import { useToast } from '../components/Toast';
@@ -76,7 +77,12 @@ export const AdminDashboardPage: React.FC = () => {
     loadData(true);
     // Real-time polling every 8 seconds for dashboard synchronization
     const interval = setInterval(() => {
-      loadData(false);
+      const token = localStorage.getItem('admin_token');
+      if (token && !isTokenExpired(token)) {
+        loadData(false);
+      } else {
+        clearInterval(interval);
+      }
     }, 8000);
     return () => clearInterval(interval);
   }, []);

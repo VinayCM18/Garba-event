@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -7,7 +8,7 @@ from app.models.user import User
 from app.models.audit_log import AuditLog
 from app.schemas.auth import LoginRequest, TokenResponse, UserResponse
 from app.utils.security import verify_password, create_access_token
-from app.middleware.auth import get_current_user
+from app.middleware.auth import get_current_user, get_optional_current_user
 from app.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -84,17 +85,32 @@ def login(payload: LoginRequest, response: Response, request: Request, db: Sessi
         email=user.email
     )
 
-@router.post("/logout")
-def logout(response: Response, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    response.delete_cookie("admin_access_token")
-    audit = AuditLog(
-        user_id=current_user.id,
-        action="LOGOUT",
-        entity_type="user",
-        entity_id=str(current_user.id)
+@router.api_route("/logout", methods=["GET", "POST"])
+def logout(
+    response: Response,
+    current_user: Optional[User] = Depends(get_optional_current_user),
+    db: Session = Depends(get_db)
+):
+    # Always delete cookie safely across paths
+    response.delete_cookie(
+        key="admin_access_token",
+        path="/",
+        samesite="lax",
+        secure=False if settings.ENVIRONMENT == "development" else True
     )
-    db.add(audit)
-    db.commit()
+    response.delete_cookie(key="admin_access_token")
+    if current_user:
+        try:
+            audit = AuditLog(
+                user_id=current_user.id,
+                action="LOGOUT",
+                entity_type="user",
+                entity_id=str(current_user.id)
+            )
+            db.add(audit)
+            db.commit()
+        except Exception:
+            db.rollback()
     return {"message": "Successfully logged out."}
 
 @router.get("/me", response_model=UserResponse)

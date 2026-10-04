@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   ArrowRight
 } from 'lucide-react';
-import { fetchStaffDashboard } from '../services/api';
+import { fetchStaffDashboard, isTokenExpired } from '../services/api';
 import { StaffDashboardStats } from '../types';
 import { useToast } from '../components/Toast';
 import { formatDateTimeIST } from '../utils/dateUtils';
@@ -38,7 +38,14 @@ export const StaffDashboardPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(() => loadData(), 12000);
+    const interval = setInterval(() => {
+      const token = localStorage.getItem('admin_token');
+      if (token && !isTokenExpired(token)) {
+        loadData();
+      } else {
+        clearInterval(interval);
+      }
+    }, 12000);
     return () => clearInterval(interval);
   }, []);
 
