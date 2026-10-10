@@ -31,21 +31,21 @@ export const Navbar: React.FC = () => {
           : 'h-20 bg-[#080309]/85 border-white/[0.08] backdrop-blur-md'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-2">
         {/* Brand: NAVRANG × THE HAPPY CIRCLE */}
-        <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
-          <div className="flex items-center gap-1.5 shrink-0">
+        <Link to="/" className="flex items-center gap-1.5 sm:gap-3 group shrink min-w-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {/* Logo 1: Heritage Productions */}
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-[0_0_10px_rgba(212,175,55,0.3)] group-hover:scale-105 transition-transform bg-black flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-[0_0_10px_rgba(212,175,55,0.3)] group-hover:scale-105 transition-transform bg-black flex items-center justify-center shrink-0">
               <img
                 src="/heritage_productions.jpg"
                 alt="Heritage Productions"
                 className="w-full h-full object-cover"
               />
             </div>
-            <span className="text-[11px] sm:text-xs text-[#d4af37] font-black font-mono">×</span>
+            <span className="text-[10px] sm:text-xs text-[#d4af37] font-black font-mono">×</span>
             {/* Logo 2: The Happy Circle */}
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-[0_0_10px_rgba(212,175,55,0.3)] group-hover:scale-105 transition-transform bg-black flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-[#d4af37]/60 shadow-[0_0_10px_rgba(212,175,55,0.3)] group-hover:scale-105 transition-transform bg-black flex items-center justify-center shrink-0">
               <img
                 src="/images/happy-circle-logo.png"
                 alt="The Happy Circle"
@@ -53,11 +53,11 @@ export const Navbar: React.FC = () => {
               />
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg sm:text-xl font-extrabold tracking-[0.08em] bg-gradient-to-r from-white via-[#f7e8c3] to-[#d4af37] bg-clip-text text-transparent uppercase font-['Cinzel']">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span className="text-base sm:text-xl font-extrabold tracking-[0.06em] sm:tracking-[0.08em] bg-gradient-to-r from-white via-[#f7e8c3] to-[#d4af37] bg-clip-text text-transparent uppercase font-['Cinzel'] whitespace-nowrap">
               NAVRANG
             </span>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#d4af37]/15 text-[#f7e8c3] border border-[#d4af37]/35 tracking-wider font-['Cinzel']">
+            <span className="text-[10px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-[#d4af37]/15 text-[#f7e8c3] border border-[#d4af37]/35 tracking-wider font-['Cinzel'] whitespace-nowrap">
               2026
             </span>
           </div>
@@ -88,21 +88,21 @@ export const Navbar: React.FC = () => {
           </Link>
         </div>
 
-        {/* Mobile Actions: Fast Book + Clean Hamburger */}
-        <div className="flex md:hidden items-center gap-2.5">
+        {/* Mobile Actions: Compact BOOK Button + Clean Hamburger */}
+        <div className="flex md:hidden items-center gap-1.5 sm:gap-2.5 shrink-0">
           <Link
             to="/book"
-            className="festive-button px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider touch-target"
+            className="festive-button inline-flex items-center justify-center h-[38px] sm:h-11 px-4 sm:px-5 rounded-full text-xs sm:text-sm font-black tracking-wider uppercase whitespace-nowrap shrink-0 shadow-md shadow-[#d4af37]/20 !min-h-0"
           >
-            Book
+            BOOK
           </Link>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 touch-target focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+            className="p-1.5 sm:p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 touch-target focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50 flex items-center justify-center shrink-0"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileOpen}
           >
-            {mobileOpen ? <X className="w-6 h-6 text-[#f7e8c3]" /> : <Menu className="w-6 h-6" />}
+            {mobileOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6 text-[#f7e8c3]" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
           </button>
         </div>
       </div>
