@@ -16,6 +16,15 @@ from app.models.payment import Payment
 from app.models.checkin import CheckIn
 from app.models.audit_log import AuditLog
 from app.models.event_setting import EventSetting
+from app.services.export_service import (
+    create_csv_streaming_response,
+    stream_bookings_rows,
+    stream_payments_rows,
+    stream_tickets_rows,
+    stream_checkins_rows,
+    stream_offers_inventory_rows,
+    stream_users_rows
+)
 from app.schemas.admin import (
     DashboardAnalyticsResponse,
     DashboardStatsResponse,
@@ -492,67 +501,225 @@ def list_audit_logs(
     return output
 
 @router.get("/export")
+@router.get("/export/bookings")
 def export_bookings_csv(
     payment_status: str = Query("", max_length=50),
     booking_status: str = Query("", max_length=50),
+    offer_id: str = Query("", max_length=50),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Exports filtered bookings as a CSV spreadsheet."""
-    query = db.query(Booking)
-    if payment_status.strip():
-        query = query.filter(Booking.payment_status == payment_status.strip().upper())
-    if booking_status.strip():
-        query = query.filter(Booking.booking_status == booking_status.strip().upper())
-
-    bookings = query.order_by(desc(Booking.created_at)).all()
-
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow([
-        "Booking ID", "Customer Name", "Email", "Phone",
-        "Ticket Count", "Ticket Price (INR)", "Regular Amount (INR)", "Group Discount (INR)", "Offer Name",
-        "Subtotal (INR)", "Payment Fee (INR)", "GST (INR)", "Total Paid (INR)",
-        "Payment Status", "Booking Status", "Razorpay Payment ID",
-        "Email Status", "Created At (IST)"
-    ])
-
-    for b in bookings:
-        reg = getattr(b, "regular_amount", 0.0) or round(b.ticket_count * b.ticket_price, 2)
-        disc = getattr(b, "group_discount", 0.0) or 0.0
-        offer = "Group of 10" if disc > 0 else "None"
-        subtotal = b.ticket_subtotal or (reg - disc)
-        fee = b.payment_fee or 0.0
-        gst = b.gst_amount or 0.0
-        writer.writerow([
-            b.booking_id,
-            b.customer_name,
-            b.email,
-            b.phone,
-            b.ticket_count,
-            b.ticket_price,
-            reg,
-            disc,
-            offer,
-            subtotal,
-            fee,
-            gst,
-            b.amount,
-            b.payment_status,
-            b.booking_status,
-            b.razorpay_payment_id or "N/A",
-            b.email_status,
-            format_ist_datetime(b.created_at, "%d %b %Y, %I:%M %p")
-        ])
-
-    csv_data = output.getvalue()
-    filename = f"garba_night_bookings_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
-
-    return Response(
-        content=csv_data,
-        media_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    """
+    Exports filtered bookings as a secure, sanitized CSV spreadsheet.
+    Supports streaming for large datasets, prevents CSV formula injection,
+    and formats timestamps in Asia/Kolkata (IST).
+    """
+    headers = [
+        "Booking ID", "Customer Name", "Phone", "Email",
+        "Ticket Count", "Offer ID", "Offer Name",
+        "Ticket Unit Price (INR)", "Regular Amount (INR)", "Group Discount (INR)",
+        "Ticket Subtotal (INR)", "Payment Fee (INR)", "GST (INR)", "Total Paid (INR)",
+        "Payment Method", "UTR Number", "Razorpay Order ID", "Razorpay Payment ID",
+        "Payment Status", "Booking Status", "Email Status",
+        "Created At (IST)", "Updated At (IST)"
+    ]
+    generator = stream_bookings_rows(
+        db=db,
+        payment_status=payment_status,
+        booking_status=booking_status,
+        offer_id=offer_id
     )
+    filename = f"navrang_2026_bookings_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+
+    try:
+        log = AuditLog(
+            user_id=current_user.id,
+            action="DATA_EXPORT",
+            entity_type="bookings",
+            details=json.dumps({"payment_status": payment_status, "booking_status": booking_status, "offer_id": offer_id})
+        )
+        db.add(log)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    return create_csv_streaming_response(headers, generator, filename)
+
+@router.get("/export/payments")
+def export_payments_csv(
+    payment_status: str = Query("", max_length=50),
+    payment_method: str = Query("", max_length=50),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Exports payment transaction records as a secure CSV spreadsheet.
+    Links payments to corresponding bookings and sanitizes against formula injection.
+    """
+    headers = [
+        "Payment ID", "Booking ID", "Customer Name", "Customer Phone", "Customer Email",
+        "Payment Method", "Amount (INR)", "Currency", "Payment Status",
+        "UTR / Reference Number", "Razorpay Order ID", "Razorpay Payment ID",
+        "Verified By", "Verified At (IST)", "Rejection Reason",
+        "Created At (IST)"
+    ]
+    generator = stream_payments_rows(
+        db=db,
+        payment_status=payment_status,
+        payment_method=payment_method
+    )
+    filename = f"navrang_2026_payments_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+
+    try:
+        log = AuditLog(
+            user_id=current_user.id,
+            action="DATA_EXPORT",
+            entity_type="payments",
+            details=json.dumps({"payment_status": payment_status, "payment_method": payment_method})
+        )
+        db.add(log)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    return create_csv_streaming_response(headers, generator, filename)
+
+@router.get("/export/tickets")
+def export_tickets_csv(
+    ticket_status: str = Query("", max_length=50),
+    checkin_status: Optional[bool] = Query(None),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Exports individual attendee tickets as a secure CSV spreadsheet.
+    NEVER exports raw secret QR verification tokens or cryptographic hashes.
+    """
+    headers = [
+        "Ticket ID", "Booking ID", "Customer Name", "Event Name",
+        "Ticket Status", "Checked In", "Checked In At (IST)", "Created At (IST)"
+    ]
+    generator = stream_tickets_rows(
+        db=db,
+        ticket_status=ticket_status,
+        checkin_status=checkin_status
+    )
+    filename = f"navrang_2026_tickets_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+
+    try:
+        log = AuditLog(
+            user_id=current_user.id,
+            action="DATA_EXPORT",
+            entity_type="tickets",
+            details=json.dumps({"ticket_status": ticket_status, "checkin_status": checkin_status})
+        )
+        db.add(log)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    return create_csv_streaming_response(headers, generator, filename)
+
+@router.get("/export/checkins")
+def export_checkins_csv(
+    result: str = Query("", max_length=50),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Exports gate check-in audit records as a secure CSV spreadsheet.
+    """
+    headers = [
+        "Check-in ID", "Ticket ID", "Attendee Name", "Staff Member", "Staff Email",
+        "Result", "Device Info", "Notes", "Checked In At (IST)"
+    ]
+    generator = stream_checkins_rows(
+        db=db,
+        result=result
+    )
+    filename = f"navrang_2026_checkins_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+
+    try:
+        log = AuditLog(
+            user_id=current_user.id,
+            action="DATA_EXPORT",
+            entity_type="checkins",
+            details=json.dumps({"result": result})
+        )
+        db.add(log)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    return create_csv_streaming_response(headers, generator, filename)
+
+@router.get("/export/offers-inventory")
+def export_offers_inventory_csv(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Exports authoritative offer configuration and phase inventory counts.
+    """
+    headers = [
+        "Category", "Code / ID", "Title / Name", "Passes Per Unit", "Price (INR)",
+        "Status", "Total Inventory", "Sold Count", "Available Inventory",
+        "Group Offer Eligible", "ID Proof Required", "Badge Text", "Updated At (IST)"
+    ]
+    generator = stream_offers_inventory_rows(db=db)
+    filename = f"navrang_2026_offers_inventory_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+
+    try:
+        log = AuditLog(
+            user_id=current_user.id,
+            action="DATA_EXPORT",
+            entity_type="offers_inventory",
+            details=json.dumps({})
+        )
+        db.add(log)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    return create_csv_streaming_response(headers, generator, filename)
+
+@router.get("/export/users")
+def export_users_csv(
+    confirm: bool = Query(False, description="Explicit confirmation required to export user directory"),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Exports staff and administrator user records.
+    Strictly restricted to authorized admins with confirmation.
+    NEVER exports passwords, password hashes, or session credentials.
+    """
+    if current_user.role != "SUPER_ADMIN" and not confirm:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Explicit authorization confirmation (confirm=true) is required to export user directory."
+        )
+
+    headers = [
+        "User ID", "Name", "Email", "Role", "Active Status",
+        "Last Login (IST)", "Created At (IST)"
+    ]
+    generator = stream_users_rows(db=db)
+    filename = f"navrang_2026_users_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+
+    try:
+        log = AuditLog(
+            user_id=current_user.id,
+            action="DATA_EXPORT",
+            entity_type="users",
+            details=json.dumps({"exported_by": current_user.email})
+        )
+        db.add(log)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    return create_csv_streaming_response(headers, generator, filename)
 
 @router.get("/settings", response_model=EventSettingResponse)
 def get_settings(current_user: User = Depends(require_admin), db: Session = Depends(get_db)):

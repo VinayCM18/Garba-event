@@ -28,6 +28,7 @@ import { AdminCheckinsPage } from './pages/AdminCheckinsPage';
 import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { AdminAuditLogsPage } from './pages/AdminAuditLogsPage';
 import { AdminPaymentVerificationPage } from './pages/AdminPaymentVerificationPage';
+import { AdminDataExportPage } from './pages/AdminDataExportPage';
 
 // Staff Pages
 import { StaffDashboardPage } from './pages/StaffDashboardPage';
@@ -72,6 +73,7 @@ export const App: React.FC = () => {
             <Route path="checkins" element={<AdminCheckinsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+            <Route path="export" element={<AdminDataExportPage />} />
           </Route>
 
           {/* Staff Protected Console */}

@@ -369,6 +369,61 @@ export const getExportCSVUrl = (paymentStatus?: string, bookingStatus?: string) 
   return `${API_BASE}/api/admin/export?${params.toString()}`;
 };
 
+export type ExportDatasetType = 'bookings' | 'payments' | 'tickets' | 'checkins' | 'offers-inventory' | 'users';
+
+export const downloadAdminExportCsv = async (
+  dataset: ExportDatasetType,
+  filters: Record<string, string | boolean | undefined> = {}
+): Promise<string> => {
+  const token = localStorage.getItem('admin_token');
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, val]) => {
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      params.append(key, String(val));
+    }
+  });
+
+  const queryString = params.toString();
+  const url = `${API_BASE}/api/admin/export/${dataset}${queryString ? `?${queryString}` : ''}`;
+
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  if (!res.ok) {
+    let errorMsg = `Export failed with HTTP ${res.status}`;
+    try {
+      const errJson = await res.json();
+      if (errJson?.detail) errorMsg = errJson.detail;
+    } catch {
+      // ignore
+    }
+    throw new Error(errorMsg);
+  }
+
+  const blob = await res.blob();
+  const contentDisposition = res.headers.get('Content-Disposition') || '';
+  let filename = `navrang_2026_${dataset}.csv`;
+  const match = contentDisposition.match(/filename="?([^";]+)"?/);
+  if (match && match[1]) {
+    filename = match[1];
+  }
+
+  const blobUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(blobUrl);
+
+  return filename;
+};
+
 // Payment Verification & Manual UPI APIs
 export const submitManualPaymentProof = async (formData: FormData) => {
   const res = await api.post('/api/payments/submit-manual-proof', formData, {

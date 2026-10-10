@@ -53,6 +53,7 @@ export const AdminLayout: React.FC = () => {
     if (path === '/admin/checkins') return 'Check-in Audit Logs';
     if (path === '/admin/settings') return 'Event Configuration';
     if (path === '/admin/audit-logs') return 'System Audit Trail';
+    if (path === '/admin/export') return 'Secure Data Export';
     return 'Admin Console';
   };
 

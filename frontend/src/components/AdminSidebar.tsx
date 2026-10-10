@@ -8,6 +8,7 @@ import {
   Sliders,
   ShieldAlert,
   ShieldCheck,
+  FileSpreadsheet,
   LogOut,
   ExternalLink,
   Sparkles,
@@ -40,6 +41,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
     { name: 'Bookings & Sales', path: '/admin/bookings', icon: Ticket },
     { name: 'QR Gate Scanner', path: '/admin/scanner', icon: QrCode, badge: 'Camera' },
     { name: 'Check-in Logs', path: '/admin/checkins', icon: ClipboardList },
+    { name: 'Data Export', path: '/admin/export', icon: FileSpreadsheet, badge: 'CSV' },
     ...(isSuperAdmin ? [{ name: 'Event Settings', path: '/admin/settings', icon: Sliders }] : []),
     { name: 'Audit Logs', path: '/admin/audit-logs', icon: ShieldAlert },
   ];
