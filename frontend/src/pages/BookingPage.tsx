@@ -20,7 +20,6 @@ import {
   Flame,
   CheckCircle2,
   Users,
-  Heart,
   Baby,
   Check,
   ChevronLeft,
@@ -35,10 +34,9 @@ import {
   verifyPaymentSignature,
   failPaymentOrder,
   calculatePaymentFee,
-  FeeCalculation,
-  FeeCalculationItem
+  FeeCalculation
 } from '../services/api';
-import { EventConfig, TicketOffer } from '../types';
+import { EventConfig } from '../types';
 import { useToast } from '../components/Toast';
 import { RazorpayModalSimulator } from '../components/RazorpayModalSimulator';
 import { ManualUpiPaymentModal } from '../components/ManualUpiPaymentModal';
