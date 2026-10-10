@@ -788,6 +788,34 @@ export const BookingPage: React.FC = () => {
                       <h3 className="text-xl font-black text-white mt-1 font-['Outfit']">{offer.title}</h3>
                       <p className="text-xs text-slate-300 mt-2 leading-relaxed">{offer.description}</p>
 
+                      {/* Couple Pass specification: 1 Boy + 1 Girl */}
+                      {offer.type === 'COUPLE' && (
+                        <div className="mt-2.5 inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#f3e4b2]">
+                          <div className="flex items-center gap-1">
+                            {/* Boy avatar icon */}
+                            <div className="w-5 h-5 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/40 flex items-center justify-center text-[#d4af37]" title="1 Boy">
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="7" r="4" />
+                                <path d="M8 6c1-1.2 2.2-1.8 4-1.8s3 0.6 4 1.8" />
+                                <path d="M5 21v-1.5a5.5 5.5 0 0 1 11 0V21" />
+                              </svg>
+                            </div>
+                            <span className="text-[#d4af37] text-xs font-bold leading-none">+</span>
+                            {/* Girl avatar icon */}
+                            <div className="w-5 h-5 rounded-full bg-[#f3e4b2]/20 border border-[#f3e4b2]/40 flex items-center justify-center text-[#f3e4b2]" title="1 Girl">
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="7" r="3.2" />
+                                <path d="M7.5 12c-.8-2-.5-5 1.2-6.8 1.8-1.8 4.8-1.8 6.6 0 1.7 1.8 2 4.8 1.2 6.8" />
+                                <path d="M5.5 21v-1.5a5.5 5.5 0 0 1 11 0V21" />
+                              </svg>
+                            </div>
+                          </div>
+                          <span className="text-xs font-bold tracking-wide text-[#f3e4b2]">
+                            1 Boy + 1 Girl
+                          </span>
+                        </div>
+                      )}
+
                       {/* Pass Inclusions */}
                       <div className="mt-3 pt-3 border-t border-white/[0.08] space-y-1.5 text-xs text-slate-300">
                         <div className="flex items-start gap-2">
