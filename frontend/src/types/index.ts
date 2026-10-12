@@ -68,7 +68,7 @@ export interface TicketOffer {
   id: string;
   phase_code: string;
   phase_name: string;
-  phase_status: 'ACTIVE' | 'LOCKED' | 'COMING_SOON';
+  phase_status: 'ACTIVE' | 'LOCKED' | 'COMING_SOON' | 'SOLD_OUT';
   type: 'STAG' | 'GROUP' | 'COUPLE' | 'KIDS';
   title: string;
   price: number;

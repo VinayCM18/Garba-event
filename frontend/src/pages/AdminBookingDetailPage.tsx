@@ -370,7 +370,9 @@ export const AdminBookingDetailPage: React.FC = () => {
             {Boolean(booking.is_group_offer || (booking.group_discount && booking.group_discount > 0)) && (
               <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-300 font-semibold flex items-center justify-between text-[11px] mb-2">
                 <span>🔥 {booking.offer_name || 'Group of 10'}</span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-bold">SAVE ₹991</span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-bold">
+                  {booking.group_discount ? `SAVE ₹${booking.group_discount.toLocaleString('en-IN')}` : 'GROUP SAVINGS'}
+                </span>
               </div>
             )}
 

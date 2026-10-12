@@ -46,7 +46,7 @@ interface OfferItem {
   id: string;
   phase_code: string;
   phase_name: string;
-  phase_status: 'ACTIVE' | 'LOCKED' | 'COMING_SOON';
+  phase_status: 'ACTIVE' | 'LOCKED' | 'COMING_SOON' | 'SOLD_OUT';
   type: 'STAG' | 'GROUP' | 'COUPLE' | 'KIDS';
   title: string;
   price: number;
@@ -58,100 +58,100 @@ interface OfferItem {
 }
 
 const DEFAULT_OFFERS: OfferItem[] = [
-  // Early Bird
-  {
-    id: 'EARLY_BIRD_STAG',
-    phase_code: 'EARLY_BIRD',
-    phase_name: 'EARLY BIRD',
-    phase_status: 'ACTIVE',
-    type: 'STAG',
-    title: 'Early Bird — Single Entry',
-    price: 599,
-    per_unit_passes: 1,
-    description: 'Single person entry.',
-    badge: 'EARLY BIRD',
-    is_purchasable: true
-  },
-  {
-    id: 'EARLY_BIRD_GROUP_10',
-    phase_code: 'EARLY_BIRD',
-    phase_name: 'EARLY BIRD',
-    phase_status: 'ACTIVE',
-    type: 'GROUP',
-    title: 'Early Bird — Group of 10',
-    price: 4999,
-    per_unit_passes: 10,
-    description: 'Entry for 10 people.',
-    badge: 'BEST VALUE • SAVE ₹991',
-    is_purchasable: true
-  },
-  {
-    id: 'EARLY_BIRD_COUPLE',
-    phase_code: 'EARLY_BIRD',
-    phase_name: 'EARLY BIRD',
-    phase_status: 'ACTIVE',
-    type: 'COUPLE',
-    title: 'Early Bird — Couple Entry',
-    price: 999,
-    per_unit_passes: 2,
-    description: 'Entry for 2 people.',
-    badge: 'POPULAR CHOICE',
-    is_purchasable: true
-  },
-  // Phase 1 (Coming Soon)
+  // Phase 1 — ACTIVE
   {
     id: 'PHASE_1_STAG',
     phase_code: 'PHASE_1',
     phase_name: 'PHASE 1',
-    phase_status: 'COMING_SOON',
+    phase_status: 'ACTIVE',
     type: 'STAG',
-    title: 'Phase 1 — Single Entry',
+    title: 'PHASE 1 — SINGLE ENTRY',
     price: 799,
     per_unit_passes: 1,
     description: 'Single person entry.',
-    badge: 'COMING SOON',
-    is_purchasable: false
-  },
-  {
-    id: 'PHASE_1_GROUP_10',
-    phase_code: 'PHASE_1',
-    phase_name: 'PHASE 1',
-    phase_status: 'COMING_SOON',
-    type: 'GROUP',
-    title: 'Phase 1 — Group of 10',
-    price: 6799,
-    per_unit_passes: 10,
-    description: 'Entry for 10 people.',
-    badge: 'COMING SOON',
-    is_purchasable: false
+    badge: 'PHASE 1',
+    is_purchasable: true
   },
   {
     id: 'PHASE_1_COUPLE',
     phase_code: 'PHASE_1',
     phase_name: 'PHASE 1',
-    phase_status: 'COMING_SOON',
+    phase_status: 'ACTIVE',
     type: 'COUPLE',
-    title: 'Phase 1 — Couple Entry',
-    price: 1399,
+    title: 'PHASE 1 — COUPLE ENTRY',
+    price: 1299,
     per_unit_passes: 2,
-    description: 'Entry for 2 people.',
-    badge: 'COMING SOON',
-    is_purchasable: false
+    description: 'Entry for 2 people (1 Boy + 1 Girl).',
+    badge: 'POPULAR CHOICE',
+    is_purchasable: true
   },
-  // Kids
+  {
+    id: 'PHASE_1_GROUP_10',
+    phase_code: 'PHASE_1',
+    phase_name: 'PHASE 1',
+    phase_status: 'ACTIVE',
+    type: 'GROUP',
+    title: 'PHASE 1 — GROUP OF 10',
+    price: 6499,
+    per_unit_passes: 10,
+    description: 'Entry for 10 people. Save ₹1,491 versus 10 individual passes.',
+    badge: 'BEST VALUE • SAVE ₹1,491',
+    is_purchasable: true
+  },
+  // Kids Entry
   {
     id: 'KIDS_5_12',
     phase_code: 'ALL',
     phase_name: 'KIDS (5–12)',
     phase_status: 'ACTIVE',
     type: 'KIDS',
-    title: 'Kids (5–12 years)',
+    title: 'KIDS ENTRY (AGES 5–12)',
     price: 300,
     per_unit_passes: 1,
-    description: 'Entry for 1 child aged 5–12 years.',
-    badge: 'ID PROOF REQUIRED',
+    description: 'Entry for 1 child aged 5–12 years. Aadhaar card / valid ID proof required at entry.',
+    badge: 'AADHAAR CARD REQUIRED',
     is_purchasable: true,
     requires_id_proof: true
+  },
+  // Early Bird — SOLD OUT
+  {
+    id: 'EARLY_BIRD_STAG',
+    phase_code: 'EARLY_BIRD',
+    phase_name: 'EARLY BIRD',
+    phase_status: 'SOLD_OUT',
+    type: 'STAG',
+    title: 'Early Bird — Single Entry',
+    price: 599,
+    per_unit_passes: 1,
+    description: 'Single person entry. Early Bird phase is completely sold out.',
+    badge: 'SOLD OUT',
+    is_purchasable: false
+  },
+  {
+    id: 'EARLY_BIRD_COUPLE',
+    phase_code: 'EARLY_BIRD',
+    phase_name: 'EARLY BIRD',
+    phase_status: 'SOLD_OUT',
+    type: 'COUPLE',
+    title: 'Early Bird — Couple Entry',
+    price: 999,
+    per_unit_passes: 2,
+    description: 'Entry for 2 people. Early Bird phase is completely sold out.',
+    badge: 'SOLD OUT',
+    is_purchasable: false
+  },
+  {
+    id: 'EARLY_BIRD_GROUP_10',
+    phase_code: 'EARLY_BIRD',
+    phase_name: 'EARLY BIRD',
+    phase_status: 'SOLD_OUT',
+    type: 'GROUP',
+    title: 'Early Bird — Group of 10',
+    price: 4999,
+    per_unit_passes: 10,
+    description: 'Entry for 10 people. Save ₹991 versus 10 individual passes. Early Bird phase is completely sold out.',
+    badge: 'SOLD OUT',
+    is_purchasable: false
   }
 ];
 
@@ -176,8 +176,6 @@ declare global {
   }
 }
 
-
-
 export const BookingPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -186,9 +184,9 @@ export const BookingPage: React.FC = () => {
   const [config, setConfig] = useState<EventConfig | null>(null);
   const [offersList, setOffersList] = useState<OfferItem[]>(DEFAULT_OFFERS);
 
-  // Cart state: Record<offer_id, quantity>
+  // Cart state: Record<offer_id, quantity> - Defaults to Phase 1 Single Entry
   const [cart, setCart] = useState<Record<string, number>>({
-    EARLY_BIRD_STAG: 1
+    PHASE_1_STAG: 1
   });
 
   const [bookingStep, setBookingStep] = useState<'OFFERS' | 'DETAILS'>('OFFERS');
@@ -227,7 +225,7 @@ export const BookingPage: React.FC = () => {
         if (cfg.offers && cfg.offers.length > 0) {
           const validatedOffers: OfferItem[] = cfg.offers.map((rawOffer: any) => {
             const fallback = DEFAULT_OFFERS.find((d) => d.id === rawOffer.id) || DEFAULT_OFFERS[0];
-            const phaseStatus = ['ACTIVE', 'LOCKED', 'COMING_SOON'].includes(rawOffer.phase_status)
+            const phaseStatus = ['ACTIVE', 'LOCKED', 'COMING_SOON', 'SOLD_OUT'].includes(rawOffer.phase_status)
               ? rawOffer.phase_status
               : fallback.phase_status;
             const offerType = ['STAG', 'GROUP', 'COUPLE', 'KIDS'].includes(rawOffer.type)
@@ -244,13 +242,13 @@ export const BookingPage: React.FC = () => {
               id: rawOffer.id || fallback.id,
               phase_code: rawOffer.phase_code || fallback.phase_code,
               phase_name: rawOffer.phase_name || fallback.phase_name,
-              phase_status: phaseStatus as 'ACTIVE' | 'LOCKED' | 'COMING_SOON',
+              phase_status: phaseStatus as 'ACTIVE' | 'LOCKED' | 'COMING_SOON' | 'SOLD_OUT',
               type: offerType as 'STAG' | 'GROUP' | 'COUPLE' | 'KIDS',
               title: rawOffer.title || fallback.title,
               price: typeof rawOffer.price === 'number' ? rawOffer.price : (rawOffer.price_per_unit || fallback.price),
               per_unit_passes: perUnitPasses,
               description: rawOffer.description || fallback.description,
-              badge: rawOffer.badge || fallback.badge,
+              badge: phaseStatus === 'SOLD_OUT' ? 'SOLD OUT' : (rawOffer.badge || fallback.badge),
               is_purchasable: isPurchasable,
               requires_id_proof: typeof rawOffer.requires_id_proof === 'boolean'
                 ? rawOffer.requires_id_proof
@@ -265,7 +263,7 @@ export const BookingPage: React.FC = () => {
       });
   }, []);
 
-  // Handle URL query parameters (e.g. /book?offer=EARLY_BIRD_GROUP_10 or ?count=10)
+  // Handle URL query parameters (e.g. /book?offer=PHASE_1_GROUP_10 or ?count=10)
   useEffect(() => {
     const offerParam = searchParams.get('offer');
     if (offerParam) {
@@ -276,7 +274,7 @@ export const BookingPage: React.FC = () => {
     } else {
       const countParam = searchParams.get('count');
       if (countParam === '10') {
-        setCart({ EARLY_BIRD_GROUP_10: 1 });
+        setCart({ PHASE_1_GROUP_10: 1 });
       }
     }
   }, [searchParams]);
@@ -302,9 +300,9 @@ export const BookingPage: React.FC = () => {
   }, [kidsQuantity]);
 
   // Celebrate when group offer added to cart
-  const prevGroupQty = useRef(cart['EARLY_BIRD_GROUP_10'] || 0);
+  const prevGroupQty = useRef(cart['PHASE_1_GROUP_10'] || 0);
   useEffect(() => {
-    const currentGroupQty = cart['EARLY_BIRD_GROUP_10'] || 0;
+    const currentGroupQty = cart['PHASE_1_GROUP_10'] || 0;
     if (currentGroupQty > 0 && prevGroupQty.current === 0) {
       try {
         confetti({
@@ -730,23 +728,23 @@ export const BookingPage: React.FC = () => {
       {/* ========================================================================= */}
       {bookingStep === 'OFFERS' && (
         <div className="space-y-12">
-          {/* SECTION 1: EARLY BIRD (ACTIVE) */}
+          {/* SECTION 1: PHASE 1 OFFERS (ACTIVE) */}
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
               <div>
                 <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-emerald-400">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  AVAILABLE NOW
+                  AVAILABLE NOW • PHASE 1
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black text-white font-['Cinzel'] tracking-wide mt-0.5">
-                  EARLY BIRD OFFERS
+                  PHASE 1 OFFERS
                 </h2>
               </div>
               <span className="text-xs text-slate-400">Tax-Inclusive • Mix & Match Available</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {earlyBirdOffers.map((offer) => {
+              {phase1Offers.map((offer) => {
                 const qty = cart[offer.id] || 0;
                 const isInCart = qty > 0;
                 const maxAllowed = offer.type === 'GROUP' ? 5 : 10;
@@ -809,7 +807,7 @@ export const BookingPage: React.FC = () => {
                             </div>
                           </div>
                           <span className="text-xs font-bold tracking-wide text-[#f3e4b2]">
-                            1 Boy + 1 Girl
+                            1 Boy + 1 Girl • 2 PASSES INCLUDED
                           </span>
                         </div>
                       )}
@@ -849,8 +847,8 @@ export const BookingPage: React.FC = () => {
                           <div className="text-3xl font-black text-white font-mono">
                             ₹{offer.price.toLocaleString('en-IN')}
                           </div>
-                          <div className="text-[11px] text-slate-400 mt-0.5">
-                            {offer.per_unit_passes} {offer.per_unit_passes === 1 ? 'person pass' : 'people passes'} / unit
+                          <div className="text-[11px] font-bold text-[#f3e4b2] mt-0.5 uppercase tracking-wider">
+                            {offer.per_unit_passes === 1 ? '1 PASS' : `${offer.per_unit_passes} PASSES INCLUDED`}
                           </div>
                         </div>
                         {isInCart && (
@@ -1090,68 +1088,58 @@ export const BookingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* SECTION 3: PHASE 1 (COMING SOON / DISABLED) */}
+          {/* SECTION 3: EARLY BIRD (SOLD OUT) */}
           <div className="space-y-4 opacity-75">
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
               <div>
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-amber-400">
-                  <Lock className="w-3 h-3 text-amber-400" />
-                  COMING SOON
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-rose-400">
+                  <span className="w-2 h-2 rounded-full bg-rose-400" />
+                  EARLY BIRD TIER CONCLUDED
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black text-slate-300 font-['Cinzel'] tracking-wide mt-0.5">
-                  PHASE 1 (NEXT TIER)
+                  EARLY BIRD OFFERS (SOLD OUT)
                 </h2>
               </div>
-              <span className="text-xs text-amber-400/80 font-bold px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-                UNLOCKS AFTER EARLY BIRD
+              <span className="text-xs text-rose-400 font-bold px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20">
+                SOLD OUT
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {phase1Offers.map((offer) => (
+              {earlyBirdOffers.map((offer) => (
                 <div
                   key={offer.id}
                   className="relative rounded-3xl p-6 bg-[#080a12]/80 border border-white/[0.06] select-none flex flex-col justify-between cursor-not-allowed group"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                      COMING SOON
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                      SOLD OUT
                     </span>
                     <Lock className="w-4 h-4 text-slate-500" />
                   </div>
 
                   <div>
                     <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
-                      {offer.type === 'GROUP' ? 'Group Pass' : offer.type === 'COUPLE' ? 'Couple Pass' : 'Single Pass'}
+                      {offer.type === 'GROUP' ? 'Group Pass (10 People)' : offer.type === 'COUPLE' ? 'Couple Pass (2 People)' : 'Single Pass (1 Person)'}
                     </div>
                     <h3 className="text-xl font-black text-slate-300 mt-1 font-['Outfit']">{offer.title}</h3>
-                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">{offer.description}</p>
+                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                      Early Bird tier has concluded. Please select an active Phase 1 ticket above.
+                    </p>
 
                     {/* Pass Inclusions */}
                     <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-1.5 text-xs text-slate-500">
                       <div className="flex items-start gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
-                        <span>Complimentary food (Jain food available)</span>
+                        <span>Complimentary food voucher & drinks</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
-                        <span>Complimentary drinks</span>
+                        <span>Dandiya sticks & 360° photo booth</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
-                        <span>Complimentary Dandiya sticks</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
-                        <span>Two DJs for the first time in Mysuru!</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
-                        <span>Special high-energy DJ Jamming Session</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
-                        <span>A grand Dandiya night filled with music, dance, and entertainment!</span>
+                        <span>Full arena admission to NAVRANG 2026</span>
                       </div>
                     </div>
                   </div>
@@ -1166,8 +1154,8 @@ export const BookingPage: React.FC = () => {
                           {offer.per_unit_passes} {offer.per_unit_passes === 1 ? 'person pass' : 'people passes'}
                         </div>
                       </div>
-                      <span className="px-3.5 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-white/5 text-slate-500 border border-white/5">
-                        LOCKED
+                      <span className="px-3.5 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                        SOLD OUT
                       </span>
                     </div>
                   </div>

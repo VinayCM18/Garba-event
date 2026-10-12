@@ -33,7 +33,7 @@ QR_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "up
 @router.get("/calculate", response_model=CalculateFeeResponse)
 def calculate_fee(
     ticket_count: Optional[int] = Query(None, ge=1, le=500),
-    ticket_phase: Optional[str] = Query("EARLY_BIRD"),
+    ticket_phase: Optional[str] = Query("PHASE_1"),
     offer_id: Optional[str] = Query(None),
     quantity: Optional[int] = Query(1, ge=1, le=50),
     db: Session = Depends(get_db)
@@ -89,7 +89,7 @@ def create_payment_order(payload: CreateOrderRequest, db: Session = Depends(get_
         email=payload.email,
         phone=phone_clean,
         ticket_count=payload.ticket_count,
-        ticket_phase=getattr(payload, "ticket_phase", "EARLY_BIRD") or "EARLY_BIRD",
+        ticket_phase=getattr(payload, "ticket_phase", "PHASE_1") or "PHASE_1",
         db=db,
         idempotency_key=payload.idempotency_key,
         offer_id=payload.offer_id,

@@ -42,50 +42,50 @@ def test_public_config_offers_structure():
     assert "offers" in data
     offers = {o["id"]: o for o in data["offers"]}
 
-    # Early Bird Stag
+    # Early Bird Stag (Sold Out)
     assert "EARLY_BIRD_STAG" in offers
     assert offers["EARLY_BIRD_STAG"]["price"] == 599.0
     assert offers["EARLY_BIRD_STAG"]["per_unit_passes"] == 1
     assert offers["EARLY_BIRD_STAG"]["type"] == "STAG"
-    assert offers["EARLY_BIRD_STAG"]["phase_status"] == "ACTIVE"
-    assert offers["EARLY_BIRD_STAG"]["is_purchasable"] is True
+    assert offers["EARLY_BIRD_STAG"]["phase_status"] == "SOLD_OUT"
+    assert offers["EARLY_BIRD_STAG"]["is_purchasable"] is False
 
-    # Early Bird Group of 10
+    # Early Bird Group of 10 (Sold Out)
     assert "EARLY_BIRD_GROUP_10" in offers
     assert offers["EARLY_BIRD_GROUP_10"]["price"] == 4999.0
     assert offers["EARLY_BIRD_GROUP_10"]["per_unit_passes"] == 10
     assert offers["EARLY_BIRD_GROUP_10"]["type"] == "GROUP"
-    assert offers["EARLY_BIRD_GROUP_10"]["phase_status"] == "ACTIVE"
-    assert offers["EARLY_BIRD_GROUP_10"]["is_purchasable"] is True
+    assert offers["EARLY_BIRD_GROUP_10"]["phase_status"] == "SOLD_OUT"
+    assert offers["EARLY_BIRD_GROUP_10"]["is_purchasable"] is False
 
-    # Early Bird Couple
+    # Early Bird Couple (Sold Out)
     assert "EARLY_BIRD_COUPLE" in offers
     assert offers["EARLY_BIRD_COUPLE"]["price"] == 999.0
     assert offers["EARLY_BIRD_COUPLE"]["per_unit_passes"] == 2
     assert offers["EARLY_BIRD_COUPLE"]["type"] == "COUPLE"
-    assert offers["EARLY_BIRD_COUPLE"]["phase_status"] == "ACTIVE"
-    assert offers["EARLY_BIRD_COUPLE"]["is_purchasable"] is True
+    assert offers["EARLY_BIRD_COUPLE"]["phase_status"] == "SOLD_OUT"
+    assert offers["EARLY_BIRD_COUPLE"]["is_purchasable"] is False
 
-    # Phase 1 Stag (Locked)
+    # Phase 1 Stag (Active)
     assert "PHASE_1_STAG" in offers
     assert offers["PHASE_1_STAG"]["price"] == 799.0
     assert offers["PHASE_1_STAG"]["type"] == "STAG"
-    assert offers["PHASE_1_STAG"]["phase_status"] in ("LOCKED", "COMING_SOON")
-    assert offers["PHASE_1_STAG"]["is_purchasable"] is False
+    assert offers["PHASE_1_STAG"]["phase_status"] == "ACTIVE"
+    assert offers["PHASE_1_STAG"]["is_purchasable"] is True
 
-    # Phase 1 Group of 10 (Locked)
+    # Phase 1 Group of 10 (Active)
     assert "PHASE_1_GROUP_10" in offers
-    assert offers["PHASE_1_GROUP_10"]["price"] == 6799.0
+    assert offers["PHASE_1_GROUP_10"]["price"] == 6499.0
     assert offers["PHASE_1_GROUP_10"]["type"] == "GROUP"
-    assert offers["PHASE_1_GROUP_10"]["phase_status"] in ("LOCKED", "COMING_SOON")
-    assert offers["PHASE_1_GROUP_10"]["is_purchasable"] is False
+    assert offers["PHASE_1_GROUP_10"]["phase_status"] == "ACTIVE"
+    assert offers["PHASE_1_GROUP_10"]["is_purchasable"] is True
 
-    # Phase 1 Couple (Locked)
+    # Phase 1 Couple (Active)
     assert "PHASE_1_COUPLE" in offers
-    assert offers["PHASE_1_COUPLE"]["price"] == 1399.0
+    assert offers["PHASE_1_COUPLE"]["price"] == 1299.0
     assert offers["PHASE_1_COUPLE"]["type"] == "COUPLE"
-    assert offers["PHASE_1_COUPLE"]["phase_status"] in ("LOCKED", "COMING_SOON")
-    assert offers["PHASE_1_COUPLE"]["is_purchasable"] is False
+    assert offers["PHASE_1_COUPLE"]["phase_status"] == "ACTIVE"
+    assert offers["PHASE_1_COUPLE"]["is_purchasable"] is True
 
     # Kids 5-12
     assert "KIDS_5_12" in offers
@@ -96,16 +96,16 @@ def test_public_config_offers_structure():
     assert offers["KIDS_5_12"]["is_purchasable"] is True
     assert offers["KIDS_5_12"]["requires_id_proof"] is True
 
-def test_early_bird_stag_pricing_and_order():
-    """Verify Early Bird Stag calculation and authoritative order creation."""
+def test_phase_1_stag_pricing_and_order():
+    """Verify Phase 1 Stag calculation and authoritative order creation."""
     calc_res = client.get("/api/payments/calculate", params={
-        "offer_id": "EARLY_BIRD_STAG",
+        "offer_id": "PHASE_1_STAG",
         "quantity": 1
     })
     assert calc_res.status_code == 200
     calc_data = calc_res.json()
-    assert calc_data["ticket_subtotal"] == 599.0
-    assert calc_data["total_amount"] in (599.0, 613.14)
+    assert calc_data["ticket_subtotal"] == 799.0
+    assert calc_data["total_amount"] == 799.0
     assert calc_data["passes_count"] == 1
 
     # Create Order
@@ -114,25 +114,24 @@ def test_early_bird_stag_pricing_and_order():
             "customer_name": "Rohan Patel",
             "email": "rohan.patel@example.com",
             "phone": "9876543210",
-            "offer_id": "EARLY_BIRD_STAG",
+            "offer_id": "PHASE_1_STAG",
             "quantity": 1
         })
     assert order_res.status_code == 200
     order_data = order_res.json()
-    assert order_data["amount"] in (599.0, 613.14)
+    assert order_data["amount"] == 799.0
     assert order_data["passes_count"] == 1
-    assert order_data["offer_title"] == "Early Bird — Single Entry"
 
-def test_early_bird_group_of_10_pricing_and_order():
-    """Verify Early Bird Group of 10 is ₹4,999 and allocates 10 passes."""
+def test_phase_1_group_of_10_pricing_and_order():
+    """Verify Phase 1 Group of 10 is ₹6,499 and allocates 10 passes."""
     calc_res = client.get("/api/payments/calculate", params={
-        "offer_id": "EARLY_BIRD_GROUP_10",
+        "offer_id": "PHASE_1_GROUP_10",
         "quantity": 1
     })
     assert calc_res.status_code == 200
     calc_data = calc_res.json()
-    assert calc_data["ticket_subtotal"] == 4999.0
-    assert calc_data["total_amount"] in (4999.0, 5116.98)
+    assert calc_data["ticket_subtotal"] == 6499.0
+    assert calc_data["total_amount"] == 6499.0
     assert calc_data["passes_count"] == 10
 
     # Create Order
@@ -141,25 +140,25 @@ def test_early_bird_group_of_10_pricing_and_order():
             "customer_name": "Garba Squad Captain",
             "email": "garbasquad@example.com",
             "phone": "9876543211",
-            "offer_id": "EARLY_BIRD_GROUP_10",
+            "offer_id": "PHASE_1_GROUP_10",
             "quantity": 1
         })
     assert order_res.status_code == 200
     order_data = order_res.json()
-    assert order_data["amount"] in (4999.0, 5116.98)
+    assert order_data["amount"] == 6499.0
     assert order_data["passes_count"] == 10
     assert order_data["ticket_count"] == 10
 
-def test_early_bird_couple_pricing_and_order():
-    """Verify Early Bird Couple is ₹999 and allocates 2 passes."""
+def test_phase_1_couple_pricing_and_order():
+    """Verify Phase 1 Couple is ₹1,299 and allocates 2 passes."""
     calc_res = client.get("/api/payments/calculate", params={
-        "offer_id": "EARLY_BIRD_COUPLE",
+        "offer_id": "PHASE_1_COUPLE",
         "quantity": 1
     })
     assert calc_res.status_code == 200
     calc_data = calc_res.json()
-    assert calc_data["ticket_subtotal"] == 999.0
-    assert calc_data["total_amount"] in (999.0, 1022.58)
+    assert calc_data["ticket_subtotal"] == 1299.0
+    assert calc_data["total_amount"] == 1299.0
     assert calc_data["passes_count"] == 2
 
     # Create Order
@@ -168,12 +167,12 @@ def test_early_bird_couple_pricing_and_order():
             "customer_name": "Aarav and Ananya",
             "email": "aarav.ananya@example.com",
             "phone": "9876543212",
-            "offer_id": "EARLY_BIRD_COUPLE",
+            "offer_id": "PHASE_1_COUPLE",
             "quantity": 1
         })
     assert order_res.status_code == 200
     order_data = order_res.json()
-    assert order_data["amount"] in (999.0, 1022.58)
+    assert order_data["amount"] == 1299.0
     assert order_data["passes_count"] == 2
     assert order_data["ticket_count"] == 2
 
@@ -229,24 +228,24 @@ def test_kids_pricing_and_validation():
     assert data["child_age"] == 8
 
 def test_locked_phase_1_offers_rejected():
-    """Phase 1 offers must be rejected while Phase 1 is locked."""
-    for offer_id in ["PHASE_1_STAG", "PHASE_1_GROUP_10", "PHASE_1_COUPLE"]:
+    """Early Bird offers must be rejected as sold out."""
+    for offer_id in ["EARLY_BIRD_STAG", "EARLY_BIRD_GROUP_10", "EARLY_BIRD_COUPLE"]:
         calc_res = client.get("/api/payments/calculate", params={
             "offer_id": offer_id,
             "quantity": 1
         })
         assert calc_res.status_code == 400
-        assert "locked" in calc_res.json()["detail"].lower()
+        assert "Early Bird tickets are sold out. Please select Phase 1." in calc_res.json()["detail"]
 
         order_res = client.post("/api/payments/create-order", json={
-            "customer_name": "Hacker",
-            "email": "hacker@example.com",
+            "customer_name": "Late Booker",
+            "email": "late@example.com",
             "phone": "9876543215",
             "offer_id": offer_id,
             "quantity": 1
         })
         assert order_res.status_code == 400
-        assert "locked" in order_res.json()["detail"].lower()
+        assert "Early Bird tickets are sold out. Please select Phase 1." in order_res.json()["detail"]
 
 def test_frontend_cannot_manipulate_price():
     """Client cannot send a manipulated amount; backend authoritatively sets it."""
@@ -255,13 +254,13 @@ def test_frontend_cannot_manipulate_price():
             "customer_name": "Price Manipulator",
             "email": "manipulate@example.com",
             "phone": "9876543216",
-            "offer_id": "EARLY_BIRD_STAG",
+            "offer_id": "PHASE_1_STAG",
             "quantity": 1,
             "amount": 1.0,  # manipulated amount ignored
             "ticket_price": 1.0
         })
     assert order_res.status_code == 200
-    assert order_res.json()["amount"] in (599.0, 613.14)
+    assert order_res.json()["amount"] == 799.0
 
 def test_group_of_10_generates_10_individual_qr_tickets():
     """Confirming a Group of 10 booking generates 10 distinct QR tickets."""
@@ -270,7 +269,7 @@ def test_group_of_10_generates_10_individual_qr_tickets():
             "customer_name": "Navratri Dance Troupe",
             "email": "dancetroupe@example.com",
             "phone": "9876543217",
-            "offer_id": "EARLY_BIRD_GROUP_10",
+            "offer_id": "PHASE_1_GROUP_10",
             "quantity": 1
         })
     assert order_res.status_code == 200
@@ -305,7 +304,7 @@ def test_couple_generates_2_individual_qr_tickets():
             "customer_name": "Kavita and Siddharth",
             "email": "kavita.sid@example.com",
             "phone": "9876543218",
-            "offer_id": "EARLY_BIRD_COUPLE",
+            "offer_id": "PHASE_1_COUPLE",
             "quantity": 1
         })
     assert order_res.status_code == 200

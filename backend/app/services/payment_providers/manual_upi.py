@@ -47,6 +47,11 @@ class ManualUPIPaymentProvider(BasePaymentProvider):
                     detail=f"Ticket phase '{ticket_phase_code}' was not found."
                 )
             if phase.status != "ACTIVE":
+                if phase.phase_code == "EARLY_BIRD":
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Early Bird tickets are sold out. Please select Phase 1."
+                    )
                 raise HTTPException(
                     status_code=400,
                     detail=f"Ticket phase '{phase.name}' is currently {phase.status.lower()} and cannot be purchased."

@@ -45,7 +45,7 @@ def test_01_seven_authoritative_offers():
     assert eb_group["passes_per_unit"] == 10
     assert eb_group["type"] == "GROUP"
     assert eb_group["phase_code"] == "EARLY_BIRD"
-    assert "991" in eb_group["badge"]
+    assert eb_group["badge"] in ("SOLD OUT", "SAVE ₹991") or "991" in eb_group["badge"]
 
     # 3. EARLY_BIRD_COUPLE
     eb_couple = OFFER_DEFINITIONS["EARLY_BIRD_COUPLE"]
@@ -63,14 +63,14 @@ def test_01_seven_authoritative_offers():
 
     # 5. PHASE_1_GROUP_10
     p1_group = OFFER_DEFINITIONS["PHASE_1_GROUP_10"]
-    assert p1_group["price_per_unit"] == 6799.0
+    assert p1_group["price_per_unit"] == 6499.0
     assert p1_group["passes_per_unit"] == 10
     assert p1_group["type"] == "GROUP"
     assert p1_group["phase_code"] == "PHASE_1"
 
     # 6. PHASE_1_COUPLE
     p1_couple = OFFER_DEFINITIONS["PHASE_1_COUPLE"]
-    assert p1_couple["price_per_unit"] == 1399.0
+    assert p1_couple["price_per_unit"] == 1299.0
     assert p1_couple["passes_per_unit"] == 2
     assert p1_couple["type"] == "COUPLE"
     assert p1_couple["phase_code"] == "PHASE_1"
@@ -97,35 +97,35 @@ def test_02_offer_schema_completeness():
                 assert field in offer, f"Missing field '{field}' in offer {offer.get('id')}"
                 assert offer[field] is not None, f"Field '{field}' is None in offer {offer.get('id')}"
             assert offer["type"] in ("STAG", "GROUP", "COUPLE", "KIDS")
-            assert offer["phase_status"] in ("ACTIVE", "LOCKED", "COMING_SOON")
+            assert offer["phase_status"] in ("ACTIVE", "LOCKED", "COMING_SOON", "SOLD_OUT")
     finally:
         db.close()
 
 def test_03_all_inclusive_pricing():
-    """Verify strictly all-inclusive pricing: 599 is strictly 599 with zero fees or taxes added."""
+    """Verify strictly all-inclusive pricing: 799 is strictly 799 with zero fees or taxes added."""
     db = SessionLocal()
     try:
-        pricing = calculate_offer_pricing("EARLY_BIRD_STAG", quantity=1, db=db)
-        assert pricing["unit_price"] == 599.0
-        assert pricing["ticket_subtotal"] == 599.0
+        pricing = calculate_offer_pricing("PHASE_1_STAG", quantity=1, db=db)
+        assert pricing["unit_price"] == 799.0
+        assert pricing["ticket_subtotal"] == 799.0
         assert pricing["payment_fee"] == 0.0
         assert pricing["gst_amount"] == 0.0
-        assert pricing["total_amount"] == 599.0
+        assert pricing["total_amount"] == 799.0
     finally:
         db.close()
 
 def test_04_group_of_10_savings():
-    """Verify Group of 10 subtotal is ₹4,999 and savings calculation equals ₹991."""
+    """Verify Group of 10 subtotal is ₹6,499 and savings calculation equals ₹1,491."""
     db = SessionLocal()
     try:
-        pricing = calculate_offer_pricing("EARLY_BIRD_GROUP_10", quantity=1, db=db)
-        assert pricing["unit_price"] == 4999.0
-        assert pricing["ticket_subtotal"] == 4999.0
+        pricing = calculate_offer_pricing("PHASE_1_GROUP_10", quantity=1, db=db)
+        assert pricing["unit_price"] == 6499.0
+        assert pricing["ticket_subtotal"] == 6499.0
         assert pricing["passes_count"] == 10
-        assert pricing["total_amount"] == 4999.0
-        # Savings vs 10 individual early bird passes (10 * 599 = 5990)
-        savings = (10 * 599.0) - pricing["total_amount"]
-        assert savings == 991.0
+        assert pricing["total_amount"] == 6499.0
+        # Savings vs 10 individual Phase 1 passes (10 * 799 = 7990)
+        savings = (10 * 799.0) - pricing["total_amount"]
+        assert savings == 1491.0
     finally:
         db.close()
 
@@ -178,12 +178,12 @@ def test_05_kids_age_validation():
         db.close()
 
 def test_06_locked_phase_rejected():
-    """Verify phase locked offers cannot be calculated or ordered."""
+    """Verify sold out Early Bird offers cannot be calculated or ordered."""
     db = SessionLocal()
     try:
         with pytest.raises(Exception) as exc:
-            calculate_offer_pricing("PHASE_1_STAG", quantity=1, db=db)
-        assert "locked" in str(exc.value).lower()
+            calculate_offer_pricing("EARLY_BIRD_STAG", quantity=1, db=db)
+        assert "Early Bird tickets are sold out. Please select Phase 1." in str(exc.value)
     finally:
         db.close()
 

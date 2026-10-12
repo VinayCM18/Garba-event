@@ -42,7 +42,7 @@ def init_db_defaults():
                 venue_name="The Green Acres",
                 venue_address="The Green Acres, Mysuru",
                 venue_city="Mysuru",
-                ticket_price=599.0,
+                ticket_price=799.0,
                 convenience_fee=0.0,
                 total_capacity=1500,
                 max_per_booking=10,
@@ -59,6 +59,8 @@ def init_db_defaults():
                 setting.event_time = "06:30 PM - 10:00 PM"
             if not setting.event_tagline or "cultural gala" in setting.event_tagline.lower():
                 setting.event_tagline = "Celebrate. Dance. Connect."
+            if setting.ticket_price in (None, 599.0):
+                setting.ticket_price = 799.0
             env_raw = (
                 os.environ.get("PAYMENT_PROVIDER")
                 or os.environ.get("PAYMENT_METHOD")
@@ -79,12 +81,12 @@ def init_db_defaults():
                     name="EARLY BIRD",
                     price=599.0,
                     tax_included=True,
-                    status="ACTIVE",
+                    status="SOLD_OUT",
                     total_inventory=300,
                     sold_count=0,
                     display_order=1,
-                    badge_text="LIVE",
-                    description="Phase 1 early-access ticket with all-inclusive venue & celebration pass.",
+                    badge_text="SOLD OUT",
+                    description="Early Bird tier ticket — SOLD OUT.",
                     group_offer_eligible=True
                 ),
                 TicketPhase(
@@ -92,13 +94,13 @@ def init_db_defaults():
                     name="PHASE 1",
                     price=799.0,
                     tax_included=True,
-                    status="LOCKED",
+                    status="ACTIVE",
                     total_inventory=500,
                     sold_count=0,
                     display_order=2,
-                    badge_text="COMING SOON",
-                    description="Standard tier ticket unlocks once Early Bird phase concludes.",
-                    group_offer_eligible=False
+                    badge_text="AVAILABLE NOW",
+                    description="Phase 1 standard tier ticket with all-inclusive venue & celebration pass.",
+                    group_offer_eligible=True
                 ),
                 TicketPhase(
                     phase_code="PHASE_2",
@@ -116,6 +118,22 @@ def init_db_defaults():
             ]
             for phase in default_phases:
                 db.add(phase)
+        else:
+            # Safely synchronize phase status and pricing in existing production/dev databases
+            # Strictly preserves all bookings, payments, tickets, and existing sold_counts
+            eb_phase = db.query(TicketPhase).filter(TicketPhase.phase_code == "EARLY_BIRD").first()
+            if eb_phase:
+                eb_phase.status = "SOLD_OUT"
+                eb_phase.badge_text = "SOLD OUT"
+                eb_phase.description = "Early Bird tier ticket — SOLD OUT."
+
+            p1_phase = db.query(TicketPhase).filter(TicketPhase.phase_code == "PHASE_1").first()
+            if p1_phase:
+                p1_phase.status = "ACTIVE"
+                p1_phase.price = 799.0
+                p1_phase.badge_text = "AVAILABLE NOW"
+                p1_phase.group_offer_eligible = True
+                p1_phase.description = "Phase 1 standard tier ticket with all-inclusive venue & celebration pass."
 
         import warnings
 

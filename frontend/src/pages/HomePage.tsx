@@ -56,7 +56,7 @@ export const HomePage: React.FC = () => {
   const venueName = /^the\s+/i.test(rawVenueName) ? rawVenueName : `The ${rawVenueName}`;
   const venueAddress = config?.venue_address || 'The Green Acres, Mysuru';
   const venueCity = config?.venue_city || 'Mysuru';
-  const ticketPrice = config?.ticket_price || 599;
+  const ticketPrice = config?.ticket_price || 799;
   const remaining = config?.remaining_tickets ?? 1460;
   const mapsUrl = 'https://maps.google.com/?q=The+Green+Acres+Mysuru';
 
@@ -153,8 +153,8 @@ export const HomePage: React.FC = () => {
       a: 'No, all passes must be secured in advance online to maintain strict venue safety and capacity regulations. Admission is permitted exclusively upon scanning an authentic encrypted digital QR pass.'
     },
     {
-      q: 'What is included in the ₹599 Early Bird Pass?',
-      a: 'The ₹599 Early Bird Pass grants complete admission to the live concert arena, dance floor, 360° video booth experiences, food pavilion access, and complimentary parking at The Green Acres, Mysuru.'
+      q: 'What is included in the Phase 1 Admission Pass?',
+      a: 'The ₹799 Phase 1 Pass grants complete admission to the live concert arena, dance floor, 360° video booth experiences, complimentary food voucher, welcome drink, Dandiya sticks, and parking at The Green Acres, Mysuru.'
     },
     {
       q: 'Can I purchase multiple passes in a single booking?',
@@ -182,7 +182,7 @@ export const HomePage: React.FC = () => {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#f3e4b2] text-xs font-bold uppercase tracking-widest shadow-sm backdrop-blur-md"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
-            <span>Navratri 2026 • Early Bird Pass ₹{ticketPrice}</span>
+            <span>Navratri 2026 • Phase 1 Pass ₹{ticketPrice}</span>
           </motion.div>
         </div>
 
@@ -409,14 +409,14 @@ export const HomePage: React.FC = () => {
 
         {/* Phase Progression Timeline */}
         <div className="max-w-2xl mx-auto mt-8 mb-10 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs font-bold uppercase tracking-wider">
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/50 text-[#f3e4b2] shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
-            <span>EARLY BIRD • LIVE</span>
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300">
+            <span className="w-2 h-2 rounded-full bg-rose-400 inline-block" />
+            <span>EARLY BIRD • SOLD OUT</span>
           </div>
           <span className="text-[#d4af37]/50 font-mono">→</span>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-slate-400">
-            <Lock className="w-3.5 h-3.5 text-amber-400" />
-            <span>PHASE 1 • ₹799 (LOCKED)</span>
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/50 text-[#f3e4b2] shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+            <span>PHASE 1 • ₹799 (ACTIVE)</span>
           </div>
           <span className="text-[#d4af37]/50 font-mono hidden sm:inline">→</span>
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/5 text-slate-500 text-[11px]">
@@ -428,7 +428,7 @@ export const HomePage: React.FC = () => {
         {/* 3-Card Ticket Phase Grid (Responsive, stacks vertically on mobile, no horizontal scrolling) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7 max-w-6xl mx-auto text-left items-stretch">
           
-          {/* Card 1: EARLY BIRD TICKET (CURRENTLY ACTIVE) */}
+          {/* Card 1: PHASE 1 SINGLE ENTRY (CURRENTLY ACTIVE) */}
           <div className="p-7 sm:p-8 rounded-3xl glass-panel-gold border-2 border-[#d4af37] flex flex-col justify-between relative overflow-hidden shadow-[0_0_35px_rgba(212,175,55,0.25)] group">
             {/* Ambient gold glow */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#d4af37]/15 rounded-full blur-2xl pointer-events-none" />
@@ -441,15 +441,15 @@ export const HomePage: React.FC = () => {
                     LIVE NOW
                   </span>
                   <h3 className="text-2xl sm:text-3xl font-black text-white mt-3 font-['Cinzel'] tracking-wide">
-                    EARLY BIRD
+                    PHASE 1
                   </h3>
                   <p className="text-[11px] text-[#e5c97b] font-semibold mt-0.5">
-                    Phase 1 Early Access Pass
+                    Single Entry Admission Pass
                   </p>
                 </div>
                 <div className="text-right">
                   <div className="text-3xl sm:text-4xl font-black text-white font-mono">₹{ticketPrice}</div>
-                  <div className="text-[11px] text-emerald-400 font-semibold mt-0.5">Official Pass</div>
+                  <div className="text-[11px] text-emerald-400 font-semibold mt-0.5">1 Pass Included</div>
                 </div>
               </div>
 
@@ -491,7 +491,7 @@ export const HomePage: React.FC = () => {
 
             <div className="mt-8">
               <Link
-                to="/book?phase=EARLY_BIRD"
+                to="/book"
                 onClick={() => playDandiyaClick()}
                 className="festive-button w-full py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-[#d4af37]/30 touch-target cursor-pointer"
               >
@@ -501,87 +501,12 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Card 2: PHASE 1 TICKET (LOCKED / COMING SOON - Requirement 9 & 10) */}
-          <div className="p-7 sm:p-8 rounded-3xl bg-[#090b14]/90 border border-white/[0.12] flex flex-col justify-between relative overflow-hidden group select-none transition-all hover:border-white/20">
-            {/* Elegant dark overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#06070c]/60 to-[#06070c]/90 pointer-events-none" />
-
-            <div className="relative z-10">
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black tracking-wider uppercase text-amber-300 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 font-['Outfit']">
-                    <Lock className="w-3 h-3 text-amber-400" />
-                    COMING SOON
-                  </span>
-                  <h3 className="text-2xl sm:text-3xl font-black text-slate-200 mt-3 font-['Cinzel'] tracking-wide">
-                    PHASE 1
-                  </h3>
-                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
-                    Standard Admission Tier
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="text-3xl sm:text-4xl font-black text-slate-200 font-mono">₹799</div>
-                  <div className="text-[11px] text-slate-400 font-semibold mt-0.5">Upcoming Phase</div>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-5 border-t border-white/[0.08] space-y-3 text-xs text-slate-400">
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
-                  <span>Full admission to NAVRANG 2026 celebration</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
-                  <span>Complimentary food voucher</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
-                  <span>Complimentary welcome drink / mocktail</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
-                  <span>Dandiya sticks provided</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
-                  <span>Standard access tier after Early Bird sells out</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
-                  <span>360° Video Booth & Live Musical Performances</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
-                  <span>Instant encrypted QR ticket delivery</span>
-                </div>
-              </div>
-
-              <div className="mt-6 p-3.5 rounded-xl bg-amber-500/[0.06] border border-amber-500/20 text-center">
-                <p className="text-xs text-amber-200/90 font-medium">
-                  🔒 Phase 1 tickets will unlock once Early Bird phase concludes.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8 relative z-10">
-              <button
-                type="button"
-                disabled
-                className="w-full py-4 rounded-2xl bg-white/[0.05] border border-white/10 text-slate-400 font-bold text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed select-none opacity-80"
-              >
-                <Lock className="w-4 h-4 text-amber-400/80" />
-                <span>🔒 LOCKED • COMING SOON</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Card 3: GROUP OFFER (GROUP OF 10) */}
+          {/* Card 2: GROUP OF 10 (PHASE 1 GROUP OFFER - ACTIVE) */}
           <div className="p-7 sm:p-8 rounded-3xl glass-panel-gold border-2 border-[#d4af37]/70 flex flex-col justify-between relative overflow-hidden shadow-2xl shadow-[#d4af37]/20 group">
             {/* Badge in top right */}
             <div className="absolute top-4 right-4 flex items-center gap-1.5">
               <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm">
-                SAVE ₹991
+                SAVE ₹1,491
               </span>
             </div>
 
@@ -596,7 +521,7 @@ export const HomePage: React.FC = () => {
                 <div className="mt-2 inline-flex items-center gap-2 text-xs font-bold text-[#f3e4b2] uppercase tracking-[0.2em]">
                   <span className="px-3 py-0.5 rounded-md bg-white/[0.07] border border-white/10">10 PASSES</span>
                   <span>•</span>
-                  <span className="px-3 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-extrabold">SAVE ₹991</span>
+                  <span className="px-3 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-extrabold">SAVE ₹1,491</span>
                 </div>
               </div>
 
@@ -605,9 +530,9 @@ export const HomePage: React.FC = () => {
                 <div>
                   <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">REGULAR</div>
                   <div className="text-base sm:text-lg font-bold font-mono text-slate-400 line-through decoration-rose-500 decoration-2 mt-1">
-                    ₹5,990
+                    ₹7,990
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">10 × ₹599</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">10 × ₹799</div>
                 </div>
 
                 <div className="text-xl font-black text-[#d4af37]">↓</div>
@@ -615,9 +540,9 @@ export const HomePage: React.FC = () => {
                 <div>
                   <div className="text-[10px] uppercase font-bold text-[#d4af37] tracking-wider">GROUP PASS</div>
                   <div className="text-2xl sm:text-3xl font-black font-mono bg-gradient-to-r from-white via-[#f3e4b2] to-[#d4af37] bg-clip-text text-transparent mt-0.5">
-                    ₹4,999
+                    ₹6,499
                   </div>
-                  <div className="text-[10px] font-bold text-emerald-400 mt-0.5">Save ₹991</div>
+                  <div className="text-[10px] font-bold text-emerald-400 mt-0.5">Save ₹1,491</div>
                 </div>
               </div>
 
@@ -641,7 +566,7 @@ export const HomePage: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Save <strong>₹991 instantly</strong> versus individual passes</span>
+                  <span>Save <strong>₹1,491 instantly</strong> versus 10 individual passes</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -652,7 +577,7 @@ export const HomePage: React.FC = () => {
 
             <div className="mt-7 pt-3 border-t border-white/[0.08]">
               <Link
-                to="/book?count=10&offer=EARLY_BIRD_GROUP_10"
+                to="/book?count=10&offer=PHASE_1_GROUP_10"
                 onClick={() => playDandiyaClick()}
                 className="festive-button w-full py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-[#d4af37]/30 touch-target cursor-pointer"
               >
@@ -660,6 +585,75 @@ export const HomePage: React.FC = () => {
                 <span>BOOK GROUP PASS</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
+            </div>
+          </div>
+
+          {/* Card 3: EARLY BIRD (SOLD OUT) */}
+          <div className="p-7 sm:p-8 rounded-3xl bg-[#090b14]/90 border border-white/[0.12] flex flex-col justify-between relative overflow-hidden group select-none opacity-80">
+            {/* Elegant dark overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#06070c]/70 to-[#06070c]/95 pointer-events-none" />
+
+            <div className="relative z-10">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black tracking-wider uppercase text-rose-300 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/25 font-['Outfit']">
+                    SOLD OUT
+                  </span>
+                  <h3 className="text-2xl sm:text-3xl font-black text-slate-300 mt-3 font-['Cinzel'] tracking-wide">
+                    EARLY BIRD
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                    Early Access Tier (Concluded)
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl sm:text-4xl font-black text-slate-400 line-through decoration-rose-500 decoration-2 font-mono">₹599</div>
+                  <div className="text-[11px] text-rose-400 font-semibold mt-0.5">Sold Out</div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-5 border-t border-white/[0.08] space-y-3 text-xs text-slate-400">
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Full admission to NAVRANG 2026 celebration</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Complimentary food voucher</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Complimentary welcome drink / mocktail</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Dandiya sticks provided</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>360° Video Booth & Live Musical Performances</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Instant encrypted QR ticket delivery</span>
+                </div>
+              </div>
+
+              <div className="mt-6 p-3.5 rounded-xl bg-rose-500/[0.06] border border-rose-500/20 text-center">
+                <p className="text-xs text-rose-200/90 font-medium">
+                  Early Bird tickets are sold out. Please select Phase 1.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 relative z-10">
+              <button
+                type="button"
+                disabled
+                className="w-full py-4 rounded-2xl bg-white/[0.05] border border-white/10 text-slate-500 font-bold text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed select-none"
+              >
+                <span>SOLD OUT</span>
+              </button>
             </div>
           </div>
         </div>
@@ -671,16 +665,16 @@ export const HomePage: React.FC = () => {
             <span>COMING WITH YOUR FRIENDS?</span>
           </div>
           <h3 className="text-xl sm:text-2xl font-black text-white uppercase font-['Outfit']">
-            GROUP OF 10 — SAVE ₹991
+            GROUP OF 10 — SAVE ₹1,491
           </h3>
           <p className="mt-1 text-xs text-slate-300 max-w-md mx-auto">
-            Gather your squad, get the exclusive Group of 10 pass for ₹4,999, and save ₹991 together for NAVRANG 2026!
+            Gather your squad, get the exclusive Group of 10 pass for ₹6,499, and save ₹1,491 together for NAVRANG 2026!
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <a
               href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                `🔥 NAVRANG 2026 is here! In collaboration with The Happy Circle.\n\nGet the Group of 10 Pass for ₹4,999 and save ₹991!\n\nLet's go together! 🎉\n` + (typeof window !== 'undefined' ? `${window.location.origin}/book?count=10&offer=EARLY_BIRD_GROUP_10` : '')
+                `🔥 NAVRANG 2026 is here! In collaboration with The Happy Circle.\n\nGet the Phase 1 Group of 10 Pass for ₹6,499 and save ₹1,491!\n\nLet's go together! 🎉\n` + (typeof window !== 'undefined' ? `${window.location.origin}/book?count=10` : '')
               )}`}
               target="_blank"
               rel="noreferrer"

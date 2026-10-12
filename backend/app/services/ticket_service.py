@@ -84,7 +84,8 @@ class TicketService:
         # Resolve Phase Label and Offer Type dynamically
         offer_title = getattr(booking, "offer_title", "") or ""
         ticket_offer = getattr(ticket, "offer_title", "") or ""
-        combined_offer = (ticket_offer or offer_title).lower()
+        booking_phase = getattr(booking, "ticket_phase", "") or ""
+        combined_offer = f"{ticket_offer} {offer_title} {booking_phase}".lower()
 
         total_passes = booking.ticket_count if (booking and booking.ticket_count) else 1
         pass_idx = 1
@@ -102,7 +103,7 @@ class TicketService:
         elif is_phase1:
             phase_label = "PHASE 1"
         else:
-            phase_label = "EARLY BIRD"
+            phase_label = "PHASE 1"
 
         if "group" in combined_offer or total_passes == 10:
             offer_label = "GROUP OF 10"

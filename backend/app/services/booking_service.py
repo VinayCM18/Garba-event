@@ -82,6 +82,11 @@ class BookingService:
             return True, 9999, None
 
         if phase.status != "ACTIVE":
+            if phase.phase_code == "EARLY_BIRD":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Early Bird tickets are sold out. Please select Phase 1."
+                )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Ticket phase '{phase.name}' is currently {phase.status.lower()} and cannot be purchased."
@@ -124,7 +129,7 @@ class BookingService:
         cls,
         db: Session,
         ticket_count: int = 1,
-        ticket_phase: Optional[str] = "EARLY_BIRD",
+        ticket_phase: Optional[str] = "PHASE_1",
         offer_id: Optional[str] = None,
         quantity: Optional[int] = 1,
         items: Optional[List[Dict[str, Any]]] = None
@@ -152,7 +157,7 @@ class BookingService:
         phone: str,
         ticket_count: Optional[int] = None,
         db: Session = None,
-        ticket_phase: Optional[str] = "EARLY_BIRD",
+        ticket_phase: Optional[str] = "PHASE_1",
         idempotency_key: str = None,
         offer_id: Optional[str] = None,
         quantity: Optional[int] = 1,
@@ -190,7 +195,7 @@ class BookingService:
             resolved_phase = pricing["ticket_phase"]
         else:
             resolved_ticket_count = ticket_count or 1
-            resolved_phase = ticket_phase or "EARLY_BIRD"
+            resolved_phase = ticket_phase or "PHASE_1"
             if resolved_ticket_count > event_setting.max_per_booking:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -408,7 +413,7 @@ class BookingService:
 
         order_info.update({
             "ticket_phase": pricing.get("ticket_phase", resolved_phase),
-            "phase_name": pricing.get("phase_name", "Early Bird"),
+            "phase_name": pricing.get("phase_name", "Phase 1"),
             "ticket_price": pricing["ticket_price"],
             "ticket_count": resolved_ticket_count,
             "regular_amount": pricing["regular_amount"],

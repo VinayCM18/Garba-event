@@ -37,7 +37,7 @@ def setup_test_db():
     # Seed event setting
     setting = EventSetting(
         event_name="NAVRANG 2026",
-        ticket_price=599.0,
+        ticket_price=799.0,
         total_capacity=100,
         max_per_booking=5,
         booking_open=True,
@@ -125,7 +125,7 @@ def test_public_event_config(client):
     assert response.status_code == 200
     data = response.json()
     assert "GARBA" in data["event_name"] or "NAVRANG" in data["event_name"]
-    assert data["ticket_price"] == 599.0
+    assert data["ticket_price"] == 799.0
     assert data["remaining_tickets"] >= 0
 
 def test_create_order_pricing_calculation(client):
@@ -134,7 +134,7 @@ def test_create_order_pricing_calculation(client):
         mock_instance = MagicMock()
         mock_instance.order.create.return_value = {
             "id": "order_test_mock_deepak",
-            "amount": 183941,
+            "amount": 239700,
             "currency": "INR",
             "status": "created"
         }
@@ -147,8 +147,8 @@ def test_create_order_pricing_calculation(client):
         })
     assert response.status_code == 200
     data = response.json()
-    assert data["ticket_subtotal"] == 1797.0 # 3 * 599.0
-    assert data["amount"] in (1797.0, 1839.41)
+    assert data["ticket_subtotal"] == 2397.0 # 3 * 799.0
+    assert data["amount"] == 2397.0
     assert data["booking_id"].startswith("GN-2026-")
 
 def test_inventory_capacity_exceeded(client):

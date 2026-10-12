@@ -40,26 +40,26 @@ def get_public_config(db: Session = Depends(get_db)):
                 "phase_code": "EARLY_BIRD",
                 "name": "Early Bird",
                 "price": 599.0,
-                "status": "ACTIVE",
-                "badge_text": "AVAILABLE NOW",
-                "description": "Best value early access ticket (Group of 10 offer available)",
+                "status": "SOLD_OUT",
+                "badge_text": "SOLD OUT",
+                "description": "Early access ticket tier — SOLD OUT.",
                 "total_inventory": 500,
                 "sold_count": sold_count,
-                "remaining_tickets": max(0, 500 - sold_count),
-                "group_offer_eligible": True,
+                "remaining_tickets": 0,
+                "group_offer_eligible": False,
                 "tax_included": True
             },
             {
                 "phase_code": "PHASE_1",
                 "name": "Phase 1",
                 "price": 799.0,
-                "status": "LOCKED",
-                "badge_text": "COMING SOON",
-                "description": "Phase 1 tickets will unlock soon",
+                "status": "ACTIVE",
+                "badge_text": "AVAILABLE NOW",
+                "description": "Phase 1 standard tier ticket with all-inclusive venue & celebration pass.",
                 "total_inventory": 500,
                 "sold_count": 0,
                 "remaining_tickets": 500,
-                "group_offer_eligible": False,
+                "group_offer_eligible": True,
                 "tax_included": True
             },
             {
@@ -84,13 +84,14 @@ def get_public_config(db: Session = Depends(get_db)):
                 Booking.payment_status == "PAID",
                 Booking.ticket_phase == p.phase_code
             ).scalar() or 0
-            p_remaining = max(0, p.total_inventory - p_sold)
+            p_remaining = 0 if p.status == "SOLD_OUT" else max(0, p.total_inventory - p_sold)
+            badge = p.badge_text or ("SOLD OUT" if p.status == "SOLD_OUT" else ("AVAILABLE NOW" if p.status == "ACTIVE" else "COMING SOON"))
             phases_data.append({
                 "phase_code": p.phase_code,
                 "name": p.name,
                 "price": float(p.price),
                 "status": p.status,
-                "badge_text": p.badge_text or ("AVAILABLE NOW" if p.status == "ACTIVE" else "COMING SOON"),
+                "badge_text": badge,
                 "description": p.description,
                 "total_inventory": p.total_inventory,
                 "sold_count": p_sold,
@@ -100,7 +101,7 @@ def get_public_config(db: Session = Depends(get_db)):
             })
 
     active_phase = next((p for p in phases_data if p["status"] == "ACTIVE"), phases_data[0] if phases_data else None)
-    active_phase_code = active_phase["phase_code"] if active_phase else "EARLY_BIRD"
+    active_phase_code = active_phase["phase_code"] if active_phase else "PHASE_1"
     active_price = active_phase["price"] if active_phase else event_setting.ticket_price
 
     return {

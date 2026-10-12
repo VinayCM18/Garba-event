@@ -267,9 +267,9 @@ export const SuccessPage: React.FC = () => {
     booking.is_group_offer ||
     booking.ticket_count === 10
   );
-  const ticketPrice = booking.ticket_price || 599;
+  const ticketPrice = booking.ticket_price || 799;
   const regularValue = booking.regular_amount || (ticketPrice * booking.ticket_count);
-  const savings = booking.group_discount || (isGroupOffer ? ticketPrice : 0);
+  const savings = booking.group_discount || (isGroupOffer ? (regularValue > booking.amount ? regularValue - booking.amount : 1491) : 0);
   const ticketSubtotal = booking.ticket_subtotal || (regularValue - savings);
 
   return (
@@ -692,7 +692,7 @@ export const SuccessPage: React.FC = () => {
                 GROUP OF 10 — BEST VALUE
               </h2>
               <p className="mt-1 text-xs sm:text-sm text-slate-300">
-                Congratulations! You saved ₹991 with the exclusive Group of 10 offer.
+                Congratulations! You saved ₹{savings.toLocaleString('en-IN')} with the exclusive Group of 10 offer.
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-6 text-center">
@@ -1036,10 +1036,10 @@ export const SuccessPage: React.FC = () => {
               <span>COMING WITH YOUR FRIENDS?</span>
             </div>
             <h3 className="text-xl sm:text-2xl font-black text-white uppercase font-['Outfit']">
-              GROUP OF 10 — SAVE ₹991
+              GROUP OF 10 PASS — SAVE ₹1,491
             </h3>
             <p className="mt-1 text-xs text-slate-300 max-w-md mx-auto">
-              Share the NAVRANG 2026 group promotion with your friends and family so they also save ₹991 on group passes!
+              Share the NAVRANG 2026 group promotion with your friends and family so they also save ₹1,491 on group passes!
             </p>
             <div className="mt-5 flex justify-center">
               <button

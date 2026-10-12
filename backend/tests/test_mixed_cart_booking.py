@@ -28,7 +28,7 @@ def setup_test_data():
         if not setting:
             setting = EventSetting(
                 event_name="NAVRANG 2026",
-                ticket_price=599.0,
+                ticket_price=799.0,
                 total_capacity=5000,
                 booking_open=True,
                 payment_method="RAZORPAY"
@@ -36,62 +36,62 @@ def setup_test_data():
             db.add(setting)
         else:
             setting.event_name = "NAVRANG 2026"
-            setting.ticket_price = 599.0
+            setting.ticket_price = 799.0
             setting.total_capacity = 5000
             setting.booking_open = True
             setting.payment_method = "RAZORPAY"
 
-        # Ensure Early Bird phase is active
+        # Ensure Early Bird phase is sold out
         eb = db.query(TicketPhase).filter(TicketPhase.phase_code == "EARLY_BIRD").first()
         if not eb:
             eb = TicketPhase(
                 phase_code="EARLY_BIRD",
                 name="Early Bird",
                 price=599.0,
-                status="ACTIVE",
+                status="SOLD_OUT",
                 total_inventory=2500,
-                sold_count=0
+                sold_count=2500
             )
             db.add(eb)
         else:
-            eb.status = "ACTIVE"
+            eb.status = "SOLD_OUT"
 
-        # Ensure Phase 1 is locked
+        # Ensure Phase 1 is active
         p1 = db.query(TicketPhase).filter(TicketPhase.phase_code == "PHASE_1").first()
         if not p1:
             p1 = TicketPhase(
                 phase_code="PHASE_1",
                 name="Phase 1",
                 price=799.0,
-                status="LOCKED",
+                status="ACTIVE",
                 total_inventory=2500,
                 sold_count=0
             )
             db.add(p1)
         else:
-            p1.status = "LOCKED"
+            p1.status = "ACTIVE"
 
         db.commit()
     finally:
         db.close()
 
 def test_cart_pricing_authoritative_calculation():
-    """Verify authoritative backend calculation for mixed cart examples from prompt:
-    2 × Group of 10 = ₹9,998 (20 passes)
-    3 × Couple      = ₹2,997 (6 passes)
-    2 × Stag        = ₹1,198 (2 passes)
-    Total           = ₹14,193 (28 passes)
+    """Verify authoritative backend calculation for mixed cart Phase 1:
+    2 × Group of 10 = ₹12,998 (20 passes)
+    3 × Couple      = ₹3,897  (6 passes)
+    2 × Stag        = ₹1,598  (2 passes)
+    Total           = ₹18,493 (28 passes)
     """
     db = SessionLocal()
     try:
         cart = [
-            {"offer_id": "EARLY_BIRD_GROUP_10", "quantity": 2},
-            {"offer_id": "EARLY_BIRD_COUPLE", "quantity": 3},
-            {"offer_id": "EARLY_BIRD_STAG", "quantity": 2},
+            {"offer_id": "PHASE_1_GROUP_10", "quantity": 2},
+            {"offer_id": "PHASE_1_COUPLE", "quantity": 3},
+            {"offer_id": "PHASE_1_STAG", "quantity": 2},
         ]
         pricing = calculate_cart_pricing(items=cart, db=db)
-        assert pricing["total_amount"] == 14193.0
-        assert pricing["amount"] == 14193.0
+        assert pricing["total_amount"] == 18493.0
+        assert pricing["amount"] == 18493.0
         assert pricing["total_passes"] == 28
         assert pricing["ticket_count"] == 28
         assert pricing["payment_fee"] == 0.0
@@ -100,48 +100,48 @@ def test_cart_pricing_authoritative_calculation():
         assert len(pricing["items"]) == 3
 
         # Verify line subtotals
-        assert pricing["items"][0]["line_total"] == 9998.0
+        assert pricing["items"][0]["line_total"] == 12998.0
         assert pricing["items"][0]["total_passes"] == 20
-        assert pricing["items"][1]["line_total"] == 2997.0
+        assert pricing["items"][1]["line_total"] == 3897.0
         assert pricing["items"][1]["total_passes"] == 6
-        assert pricing["items"][2]["line_total"] == 1198.0
+        assert pricing["items"][2]["line_total"] == 1598.0
         assert pricing["items"][2]["total_passes"] == 2
     finally:
         db.close()
 
 def test_cart_pricing_with_kids():
-    """Verify cart combining Group, Couple, and Kids:
-    1 × Group of 10  = ₹4,999 (10 passes)
-    1 × Couple       = ₹999   (2 passes)
+    """Verify cart combining Phase 1 Group, Couple, and Kids:
+    1 × Group of 10  = ₹6,499 (10 passes)
+    1 × Couple       = ₹1,299 (2 passes)
     2 × Kids (5–12)  = ₹600   (2 passes)
-    Total            = ₹6,598 (14 passes)
+    Total            = ₹8,398 (14 passes)
     """
     db = SessionLocal()
     try:
         cart = [
-            {"offer_id": "EARLY_BIRD_GROUP_10", "quantity": 1},
-            {"offer_id": "EARLY_BIRD_COUPLE", "quantity": 1},
+            {"offer_id": "PHASE_1_GROUP_10", "quantity": 1},
+            {"offer_id": "PHASE_1_COUPLE", "quantity": 1},
             {"offer_id": "KIDS_5_12", "quantity": 2},
         ]
         pricing = calculate_cart_pricing(items=cart, db=db)
-        assert pricing["total_amount"] == 6598.0
+        assert pricing["total_amount"] == 8398.0
         assert pricing["total_passes"] == 14
         assert pricing["kids_count"] == 2
     finally:
         db.close()
 
 def test_locked_phase_rejected_in_cart():
-    """Verify that adding a locked offer to cart raises HTTP 400."""
+    """Verify that adding a sold out Early Bird offer to cart raises HTTP 400."""
     db = SessionLocal()
     try:
         cart = [
-            {"offer_id": "EARLY_BIRD_STAG", "quantity": 1},
-            {"offer_id": "PHASE_1_STAG", "quantity": 1},  # Locked phase
+            {"offer_id": "PHASE_1_STAG", "quantity": 1},
+            {"offer_id": "EARLY_BIRD_STAG", "quantity": 1},  # Sold out phase
         ]
         with pytest.raises(HTTPException) as exc:
             calculate_cart_pricing(items=cart, db=db)
         assert exc.value.status_code == 400
-        assert "locked" in str(exc.value.detail).lower()
+        assert "Early Bird tickets are sold out. Please select Phase 1." in str(exc.value.detail)
     finally:
         db.close()
 
@@ -150,7 +150,7 @@ def test_kids_validation_multiple_records():
     db = SessionLocal()
     try:
         cart = [
-            {"offer_id": "EARLY_BIRD_STAG", "quantity": 1},
+            {"offer_id": "PHASE_1_STAG", "quantity": 1},
             {"offer_id": "KIDS_5_12", "quantity": 2},
         ]
 
@@ -200,7 +200,7 @@ def test_kids_validation_multiple_records():
                 ],
                 db=db
             )
-            assert booking.amount == 599.0 + 600.0  # ₹1,199
+            assert booking.amount == 799.0 + 600.0  # ₹1,399
             assert booking.ticket_count == 3  # 1 Stag + 2 Kids passes
             assert len(booking.items) == 2
             assert order_info["razorpay_order_id"] == test_order_id
@@ -210,16 +210,16 @@ def test_kids_validation_multiple_records():
 def test_full_mixed_cart_booking_order_and_tickets():
     """Verify full end-to-end flow:
     Cart: 2 Group of 10 + 3 Couple + 2 Stag
-    1. Creates ONE booking with total passes = 28 and amount = ₹14,193
-    2. Creates ONE Razorpay order for 1419300 paise
+    1. Creates ONE booking with total passes = 28 and amount = ₹18,493
+    2. Creates ONE Razorpay order for 1849300 paise
     3. Confirms booking and generates 28 unique valid tickets with unique cryptographic QR tokens.
     """
     db = SessionLocal()
     try:
         cart = [
-            {"offer_id": "EARLY_BIRD_GROUP_10", "quantity": 2},
-            {"offer_id": "EARLY_BIRD_COUPLE", "quantity": 3},
-            {"offer_id": "EARLY_BIRD_STAG", "quantity": 2},
+            {"offer_id": "PHASE_1_GROUP_10", "quantity": 2},
+            {"offer_id": "PHASE_1_COUPLE", "quantity": 3},
+            {"offer_id": "PHASE_1_STAG", "quantity": 2},
         ]
 
         full_order_id = f"order_mixed_cart_{uuid.uuid4().hex[:8]}"
@@ -244,9 +244,9 @@ def test_full_mixed_cart_booking_order_and_tickets():
             )
 
             # 1. Order verification
-            assert booking.amount == 14193.0
+            assert booking.amount == 18493.0
             assert booking.ticket_count == 28
-            assert created_order_data["amount"] == 1419300  # 14,193 * 100 paise
+            assert created_order_data["amount"] == 1849300  # 18,493 * 100 paise
             assert created_order_data["currency"] == "INR"
             assert created_order_data["notes"]["ticket_count"] == "28"
 
@@ -254,7 +254,7 @@ def test_full_mixed_cart_booking_order_and_tickets():
             items = db.query(BookingItem).filter(BookingItem.booking_id == booking.id).all()
             assert len(items) == 3
             assert sum(it.total_passes for it in items) == 28
-            assert sum(it.line_total for it in items) == 14193.0
+            assert sum(it.line_total for it in items) == 18493.0
 
             # 2. Payment confirmation and ticket generation
             with patch("app.services.email_service.email_service.send_confirmation_email"), \

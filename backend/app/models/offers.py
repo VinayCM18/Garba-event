@@ -7,107 +7,56 @@ from app.models.ticket_phase import TicketPhase
 from app.models.event_setting import EventSetting
 
 OFFER_DEFINITIONS: Dict[str, Dict[str, Any]] = {
-    "EARLY_BIRD_STAG": {
-        "id": "EARLY_BIRD_STAG",
-        "phase_code": "EARLY_BIRD",
-        "phase_name": "EARLY BIRD",
-        "type": "STAG",
-        "default_phase_status": "ACTIVE",
-        "title": "Single Entry",
-        "full_title": "Early Bird — Single Entry",
-        "badge": "EARLY BIRD",
-        "description": "Single person entry.",
-        "passes_per_unit": 1,
-        "price_per_unit": 599.0,
-        "unit_name": "Pass",
-        "is_kids": False,
-        "requires_id_proof": False,
-        "display_order": 1,
-    },
-    "EARLY_BIRD_GROUP_10": {
-        "id": "EARLY_BIRD_GROUP_10",
-        "phase_code": "EARLY_BIRD",
-        "phase_name": "EARLY BIRD",
-        "type": "GROUP",
-        "default_phase_status": "ACTIVE",
-        "title": "Group of 10",
-        "full_title": "Early Bird — Group of 10",
-        "badge": "BEST VALUE • SAVE ₹991",
-        "description": "Entry for 10 people. Save ₹991 versus 10 individual passes.",
-        "passes_per_unit": 10,
-        "price_per_unit": 4999.0,
-        "unit_name": "Group Pass (10 People)",
-        "is_kids": False,
-        "requires_id_proof": False,
-        "display_order": 2,
-    },
-    "EARLY_BIRD_COUPLE": {
-        "id": "EARLY_BIRD_COUPLE",
-        "phase_code": "EARLY_BIRD",
-        "phase_name": "EARLY BIRD",
-        "type": "COUPLE",
-        "default_phase_status": "ACTIVE",
-        "title": "Couple Entry",
-        "full_title": "Early Bird — Couple Entry",
-        "badge": "POPULAR",
-        "description": "Entry for 2 people.",
-        "passes_per_unit": 2,
-        "price_per_unit": 999.0,
-        "unit_name": "Couple Pass",
-        "is_kids": False,
-        "requires_id_proof": False,
-        "display_order": 3,
-    },
     "PHASE_1_STAG": {
         "id": "PHASE_1_STAG",
         "phase_code": "PHASE_1",
         "phase_name": "PHASE 1",
         "type": "STAG",
-        "default_phase_status": "LOCKED",
+        "default_phase_status": "ACTIVE",
         "title": "Single Entry",
         "full_title": "Phase 1 — Single Entry",
-        "badge": "COMING SOON",
+        "badge": "PHASE 1",
         "description": "Single person entry.",
         "passes_per_unit": 1,
         "price_per_unit": 799.0,
         "unit_name": "Pass",
         "is_kids": False,
         "requires_id_proof": False,
-        "display_order": 4,
-    },
-    "PHASE_1_GROUP_10": {
-        "id": "PHASE_1_GROUP_10",
-        "phase_code": "PHASE_1",
-        "phase_name": "PHASE 1",
-        "type": "GROUP",
-        "default_phase_status": "LOCKED",
-        "title": "Group of 10",
-        "full_title": "Phase 1 — Group of 10",
-        "badge": "COMING SOON",
-        "description": "Entry for 10 people.",
-        "passes_per_unit": 10,
-        "price_per_unit": 6799.0,
-        "unit_name": "Group Pass (10 People)",
-        "is_kids": False,
-        "requires_id_proof": False,
-        "display_order": 5,
+        "display_order": 1,
     },
     "PHASE_1_COUPLE": {
         "id": "PHASE_1_COUPLE",
         "phase_code": "PHASE_1",
         "phase_name": "PHASE 1",
         "type": "COUPLE",
-        "default_phase_status": "LOCKED",
+        "default_phase_status": "ACTIVE",
         "title": "Couple Entry",
         "full_title": "Phase 1 — Couple Entry",
-        "badge": "COMING SOON",
-        "description": "Entry for 2 people.",
+        "badge": "POPULAR",
+        "description": "Entry for 2 people (1 Boy + 1 Girl).",
         "passes_per_unit": 2,
-        "price_per_unit": 1399.0,
+        "price_per_unit": 1299.0,
         "unit_name": "Couple Pass",
         "is_kids": False,
         "requires_id_proof": False,
-        "display_order": 6,
+        "display_order": 2,
+    },
+    "PHASE_1_GROUP_10": {
+        "id": "PHASE_1_GROUP_10",
+        "phase_code": "PHASE_1",
+        "phase_name": "PHASE 1",
+        "type": "GROUP",
+        "default_phase_status": "ACTIVE",
+        "title": "Group of 10",
+        "full_title": "Phase 1 — Group of 10",
+        "badge": "BEST VALUE • SAVE ₹1,491",
+        "description": "Entry for 10 people. Save ₹1,491 versus 10 individual passes.",
+        "passes_per_unit": 10,
+        "price_per_unit": 6499.0,
+        "unit_name": "Group Pass (10 People)",
+        "is_kids": False,
+        "requires_id_proof": False,
+        "display_order": 3,
     },
     "KIDS_5_12": {
         "id": "KIDS_5_12",
@@ -115,8 +64,8 @@ OFFER_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "phase_name": "KIDS (5–12)",
         "type": "KIDS",
         "default_phase_status": "ACTIVE",
-        "title": "Kids (5–12 years)",
-        "full_title": "Kids (5–12 years) — Entry",
+        "title": "Kids Entry (Ages 5–12)",
+        "full_title": "Kids Entry (Ages 5–12)",
         "badge": "KIDS PASS",
         "description": "Entry for child aged 5–12. Aadhaar card / valid ID proof required at entry.",
         "passes_per_unit": 1,
@@ -125,6 +74,57 @@ OFFER_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "is_kids": True,
         "requires_id_proof": True,
         "id_proof_note": "Aadhaar card / valid ID proof required at entry.",
+        "display_order": 4,
+    },
+    "EARLY_BIRD_STAG": {
+        "id": "EARLY_BIRD_STAG",
+        "phase_code": "EARLY_BIRD",
+        "phase_name": "EARLY BIRD",
+        "type": "STAG",
+        "default_phase_status": "SOLD_OUT",
+        "title": "Single Entry",
+        "full_title": "Early Bird — Single Entry",
+        "badge": "SOLD OUT",
+        "description": "Single person entry. Early Bird phase is completely sold out.",
+        "passes_per_unit": 1,
+        "price_per_unit": 599.0,
+        "unit_name": "Pass",
+        "is_kids": False,
+        "requires_id_proof": False,
+        "display_order": 5,
+    },
+    "EARLY_BIRD_COUPLE": {
+        "id": "EARLY_BIRD_COUPLE",
+        "phase_code": "EARLY_BIRD",
+        "phase_name": "EARLY BIRD",
+        "type": "COUPLE",
+        "default_phase_status": "SOLD_OUT",
+        "title": "Couple Entry",
+        "full_title": "Early Bird — Couple Entry",
+        "badge": "SOLD OUT",
+        "description": "Entry for 2 people. Early Bird phase is completely sold out.",
+        "passes_per_unit": 2,
+        "price_per_unit": 999.0,
+        "unit_name": "Couple Pass",
+        "is_kids": False,
+        "requires_id_proof": False,
+        "display_order": 6,
+    },
+    "EARLY_BIRD_GROUP_10": {
+        "id": "EARLY_BIRD_GROUP_10",
+        "phase_code": "EARLY_BIRD",
+        "phase_name": "EARLY BIRD",
+        "type": "GROUP",
+        "default_phase_status": "SOLD_OUT",
+        "title": "Group of 10",
+        "full_title": "Early Bird — Group of 10",
+        "badge": "SOLD OUT",
+        "description": "Entry for 10 people. Save ₹991 versus 10 individual passes. Early Bird phase is completely sold out.",
+        "passes_per_unit": 10,
+        "price_per_unit": 4999.0,
+        "unit_name": "Group Pass (10 People)",
+        "is_kids": False,
+        "requires_id_proof": False,
         "display_order": 7,
     },
 }
@@ -150,7 +150,7 @@ def get_all_offers(db: Session) -> List[Dict[str, Any]]:
             phase_status = "ACTIVE" if booking_open else "LOCKED"
         else:
             db_status = phase_status_map.get(phase_code)
-            if db_status in ("ACTIVE", "LOCKED", "COMING_SOON"):
+            if db_status in ("ACTIVE", "LOCKED", "COMING_SOON", "SOLD_OUT"):
                 phase_status = db_status
             else:
                 phase_status = offer.get("default_phase_status", "LOCKED")
@@ -159,7 +159,16 @@ def get_all_offers(db: Session) -> List[Dict[str, Any]]:
                 phase_status = "LOCKED"
 
         is_purchasable = (phase_status == "ACTIVE") and booking_open
-        status_text = "AVAILABLE NOW" if is_purchasable else ("COMING SOON" if phase_status == "COMING_SOON" else "LOCKED")
+        if phase_status == "SOLD_OUT":
+            status_text = "SOLD OUT"
+        elif is_purchasable:
+            status_text = "AVAILABLE NOW"
+        elif phase_status == "COMING_SOON":
+            status_text = "COMING SOON"
+        else:
+            status_text = "LOCKED"
+
+        badge = "SOLD OUT" if phase_status == "SOLD_OUT" else offer["badge"]
 
         offers_list.append({
             "id": offer["id"],
@@ -169,7 +178,7 @@ def get_all_offers(db: Session) -> List[Dict[str, Any]]:
             "type": offer["type"],
             "title": offer["title"],
             "full_title": offer["full_title"],
-            "badge": offer["badge"],
+            "badge": badge,
             "description": offer["description"],
             "passes_per_unit": offer["passes_per_unit"],
             "per_unit_passes": offer["passes_per_unit"],
@@ -260,6 +269,11 @@ def calculate_cart_pricing(items: List[Dict[str, Any]], db: Session = None) -> D
         phase_name = offer["phase_name"]
         if phase_code != "ALL":
             phase_status = phase_status_map.get(phase_code, offer.get("default_phase_status", "LOCKED"))
+            if phase_code == "EARLY_BIRD" or phase_status == "SOLD_OUT":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Early Bird tickets are sold out. Please select Phase 1."
+                )
             if phase_status != "ACTIVE":
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -296,7 +310,7 @@ def calculate_cart_pricing(items: List[Dict[str, Any]], db: Session = None) -> D
         total_amount += line_total
 
     total_amount = round(total_amount, 2)
-    per_pass_price = round(total_amount / total_passes, 2) if total_passes > 0 else 599.0
+    per_pass_price = round(total_amount / total_passes, 2) if total_passes > 0 else 799.0
 
     primary_item = calculated_items[0] if calculated_items else {}
     is_mixed = len(calculated_items) > 1
@@ -327,8 +341,8 @@ def calculate_cart_pricing(items: List[Dict[str, Any]], db: Session = None) -> D
         "offer_id": primary_item.get("offer_id") if not is_mixed else "MIXED_CART",
         "offer_title": primary_item.get("offer_title") if not is_mixed else f"Mixed Cart ({total_passes} Passes)",
         "offer_name": primary_item.get("offer_title") if not is_mixed else f"Mixed Cart ({total_passes} Passes)",
-        "ticket_phase": primary_item.get("phase_code") if not is_mixed else "EARLY_BIRD",
-        "phase_name": primary_item.get("phase_name") if not is_mixed else "Early Bird",
+        "ticket_phase": primary_item.get("phase_code") if not is_mixed else "PHASE_1",
+        "phase_name": primary_item.get("phase_name") if not is_mixed else "Phase 1",
         "unit_count": primary_item.get("quantity") if not is_mixed else len(calculated_items),
         "unit_price": primary_item.get("unit_price") if not is_mixed else per_pass_price,
         "is_kids": (kids_count > 0),
