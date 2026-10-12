@@ -195,17 +195,29 @@ export const AdminScannerPage: React.FC = () => {
 
   // Process a scanned or typed token
   const handleTokenScanned = async (tokenString: string) => {
-    let cleanToken = tokenString.trim();
+    let cleanToken = tokenString.trim().replace(/^["']+|["']+$/g, '');
     if (!cleanToken) return;
 
-    // Clean URL prefixes if scanner returns full web address
-    if (cleanToken.includes('/ticket/')) {
-      cleanToken = cleanToken.split('/ticket/')[1].split('?')[0].split('#')[0];
-    } else if (cleanToken.includes('/tickets/view/')) {
-      cleanToken = cleanToken.split('/tickets/view/')[1].split('?')[0].split('#')[0];
-    } else if (cleanToken.includes('/success/')) {
-      cleanToken = cleanToken.split('/success/')[1].split('?')[0].split('#')[0];
+    // Handle JSON payload if emitted by smart scanner
+    if (cleanToken.startsWith('{') && cleanToken.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(cleanToken);
+        cleanToken = String(parsed.qr_token || parsed.ticket_id || parsed.token || parsed.id || cleanToken).trim();
+      } catch {}
     }
+
+    // Clean URL prefixes if scanner returns full web address
+    if (cleanToken.includes('/tickets/view/')) {
+      cleanToken = cleanToken.split('/tickets/view/')[1];
+    } else if (cleanToken.includes('/ticket/')) {
+      cleanToken = cleanToken.split('/ticket/')[1];
+    } else if (cleanToken.includes('/tickets/')) {
+      cleanToken = cleanToken.split('/tickets/')[1];
+    } else if (cleanToken.includes('/success/')) {
+      cleanToken = cleanToken.split('/success/')[1];
+    }
+
+    cleanToken = cleanToken.split('?')[0].split('#')[0].replace(/\/+$/, '').trim();
 
     // Debounce duplicate scans with synchronous lock and 3.5s cooldown
     const now = Date.now();

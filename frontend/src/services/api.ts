@@ -69,7 +69,7 @@ export const isTokenExpired = (token: string | null | undefined): boolean => {
 
 // Attach bearer token if stored and valid
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('admin_token');
+  const token = localStorage.getItem('admin_token') || localStorage.getItem('staff_token') || localStorage.getItem('token');
   if (token && typeof token === 'string' && token.trim() !== '' && token !== 'undefined' && token !== 'null') {
     if (config.headers) {
       config.headers.Authorization = `Bearer ${token.trim()}`;

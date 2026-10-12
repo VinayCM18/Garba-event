@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 from datetime import datetime
 import re
+import urllib.parse
+import json
 from app.database import get_db
 from app.models.ticket import Ticket
 from app.models.booking import Booking
@@ -26,22 +28,76 @@ from typing import Optional
 
 router = APIRouter(prefix="", tags=["Tickets & QR Verification"])
 
-def find_ticket_by_any_identifier(raw_identifier: str, db: Session, for_update: bool = False, is_staff: bool = False) -> Optional[Ticket]:
+def find_ticket_by_any_identifier(raw_identifier: str, db: Session, for_update: bool = False, is_staff: bool = True) -> Optional[Ticket]:
     """Intelligently resolves a ticket from any user-provided identifier or scanned payload.
     - Public access (is_staff=False): ONLY high-entropy cryptographic QR tokens are accepted.
-    - Staff access (is_staff=True): Allows Ticket ID, Booking ID, or attendee lookup at entry gates.
+    - Staff access (is_staff=True): Allows Ticket ID, Booking ID, attendee phone, or email lookup at entry gates.
     """
     if not raw_identifier:
         return None
-    token = raw_identifier.strip()
-    
-    # 1. Clean URLs if full address was scanned
-    if "/ticket/" in token:
-        token = token.split("/ticket/")[1].split("?")[0].split("#")[0].strip()
-    elif "/tickets/view/" in token:
-        token = token.split("/tickets/view/")[1].split("?")[0].split("#")[0].strip()
+    token = str(raw_identifier).strip().strip("'\"")
+    if not token:
+        return None
+
+    # 1. Handle JSON string payloads if emitted by smart optical scanners
+    if token.startswith("{") and token.endswith("}"):
+        try:
+            parsed_json = json.loads(token)
+            if isinstance(parsed_json, dict):
+                token = str(
+                    parsed_json.get("qr_token")
+                    or parsed_json.get("ticket_id")
+                    or parsed_json.get("token")
+                    or parsed_json.get("id")
+                    or token
+                ).strip().strip("'\"")
+        except Exception:
+            pass
+
+    # 2. Extract token from URL strings (supports http, https, custom schemes, query params, fragments)
+    if "://" in token or token.startswith("www."):
+        full_url = token if "://" in token else f"https://{token}"
+        try:
+            parsed_url = urllib.parse.urlparse(full_url)
+            # Check query params first (e.g., ?token=... or ?qr_token=... or ?ticket_id=...)
+            qs = urllib.parse.parse_qs(parsed_url.query)
+            if "token" in qs and qs["token"]:
+                token = qs["token"][0].strip()
+            elif "qr_token" in qs and qs["qr_token"]:
+                token = qs["qr_token"][0].strip()
+            elif "ticket_id" in qs and qs["ticket_id"]:
+                token = qs["ticket_id"][0].strip()
+            else:
+                path = parsed_url.path.rstrip("/")
+                if "/tickets/view/" in path:
+                    token = path.split("/tickets/view/")[-1].strip()
+                elif "/ticket/" in path:
+                    token = path.split("/ticket/")[-1].strip()
+                elif "/tickets/" in path:
+                    token = path.split("/tickets/")[-1].strip()
+                elif "/success/" in path:
+                    token = path.split("/success/")[-1].strip()
+                else:
+                    path_parts = [p for p in path.split("/") if p]
+                    if path_parts:
+                        token = path_parts[-1].strip()
+        except Exception:
+            pass
+
+    # Handle remaining URL path markers if scheme was omitted
+    if "/tickets/view/" in token:
+        token = token.split("/tickets/view/")[-1]
+    elif "/ticket/" in token:
+        token = token.split("/ticket/")[-1]
+    elif "/tickets/" in token:
+        token = token.split("/tickets/")[-1]
     elif "/success/" in token:
-        token = token.split("/success/")[1].split("?")[0].split("#")[0].strip()
+        token = token.split("/success/")[-1]
+
+    # Clean query params, fragments, trailing slashes, surrounding quotes
+    token = token.split("?")[0].split("#")[0].rstrip("/").strip().strip("'\"")
+    if not token:
+        return None
 
     token_hash = hash_qr_token(token)
 
@@ -49,10 +105,15 @@ def find_ticket_by_any_identifier(raw_identifier: str, db: Session, for_update: 
     if for_update:
         query = query.with_for_update()
 
-    # Priority 1: Match by raw high-entropy QR token or token hash (Allowed for both public and staff)
+    # Priority 1: Exact match on high-entropy raw QR token or token hash
     ticket = query.filter(
         (Ticket.qr_token_raw == token) | (Ticket.qr_token_hash == token_hash)
     ).first()
+    if ticket:
+        return ticket
+
+    # Priority 1b: Case-insensitive match on raw QR token (for barcode scanners altering case)
+    ticket = query.filter(Ticket.qr_token_raw.ilike(token)).first()
     if ticket:
         return ticket
 
@@ -60,31 +121,20 @@ def find_ticket_by_any_identifier(raw_identifier: str, db: Session, for_update: 
     if not is_staff:
         return None
 
-    # Priority 2: Direct match on Ticket ID (staff only)
+    # Priority 2: Direct match on Ticket ID (staff only, e.g. GN26-TKT-000145-01)
     ticket = query.filter(Ticket.ticket_id.ilike(token)).first()
     if ticket:
         return ticket
 
-    # Priority 3: Match on Booking ID (staff only, e.g. GN-2026-70591)
+    # Priority 3: Match on Booking ID (staff only, e.g. GN-2026-000145)
     booking = db.query(Booking).filter(Booking.booking_id.ilike(token)).first()
     if booking and booking.tickets:
         unclaimed = [t for t in booking.tickets if not t.checkin_status and t.ticket_status == "VALID"]
         target_id = unclaimed[0].id if unclaimed else booking.tickets[0].id
         return query.filter(Ticket.id == target_id).first()
 
-    # Priority 4: Partial numeric or stripped search (staff only, e.g. 070591-01 or 70591)
+    # Priority 4: Attendee 10-digit phone number match (staff only)
     clean_numeric = re.sub(r'[^0-9]', '', token)
-    if len(clean_numeric) >= 4:
-        ticket = query.filter(Ticket.ticket_id.ilike(f"%{clean_numeric}%")).first()
-        if ticket:
-            return ticket
-        booking = db.query(Booking).filter(Booking.booking_id.ilike(f"%{clean_numeric}%")).first()
-        if booking and booking.tickets:
-            unclaimed = [t for t in booking.tickets if not t.checkin_status and t.ticket_status == "VALID"]
-            target_id = unclaimed[0].id if unclaimed else booking.tickets[0].id
-            return query.filter(Ticket.id == target_id).first()
-
-    # Priority 5: Customer phone match (staff only)
     if len(clean_numeric) >= 10:
         booking = db.query(Booking).filter(Booking.phone.ilike(f"%{clean_numeric}%")).order_by(Booking.id.desc()).first()
         if booking and booking.tickets:
@@ -92,9 +142,21 @@ def find_ticket_by_any_identifier(raw_identifier: str, db: Session, for_update: 
             target_id = unclaimed[0].id if unclaimed else booking.tickets[0].id
             return query.filter(Ticket.id == target_id).first()
 
-    # Priority 6: Customer email match (staff only)
+    # Priority 5: Attendee email match (staff only)
     if "@" in token and "." in token:
         booking = db.query(Booking).filter(Booking.email.ilike(token)).order_by(Booking.id.desc()).first()
+        if booking and booking.tickets:
+            unclaimed = [t for t in booking.tickets if not t.checkin_status and t.ticket_status == "VALID"]
+            target_id = unclaimed[0].id if unclaimed else booking.tickets[0].id
+            return query.filter(Ticket.id == target_id).first()
+
+    # Priority 6: Ticket ID partial numeric match (e.g. attendee types '145-01' or '000145-01')
+    # Guard: only if token doesn't begin with raw token prefix 'GN26_' to prevent random digit collisions
+    if len(clean_numeric) >= 4 and not token.upper().startswith("GN26_"):
+        ticket = query.filter(Ticket.ticket_id.ilike(f"%{clean_numeric}%")).first()
+        if ticket:
+            return ticket
+        booking = db.query(Booking).filter(Booking.booking_id.ilike(f"%{clean_numeric}%")).first()
         if booking and booking.tickets:
             unclaimed = [t for t in booking.tickets if not t.checkin_status and t.ticket_status == "VALID"]
             target_id = unclaimed[0].id if unclaimed else booking.tickets[0].id
@@ -255,14 +317,16 @@ def verify_qr(
             ticket_status=ticket.ticket_status,
             checkin_status=ticket.checkin_status,
             checked_in_at=ticket.checked_in_at,
-            qr_token_raw=None
+            qr_token_raw=ticket.qr_token_raw
         )
 
     if ticket.checkin_status:
+        from app.utils.timezone import utc_to_ist
+        time_str = utc_to_ist(ticket.checked_in_at).strftime("%I:%M %p") if ticket.checked_in_at else "Earlier"
         return VerifyQRResponse(
             valid=False,
             status="USED",
-            message="⚠️ TICKET ALREADY USED",
+            message=f"⚠️ Ticket Already Checked In at {time_str} (Ticket: {ticket.ticket_id})",
             ticket_id=ticket.ticket_id,
             booking_id=booking.booking_id if booking else None,
             customer_name=ticket.customer_name,
@@ -270,20 +334,20 @@ def verify_qr(
             ticket_status="USED",
             checkin_status=True,
             checked_in_at=ticket.checked_in_at,
-            qr_token_raw=None
+            qr_token_raw=ticket.qr_token_raw
         )
 
     return VerifyQRResponse(
         valid=True,
         status="VALID",
-        message="✓ VALID TICKET",
+        message="✓ VALID TICKET - Ready for Entry",
         ticket_id=ticket.ticket_id,
         booking_id=booking.booking_id if booking else None,
         customer_name=ticket.customer_name,
         event_name=ticket.event_name,
         ticket_status="VALID",
         checkin_status=False,
-        qr_token_raw=None
+        qr_token_raw=ticket.qr_token_raw
     )
 
 @router.post("/api/qr/checkin", response_model=CheckInResponse)
@@ -298,7 +362,7 @@ def checkin_ticket(
     client_ip = request.client.host if request.client else "unknown"
 
     # Acquire exclusive row lock on the ticket by any identifier
-    ticket = find_ticket_by_any_identifier(raw_token, db, for_update=True)
+    ticket = find_ticket_by_any_identifier(raw_token, db, for_update=True, is_staff=True)
 
     if not ticket:
         # Record failed attempt

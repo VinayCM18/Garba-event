@@ -253,10 +253,23 @@ export const StaffScannerPage: React.FC = () => {
   // Handle scanned QR payload with atomic lock and deduplication
   const handleScannedPayload = useCallback(
     async (rawCode: string) => {
-      let cleaned = rawCode.trim();
-      if (cleaned.includes('/ticket/')) {
-        cleaned = cleaned.split('/ticket/')[1].split('?')[0].split('#')[0].trim();
+      let cleaned = rawCode.trim().replace(/^["']+|["']+$/g, '');
+      if (cleaned.startsWith('{') && cleaned.endsWith('}')) {
+        try {
+          const parsed = JSON.parse(cleaned);
+          cleaned = String(parsed.qr_token || parsed.ticket_id || parsed.token || parsed.id || cleaned).trim();
+        } catch {}
       }
+      if (cleaned.includes('/tickets/view/')) {
+        cleaned = cleaned.split('/tickets/view/')[1];
+      } else if (cleaned.includes('/ticket/')) {
+        cleaned = cleaned.split('/ticket/')[1];
+      } else if (cleaned.includes('/tickets/')) {
+        cleaned = cleaned.split('/tickets/')[1];
+      } else if (cleaned.includes('/success/')) {
+        cleaned = cleaned.split('/success/')[1];
+      }
+      cleaned = cleaned.split('?')[0].split('#')[0].replace(/\/+$/, '').trim();
 
       const now = Date.now();
 

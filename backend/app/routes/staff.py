@@ -149,7 +149,7 @@ def staff_verify_ticket(
     Does NOT return any payment amounts or billing info.
     """
     raw_token = payload.qr_token.strip()
-    ticket = find_ticket_by_any_identifier(raw_token, db)
+    ticket = find_ticket_by_any_identifier(raw_token, db, is_staff=True)
 
     if not ticket:
         return StaffVerifyResponse(
@@ -221,7 +221,7 @@ def staff_checkin_ticket(
     client_ip = request.client.host if request.client else "unknown"
 
     # Acquire exclusive row lock
-    ticket = find_ticket_by_any_identifier(raw_token, db, for_update=True)
+    ticket = find_ticket_by_any_identifier(raw_token, db, for_update=True, is_staff=True)
 
     if not ticket:
         checkin_log = CheckIn(
