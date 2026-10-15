@@ -92,23 +92,18 @@ export const AdminScannerPage: React.FC = () => {
     }
   }, []);
 
-  // Enumerate available video inputs
-  const refreshDevices = useCallback(async () => {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoInputs = devices.filter((d) => d.kind === 'videoinput');
-      setAvailableDevices(videoInputs);
-      if (videoInputs.length > 0 && !selectedDeviceId) {
-        // Prefer rear/environment camera
-        const backCam = videoInputs.find(
-          (d) => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment')
-        );
-        setSelectedDeviceId(backCam ? backCam.deviceId : videoInputs[0].deviceId);
-      }
-    } catch (err) {
-      console.warn('Unable to enumerate camera devices:', err);
+  // Helper to find camera by facing preference from a device list
+  const findCameraByFacing = (devices: MediaDeviceInfo[], targetFacing: 'environment' | 'user'): MediaDeviceInfo | undefined => {
+    if (targetFacing === 'environment') {
+      return devices.find((d) =>
+        /back|rear|environment|world|facing back|telephoto|wide/i.test(d.label)
+      );
+    } else {
+      return devices.find((d) =>
+        /front|selfie|user|facing front/i.test(d.label)
+      );
     }
-  }, [selectedDeviceId]);
+  };
 
   // Stop camera media tracks
   const stopCamera = useCallback(() => {
@@ -120,58 +115,124 @@ export const AdminScannerPage: React.FC = () => {
       mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     setCameraActive(false);
     setTorchOn(false);
   }, []);
 
-  // Start camera stream
-  const startCamera = useCallback(async () => {
+  // Start camera stream with guaranteed rear preference & fallback verification
+  const startCamera = useCallback(async (targetFacing?: 'environment' | 'user', targetDeviceId?: string) => {
     stopCamera();
-
-    const videoConstraints: MediaTrackConstraints = selectedDeviceId
-      ? { deviceId: { exact: selectedDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60, min: 30 } }
-      : { facingMode: cameraFacing, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60, min: 30 } };
+    const desiredFacing: 'environment' | 'user' =
+      targetFacing === 'environment' || targetFacing === 'user' ? targetFacing : cameraFacing;
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: videoConstraints,
+      let videoConstraint: MediaTrackConstraints;
+      if (targetDeviceId) {
+        videoConstraint = {
+          deviceId: { exact: targetDeviceId },
+          width: { ideal: 1920, min: 640 },
+          height: { ideal: 1080, min: 480 },
+          frameRate: { ideal: 60, min: 30 },
+        };
+      } else {
+        videoConstraint = {
+          facingMode: { ideal: desiredFacing },
+          width: { ideal: 1920, min: 640 },
+          height: { ideal: 1080, min: 480 },
+          frameRate: { ideal: 60, min: 30 },
+        };
+      }
+
+      let stream = await navigator.mediaDevices.getUserMedia({
+        video: videoConstraint,
         audio: false,
       });
 
+      let track = stream.getVideoTracks()[0];
+      let settings = track.getSettings?.() || {};
+
+      // Enumerate available video inputs now that permission has been granted
+      let videoDevices: MediaDeviceInfo[] = [];
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        videoDevices = devices.filter((d) => d.kind === 'videoinput');
+        setAvailableDevices(videoDevices);
+      } catch {}
+
+      // Fallback verification: If we requested 'environment' (rear), but track is 'user' (front),
+      // switch to an identified rear camera from device list if available
+      if (!targetDeviceId && desiredFacing === 'environment' && videoDevices.length > 1) {
+        const isActuallyFront =
+          settings.facingMode === 'user' ||
+          (track.label && /front|selfie|user/i.test(track.label));
+
+        if (isActuallyFront) {
+          const rearCam = findCameraByFacing(videoDevices, 'environment');
+          if (rearCam) {
+            console.warn('[AdminScanner] Browser defaulted to front camera. Switching to identified rear camera:', rearCam.label);
+            track.stop();
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                deviceId: { exact: rearCam.deviceId },
+                width: { ideal: 1920, min: 640 },
+                height: { ideal: 1080, min: 480 },
+                frameRate: { ideal: 60, min: 30 },
+              },
+              audio: false,
+            });
+            track = stream.getVideoTracks()[0];
+            settings = track.getSettings?.() || {};
+            setSelectedDeviceId(rearCam.deviceId);
+          }
+        }
+      }
+
       mediaStreamRef.current = stream;
+      setCameraFacing(desiredFacing);
+      if (track.getSettings?.().deviceId) {
+        setSelectedDeviceId(track.getSettings().deviceId!);
+      }
 
-      // Check for torch/flashlight capability
-      const track = stream.getVideoTracks()[0];
-      const capabilities = (track.getCapabilities && track.getCapabilities()) as any;
-      setTorchSupported(!!(capabilities && capabilities.torch));
-
+      // Attach stream to video and wait for metadata before starting detection
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.setAttribute('playsinline', 'true');
-        await videoRef.current.play();
-        setCameraActive(true);
-        refreshDevices();
-      }
-    } catch (err: any) {
-      console.warn('Failed to start camera with exact constraints, trying generic:', err);
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: cameraFacing },
-          audio: false,
+        videoRef.current.setAttribute('muted', 'true');
+
+        await new Promise<void>((resolve) => {
+          if (!videoRef.current) return resolve();
+          if (videoRef.current.readyState >= HTMLMediaElement.HAVE_METADATA) {
+            resolve();
+          } else {
+            videoRef.current.onloadedmetadata = () => resolve();
+          }
         });
-        mediaStreamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute('playsinline', 'true');
-          await videoRef.current.play();
-          setCameraActive(true);
-        }
-      } catch (fallbackErr: any) {
-        console.error('Camera access denied or failed:', fallbackErr);
-        setCameraActive(false);
+
+        await videoRef.current.play();
       }
+
+      setCameraActive(true);
+
+      // Check for torch/flashlight capability
+      const capabilities: any = track.getCapabilities?.() || {};
+      setTorchSupported(!!capabilities.torch);
+    } catch (err: any) {
+      console.error('[AdminScanner] Camera activation failed:', err);
+      let errMsg = 'Could not start camera. Please ensure camera permissions are allowed.';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errMsg = 'Camera permission was denied. Please allow camera access in your browser settings to scan QR passes.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errMsg = 'No camera found on this device. You can verify passes using the manual search bar.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errMsg = 'Camera is currently in use by another application. Please close other camera apps and try again.';
+      }
+      error('Camera Error', errMsg);
+      setCameraActive(false);
     }
-  }, [cameraFacing, selectedDeviceId, stopCamera, refreshDevices]);
+  }, [cameraFacing, error, stopCamera]);
 
   // Toggle Torch / Flashlight
   const toggleTorch = async () => {
@@ -188,9 +249,14 @@ export const AdminScannerPage: React.FC = () => {
   };
 
   // Flip Camera between environment & user
-  const toggleCameraFacing = () => {
-    setCameraFacing((prev) => (prev === 'environment' ? 'user' : 'environment'));
-    setSelectedDeviceId('');
+  const toggleCameraFacing = async () => {
+    if (availableDevices.length === 1) {
+      warning('Single Camera', 'Only one camera is detected on this device.');
+      return;
+    }
+    const nextFacing: 'environment' | 'user' = cameraFacing === 'environment' ? 'user' : 'environment';
+    const targetCam = findCameraByFacing(availableDevices, nextFacing);
+    await startCamera(nextFacing, targetCam?.deviceId);
   };
 
   // Process a scanned or typed token
@@ -336,13 +402,13 @@ export const AdminScannerPage: React.FC = () => {
     };
   }, [cameraActive]);
 
-  // Start camera on mount & change
+  // Start camera on mount
   useEffect(() => {
-    startCamera();
+    startCamera('environment');
     return () => {
       stopCamera();
     };
-  }, [cameraFacing, selectedDeviceId]);
+  }, []);
 
   // Handle Manual Form Submit
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -496,7 +562,10 @@ export const AdminScannerPage: React.FC = () => {
             {availableDevices.length > 1 && (
               <select
                 value={selectedDeviceId}
-                onChange={(e) => setSelectedDeviceId(e.target.value)}
+                onChange={(e) => {
+                  setSelectedDeviceId(e.target.value);
+                  startCamera(undefined, e.target.value);
+                }}
                 className="bg-black/60 border border-white/10 text-slate-300 text-[11px] rounded-lg px-2 py-1 focus:outline-none focus:border-amber-400 max-w-[140px] truncate"
               >
                 {availableDevices.map((cam, idx) => (
@@ -530,7 +599,7 @@ export const AdminScannerPage: React.FC = () => {
               <SwitchCamera className="w-4 h-4" />
             </button>
             <button
-              onClick={startCamera}
+              onClick={() => startCamera(cameraFacing)}
               className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors border border-white/10"
               title="Restart Video Stream"
             >
