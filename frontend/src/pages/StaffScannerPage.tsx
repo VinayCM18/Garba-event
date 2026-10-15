@@ -331,7 +331,7 @@ export const StaffScannerPage: React.FC = () => {
 
   // Check In attendee atomically
   const handleCheckIn = async () => {
-    const tokenToSubmit = scannedToken || scanResult?.qr_token_raw || scanResult?.ticket_id;
+    const tokenToSubmit = scanResult?.qr_token_raw || scannedToken || scanResult?.ticket_id;
     if (!tokenToSubmit) return;
 
     setCheckingIn(true);

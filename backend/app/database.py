@@ -13,7 +13,7 @@ if db_url.startswith("postgres://"):
 
 connect_args = {}
 if db_url.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+    connect_args = {"check_same_thread": False, "timeout": 30}
     # Auto-create directory for persistent SQLite paths (e.g. /data/garba_night.db on Railway)
     raw_path = db_url.replace("sqlite:////", "/", 1) if db_url.startswith("sqlite:////") else db_url.replace("sqlite:///", "", 1)
     db_dir = os.path.dirname(raw_path)
@@ -24,6 +24,20 @@ if db_url.startswith("sqlite"):
         except Exception as e:
             logger.warning(f"Could not auto-create database directory {db_dir}: {e}")
     engine = create_engine(db_url, connect_args=connect_args)
+
+    from sqlalchemy import event
+
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA busy_timeout=10000")
+        except Exception as e:
+            logger.warning(f"Could not execute SQLite PRAGMAs: {e}")
+        finally:
+            cursor.close()
 else:
     engine = create_engine(
         db_url,
@@ -160,10 +174,10 @@ def sync_database_schema():
                     except Exception as e:
                         logger.warning(f"Could not add column {col_name} to payments: {e}")
 
-        # Ensure event_settings matches required ₹599.00 pricing, NAVRANG 2026 branding, and Razorpay configuration
+        # Ensure event_settings matches required ₹799.00 Phase 1 pricing, NAVRANG 2026 branding, and Razorpay configuration
         if "event_settings" in table_names:
             try:
-                conn.execute(text("UPDATE event_settings SET ticket_price = 599.0 WHERE ticket_price = 300.0 OR ticket_price IS NULL"))
+                conn.execute(text("UPDATE event_settings SET ticket_price = 799.0 WHERE ticket_price IN (300.0, 599.0) OR ticket_price IS NULL"))
                 conn.commit()
             except Exception as e:
                 logger.warning(f"Could not update event_settings ticket_price: {e}")
