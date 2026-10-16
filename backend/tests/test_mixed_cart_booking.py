@@ -78,53 +78,49 @@ def setup_test_data():
 def test_cart_pricing_authoritative_calculation():
     """Verify authoritative backend calculation for mixed cart Phase 1:
     2 × Group of 10 = ₹12,998 (20 passes)
-    3 × Couple      = ₹3,897  (6 passes)
-    2 × Stag        = ₹1,598  (2 passes)
-    Total           = ₹18,493 (28 passes)
+    4 × Stag        = ₹3,196  (4 passes)
+    Total           = ₹16,194 (24 passes)
     """
     db = SessionLocal()
     try:
         cart = [
             {"offer_id": "PHASE_1_GROUP_10", "quantity": 2},
-            {"offer_id": "PHASE_1_COUPLE", "quantity": 3},
-            {"offer_id": "PHASE_1_STAG", "quantity": 2},
+            {"offer_id": "PHASE_1_STAG", "quantity": 4},
         ]
         pricing = calculate_cart_pricing(items=cart, db=db)
-        assert pricing["total_amount"] == 18493.0
-        assert pricing["amount"] == 18493.0
-        assert pricing["total_passes"] == 28
-        assert pricing["ticket_count"] == 28
+        assert pricing["total_amount"] == 16194.0
+        assert pricing["amount"] == 16194.0
+        assert pricing["total_passes"] == 24
+        assert pricing["ticket_count"] == 24
         assert pricing["payment_fee"] == 0.0
         assert pricing["gst_amount"] == 0.0
         assert pricing["is_mixed_cart"] is True
-        assert len(pricing["items"]) == 3
+        assert len(pricing["items"]) == 2
 
         # Verify line subtotals
         assert pricing["items"][0]["line_total"] == 12998.0
         assert pricing["items"][0]["total_passes"] == 20
-        assert pricing["items"][1]["line_total"] == 3897.0
-        assert pricing["items"][1]["total_passes"] == 6
-        assert pricing["items"][2]["line_total"] == 1598.0
-        assert pricing["items"][2]["total_passes"] == 2
+        assert pricing["items"][1]["line_total"] == 3196.0
+        assert pricing["items"][1]["total_passes"] == 4
     finally:
         db.close()
 
 def test_cart_pricing_with_kids():
-    """Verify cart combining Phase 1 Group, Couple, and Kids:
+    """Verify cart combining Phase 1 Group, Stag, and Kids:
     1 × Group of 10  = ₹6,499 (10 passes)
-    1 × Couple       = ₹1,299 (2 passes)
+    2 × Stag         = ₹1,598 (2 passes)
     2 × Kids (5–12)  = ₹600   (2 passes)
-    Total            = ₹8,398 (14 passes)
+    Total            = ₹8,697 (14 passes)
     """
     db = SessionLocal()
     try:
         cart = [
             {"offer_id": "PHASE_1_GROUP_10", "quantity": 1},
-            {"offer_id": "PHASE_1_COUPLE", "quantity": 1},
+            {"offer_id": "PHASE_1_STAG", "quantity": 2},
             {"offer_id": "KIDS_5_12", "quantity": 2},
         ]
         pricing = calculate_cart_pricing(items=cart, db=db)
-        assert pricing["total_amount"] == 8398.0
+        assert pricing["total_amount"] == 8697.0
         assert pricing["total_passes"] == 14
         assert pricing["kids_count"] == 2
     finally:
@@ -142,6 +138,20 @@ def test_locked_phase_rejected_in_cart():
             calculate_cart_pricing(items=cart, db=db)
         assert exc.value.status_code == 400
         assert "Early Bird tickets are sold out. Please select Phase 1." in str(exc.value.detail)
+    finally:
+        db.close()
+
+def test_sold_out_couple_offer_rejected_in_cart():
+    """Verify that adding sold-out Phase 1 Couple Entry to cart raises HTTP 400."""
+    db = SessionLocal()
+    try:
+        cart = [
+            {"offer_id": "PHASE_1_COUPLE", "quantity": 1},
+        ]
+        with pytest.raises(HTTPException) as exc:
+            calculate_cart_pricing(items=cart, db=db)
+        assert exc.value.status_code == 400
+        assert "Phase 1 Couple Entry is sold out" in str(exc.value.detail)
     finally:
         db.close()
 
@@ -218,8 +228,7 @@ def test_full_mixed_cart_booking_order_and_tickets():
     try:
         cart = [
             {"offer_id": "PHASE_1_GROUP_10", "quantity": 2},
-            {"offer_id": "PHASE_1_COUPLE", "quantity": 3},
-            {"offer_id": "PHASE_1_STAG", "quantity": 2},
+            {"offer_id": "PHASE_1_STAG", "quantity": 4},
         ]
 
         full_order_id = f"order_mixed_cart_{uuid.uuid4().hex[:8]}"
@@ -244,17 +253,17 @@ def test_full_mixed_cart_booking_order_and_tickets():
             )
 
             # 1. Order verification
-            assert booking.amount == 18493.0
-            assert booking.ticket_count == 28
-            assert created_order_data["amount"] == 1849300  # 18,493 * 100 paise
+            assert booking.amount == 16194.0
+            assert booking.ticket_count == 24
+            assert created_order_data["amount"] == 1619400  # 16,194 * 100 paise
             assert created_order_data["currency"] == "INR"
-            assert created_order_data["notes"]["ticket_count"] == "28"
+            assert created_order_data["notes"]["ticket_count"] == "24"
 
             # Verify BookingItems
             items = db.query(BookingItem).filter(BookingItem.booking_id == booking.id).all()
-            assert len(items) == 3
-            assert sum(it.total_passes for it in items) == 28
-            assert sum(it.line_total for it in items) == 18493.0
+            assert len(items) == 2
+            assert sum(it.total_passes for it in items) == 24
+            assert sum(it.line_total for it in items) == 16194.0
 
             # 2. Payment confirmation and ticket generation
             with patch("app.services.email_service.email_service.send_confirmation_email"), \
@@ -270,17 +279,17 @@ def test_full_mixed_cart_booking_order_and_tickets():
                 assert confirmed_booking.booking_status == "CONFIRMED"
                 assert confirmed_booking.payment_status == "PAID"
 
-                # Verify 28 tickets generated
+                # Verify 24 tickets generated
                 tickets = db.query(Ticket).filter(Ticket.booking_id == booking.id).all()
-                assert len(tickets) == 28
+                assert len(tickets) == 24
 
                 # Verify each ticket is unique
                 ticket_ids = {t.ticket_id for t in tickets}
-                assert len(ticket_ids) == 28
+                assert len(ticket_ids) == 24
 
                 # Verify each QR token is unique
                 qr_tokens = {t.qr_token_raw for t in tickets}
-                assert len(qr_tokens) == 28
+                assert len(qr_tokens) == 24
 
                 # Verify all tickets are VALID
                 assert all(t.ticket_status == "VALID" for t in tickets)

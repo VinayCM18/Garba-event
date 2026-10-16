@@ -29,11 +29,12 @@ OFFER_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "phase_code": "PHASE_1",
         "phase_name": "PHASE 1",
         "type": "COUPLE",
-        "default_phase_status": "ACTIVE",
+        "default_phase_status": "SOLD_OUT",
+        "status": "SOLD_OUT",
         "title": "Couple Entry",
         "full_title": "Phase 1 — Couple Entry",
-        "badge": "POPULAR",
-        "description": "Entry for 2 people (1 Boy + 1 Girl).",
+        "badge": "SOLD OUT",
+        "description": "Entry for 2 people (1 Boy + 1 Girl). Phase 1 Couple Entry is sold out.",
         "passes_per_unit": 2,
         "price_per_unit": 1299.0,
         "unit_name": "Couple Pass",
@@ -146,7 +147,12 @@ def get_all_offers(db: Session) -> List[Dict[str, Any]]:
     offers_list = []
     for offer in sorted(OFFER_DEFINITIONS.values(), key=lambda o: o["display_order"]):
         phase_code = offer["phase_code"]
-        if phase_code == "ALL":
+        offer_id = offer["id"]
+
+        # Offer-specific sold out override: If offer is specifically marked SOLD_OUT (e.g. PHASE_1_COUPLE or Early Bird)
+        if offer.get("status") == "SOLD_OUT" or offer.get("default_phase_status") == "SOLD_OUT" or offer_id == "PHASE_1_COUPLE":
+            phase_status = "SOLD_OUT"
+        elif phase_code == "ALL":
             phase_status = "ACTIVE" if booking_open else "LOCKED"
         else:
             db_status = phase_status_map.get(phase_code)
@@ -264,15 +270,30 @@ def calculate_cart_pricing(items: List[Dict[str, Any]], db: Session = None) -> D
                 detail=f"Invalid quantity '{raw_qty}' for offer '{offer['title']}'. Must be a positive integer."
             )
 
-        # Check phase status
+        # Check phase status and offer-specific availability
         phase_code = offer["phase_code"]
         phase_name = offer["phase_name"]
+        offer_id = offer["id"]
+        offer_status = offer.get("status") or offer.get("default_phase_status")
+
+        if offer_id == "PHASE_1_COUPLE" or (offer_id.startswith("PHASE_1") and offer_status == "SOLD_OUT"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Phase 1 Couple Entry is sold out. Please select Phase 1 Single Entry or Group of 10."
+            )
+
+        if phase_code == "EARLY_BIRD" or (offer_status == "SOLD_OUT" and phase_code != "PHASE_1"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Early Bird tickets are sold out. Please select Phase 1."
+            )
+
         if phase_code != "ALL":
             phase_status = phase_status_map.get(phase_code, offer.get("default_phase_status", "LOCKED"))
-            if phase_code == "EARLY_BIRD" or phase_status == "SOLD_OUT":
+            if phase_status == "SOLD_OUT":
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Early Bird tickets are sold out. Please select Phase 1."
+                    detail=f"Ticket phase '{phase_name}' is sold out."
                 )
             if phase_status != "ACTIVE":
                 raise HTTPException(

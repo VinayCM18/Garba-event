@@ -76,14 +76,14 @@ const DEFAULT_OFFERS: OfferItem[] = [
     id: 'PHASE_1_COUPLE',
     phase_code: 'PHASE_1',
     phase_name: 'PHASE 1',
-    phase_status: 'ACTIVE',
+    phase_status: 'SOLD_OUT',
     type: 'COUPLE',
     title: 'PHASE 1 — COUPLE ENTRY',
     price: 1299,
     per_unit_passes: 2,
-    description: 'Entry for 2 people (1 Boy + 1 Girl).',
-    badge: 'POPULAR CHOICE',
-    is_purchasable: true
+    description: 'Entry for 2 people (1 Boy + 1 Girl). Phase 1 Couple Entry is sold out.',
+    badge: 'SOLD OUT',
+    is_purchasable: false
   },
   {
     id: 'PHASE_1_GROUP_10',
@@ -179,7 +179,7 @@ declare global {
 export const BookingPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { error, success, info } = useToast();
+  const { error, success, info, warning } = useToast();
 
   const [config, setConfig] = useState<EventConfig | null>(null);
   const [offersList, setOffersList] = useState<OfferItem[]>(DEFAULT_OFFERS);
@@ -375,8 +375,8 @@ export const BookingPage: React.FC = () => {
   // Cart manipulation handlers
   const handleSetQuantity = (offerId: string, nextQty: number) => {
     const offer = offersList.find((o) => o.id === offerId);
-    if (offer && !offer.is_purchasable) {
-      info('Coming Soon', `${offer.title} is not active yet. Please select an available Early Bird offer.`);
+    if (offer && (!offer.is_purchasable || offer.phase_status === 'SOLD_OUT')) {
+      warning('Sold Out', `${offer.title} is sold out and cannot be purchased.`);
       return;
     }
 
@@ -748,12 +748,15 @@ export const BookingPage: React.FC = () => {
                 const qty = cart[offer.id] || 0;
                 const isInCart = qty > 0;
                 const maxAllowed = offer.type === 'GROUP' ? 5 : 10;
+                const isSoldOut = !offer.is_purchasable || offer.phase_status === 'SOLD_OUT';
 
                 return (
                   <div
                     key={offer.id}
                     className={`relative rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between ${
-                      isInCart
+                      isSoldOut
+                        ? 'bg-[#080a12]/80 border border-white/[0.08] select-none opacity-85'
+                        : isInCart
                         ? 'glass-panel-gold border-2 border-[#d4af37] shadow-[0_0_35px_rgba(212,175,55,0.35)] scale-[1.01]'
                         : 'glass-panel border border-white/[0.08] hover:border-white/20'
                     }`}
@@ -762,14 +765,21 @@ export const BookingPage: React.FC = () => {
                     <div className="flex items-center justify-between mb-4">
                       <span
                         className={`text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full ${
-                          isInCart
+                          isSoldOut
+                            ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                            : isInCart
                             ? 'bg-[#d4af37] text-black shadow-sm'
                             : 'bg-white/10 text-[#f3e4b2] border border-white/10'
                         }`}
                       >
-                        {offer.badge}
+                        {isSoldOut ? 'SOLD OUT' : offer.badge}
                       </span>
-                      {isInCart && (
+                      {isSoldOut ? (
+                        <span className="text-xs font-bold text-rose-400 flex items-center gap-1">
+                          <Lock className="w-3.5 h-3.5 text-rose-400" />
+                          <span>SOLD OUT</span>
+                        </span>
+                      ) : isInCart && (
                         <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
                           <Check className="w-3.5 h-3.5 stroke-[3]" />
                           <span>{qty * offer.per_unit_passes} Passes</span>
@@ -781,12 +791,14 @@ export const BookingPage: React.FC = () => {
                       <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
                         {offer.type === 'GROUP' ? 'Group Pass (10 People)' : offer.type === 'COUPLE' ? 'Couple Pass (2 People)' : 'Single Pass (1 Person)'}
                       </div>
-                      <h3 className="text-xl font-black text-white mt-1 font-['Outfit']">{offer.title}</h3>
+                      <h3 className={`text-xl font-black mt-1 font-['Outfit'] ${isSoldOut ? 'text-slate-300' : 'text-white'}`}>{offer.title}</h3>
                       <p className="text-xs text-slate-300 mt-2 leading-relaxed">{offer.description}</p>
 
                       {/* Couple Pass specification: 1 Boy + 1 Girl */}
                       {offer.type === 'COUPLE' && (
-                        <div className="mt-2.5 inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#f3e4b2]">
+                        <div className={`mt-2.5 inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl ${
+                          isSoldOut ? 'bg-white/[0.04] border border-white/10 text-slate-400' : 'bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#f3e4b2]'
+                        }`}>
                           <div className="flex items-center gap-1">
                             {/* Boy avatar icon */}
                             <div className="w-5 h-5 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/40 flex items-center justify-center text-[#d4af37]" title="1 Boy">
@@ -806,7 +818,7 @@ export const BookingPage: React.FC = () => {
                               </svg>
                             </div>
                           </div>
-                          <span className="text-xs font-bold tracking-wide text-[#f3e4b2]">
+                          <span className={`text-xs font-bold tracking-wide ${isSoldOut ? 'text-slate-400' : 'text-[#f3e4b2]'}`}>
                             1 Boy + 1 Girl • 2 PASSES INCLUDED
                           </span>
                         </div>
@@ -839,19 +851,36 @@ export const BookingPage: React.FC = () => {
                           <span>A grand Dandiya night filled with music, dance, and entertainment!</span>
                         </div>
                       </div>
+
+                      {/* Sold Out Notice */}
+                      {isSoldOut && (
+                        <div className="mt-3 p-3 rounded-xl bg-rose-500/[0.08] border border-rose-500/20 text-center">
+                          <p className="text-xs text-rose-200/90 font-medium">
+                            {offer.title} is sold out. Please select Phase 1 Single Entry or Group of 10.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-6 pt-5 border-t border-white/[0.08]">
                       <div className="flex items-baseline justify-between mb-4">
                         <div>
-                          <div className="text-3xl font-black text-white font-mono">
+                          <div className={`text-3xl font-black font-mono ${
+                            isSoldOut ? 'text-slate-400 line-through decoration-rose-500/70 decoration-2' : 'text-white'
+                          }`}>
                             ₹{offer.price.toLocaleString('en-IN')}
                           </div>
-                          <div className="text-[11px] font-bold text-[#f3e4b2] mt-0.5 uppercase tracking-wider">
-                            {offer.per_unit_passes === 1 ? '1 PASS' : `${offer.per_unit_passes} PASSES INCLUDED`}
+                          <div className={`text-[11px] font-bold mt-0.5 uppercase tracking-wider ${
+                            isSoldOut ? 'text-rose-400' : 'text-[#f3e4b2]'
+                          }`}>
+                            {isSoldOut ? 'SOLD OUT • ' : ''}{offer.per_unit_passes === 1 ? '1 PASS' : `${offer.per_unit_passes} PASSES INCLUDED`}
                           </div>
                         </div>
-                        {isInCart && (
+                        {isSoldOut ? (
+                          <span className="px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                            SOLD OUT
+                          </span>
+                        ) : isInCart && (
                           <div className="text-right">
                             <div className="text-[10px] text-slate-400 uppercase font-semibold">Subtotal</div>
                             <div className="text-lg font-bold text-[#f3e4b2] font-mono">
@@ -862,7 +891,16 @@ export const BookingPage: React.FC = () => {
                       </div>
 
                       {/* Quantity Stepper or Add Button */}
-                      {isInCart ? (
+                      {isSoldOut ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider bg-white/[0.05] border border-white/10 text-slate-500 flex items-center justify-center gap-2 cursor-not-allowed select-none"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>SOLD OUT</span>
+                        </button>
+                      ) : isInCart ? (
                         <div className="flex items-center justify-between p-1.5 rounded-2xl bg-black/60 border border-[#d4af37]/40 shadow-inner">
                           <button
                             type="button"

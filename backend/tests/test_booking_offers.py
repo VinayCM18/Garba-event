@@ -80,12 +80,12 @@ def test_public_config_offers_structure():
     assert offers["PHASE_1_GROUP_10"]["phase_status"] == "ACTIVE"
     assert offers["PHASE_1_GROUP_10"]["is_purchasable"] is True
 
-    # Phase 1 Couple (Active)
+    # Phase 1 Couple (Sold Out)
     assert "PHASE_1_COUPLE" in offers
     assert offers["PHASE_1_COUPLE"]["price"] == 1299.0
     assert offers["PHASE_1_COUPLE"]["type"] == "COUPLE"
-    assert offers["PHASE_1_COUPLE"]["phase_status"] == "ACTIVE"
-    assert offers["PHASE_1_COUPLE"]["is_purchasable"] is True
+    assert offers["PHASE_1_COUPLE"]["phase_status"] == "SOLD_OUT"
+    assert offers["PHASE_1_COUPLE"]["is_purchasable"] is False
 
     # Kids 5-12
     assert "KIDS_5_12" in offers
@@ -149,19 +149,16 @@ def test_phase_1_group_of_10_pricing_and_order():
     assert order_data["passes_count"] == 10
     assert order_data["ticket_count"] == 10
 
-def test_phase_1_couple_pricing_and_order():
-    """Verify Phase 1 Couple is ₹1,299 and allocates 2 passes."""
+def test_phase_1_couple_is_sold_out_and_rejected():
+    """Verify Phase 1 Couple calculations and new order creation are rejected with 400 Bad Request."""
     calc_res = client.get("/api/payments/calculate", params={
         "offer_id": "PHASE_1_COUPLE",
         "quantity": 1
     })
-    assert calc_res.status_code == 200
-    calc_data = calc_res.json()
-    assert calc_data["ticket_subtotal"] == 1299.0
-    assert calc_data["total_amount"] == 1299.0
-    assert calc_data["passes_count"] == 2
+    assert calc_res.status_code == 400
+    assert "Phase 1 Couple Entry is sold out" in calc_res.json()["detail"]
 
-    # Create Order
+    # Attempt to Create Order must fail with 400
     with mock_razorpay_order_create():
         order_res = client.post("/api/payments/create-order", json={
             "customer_name": "Aarav and Ananya",
@@ -170,11 +167,8 @@ def test_phase_1_couple_pricing_and_order():
             "offer_id": "PHASE_1_COUPLE",
             "quantity": 1
         })
-    assert order_res.status_code == 200
-    order_data = order_res.json()
-    assert order_data["amount"] == 1299.0
-    assert order_data["passes_count"] == 2
-    assert order_data["ticket_count"] == 2
+    assert order_res.status_code == 400
+    assert "Phase 1 Couple Entry is sold out" in order_res.json()["detail"]
 
 def test_kids_pricing_and_validation():
     """Verify Kids 5-12 is ₹300, requires child name and valid age (5-12)."""
@@ -298,23 +292,30 @@ def test_group_of_10_generates_10_individual_qr_tickets():
         db.close()
 
 def test_couple_generates_2_individual_qr_tickets():
-    """Confirming a Couple booking generates 2 distinct QR tickets."""
-    with mock_razorpay_order_create():
-        order_res = client.post("/api/payments/create-order", json={
-            "customer_name": "Kavita and Siddharth",
-            "email": "kavita.sid@example.com",
-            "phone": "9876543218",
-            "offer_id": "PHASE_1_COUPLE",
-            "quantity": 1
-        })
-    assert order_res.status_code == 200
-    booking_id = order_res.json()["booking_id"]
-
+    """Confirming a pre-existing Couple booking generates 2 distinct QR tickets."""
     db = SessionLocal()
     try:
+        unique_id = uuid.uuid4().hex[:8]
+        booking = Booking(
+            booking_id=f"GN-2026-CPL-{unique_id}",
+            customer_name="Kavita and Siddharth",
+            email="kavita.sid@example.com",
+            phone="9876543218",
+            ticket_count=2,
+            ticket_price=649.5,
+            amount=1299.0,
+            offer_id="PHASE_1_COUPLE",
+            offer_title="Phase 1 — Couple Entry",
+            ticket_phase="PHASE_1",
+            payment_status="PENDING",
+            booking_status="PENDING"
+        )
+        db.add(booking)
+        db.commit()
+
         confirmed = booking_service.confirm_booking_and_generate_tickets(
-            booking_id=booking_id,
-            razorpay_payment_id="pay_test_couple",
+            booking_id=booking.booking_id,
+            razorpay_payment_id=f"pay_couple_{unique_id}",
             payment_method="RAZORPAY",
             db=db
         )

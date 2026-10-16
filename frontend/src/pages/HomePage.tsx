@@ -425,8 +425,8 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
 
-        {/* 3-Card Ticket Phase Grid (Responsive, stacks vertically on mobile, no horizontal scrolling) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7 max-w-6xl mx-auto text-left items-stretch">
+        {/* 4-Card Ticket Phase Grid (Responsive, stacks vertically on mobile, no horizontal scrolling) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto text-left items-stretch">
           
           {/* Card 1: PHASE 1 SINGLE ENTRY (CURRENTLY ACTIVE) */}
           <div className="p-7 sm:p-8 rounded-3xl glass-panel-gold border-2 border-[#d4af37] flex flex-col justify-between relative overflow-hidden shadow-[0_0_35px_rgba(212,175,55,0.25)] group">
@@ -501,7 +501,81 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Card 2: GROUP OF 10 (PHASE 1 GROUP OFFER - ACTIVE) */}
+          {/* Card 2: PHASE 1 COUPLE ENTRY (SOLD OUT) */}
+          <div className="p-7 sm:p-8 rounded-3xl bg-[#090b14]/90 border border-white/[0.12] flex flex-col justify-between relative overflow-hidden group select-none opacity-85">
+            {/* Elegant dark overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#06070c]/70 to-[#06070c]/95 pointer-events-none" />
+
+            <div className="relative z-10">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black tracking-wider uppercase text-rose-300 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/25 font-['Outfit']">
+                    SOLD OUT
+                  </span>
+                  <h3 className="text-2xl sm:text-3xl font-black text-slate-300 mt-3 font-['Cinzel'] tracking-wide">
+                    PHASE 1
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                    Couple Entry Admission Pass
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl sm:text-4xl font-black text-slate-400 line-through decoration-rose-500 decoration-2 font-mono">₹1,299</div>
+                  <div className="text-[11px] text-rose-400 font-semibold mt-0.5">Sold Out</div>
+                </div>
+              </div>
+
+              <div className="mt-4 inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-slate-400 text-xs">
+                <span>1 Boy + 1 Girl • 2 Passes Included</span>
+              </div>
+
+              <div className="mt-6 pt-5 border-t border-white/[0.08] space-y-3 text-xs text-slate-400">
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Full admission to NAVRANG 2026 celebration</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Complimentary food voucher for both attendees</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Complimentary welcome drinks / mocktails</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Dandiya sticks provided</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>LIVE Gujarati Dhol, DJ & Dandiya Raas</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Instant encrypted QR tickets via Email & PDF</span>
+                </div>
+              </div>
+
+              <div className="mt-6 p-3.5 rounded-xl bg-rose-500/[0.06] border border-rose-500/20 text-center">
+                <p className="text-xs text-rose-200/90 font-medium">
+                  Phase 1 Couple Entry is sold out. Please select Phase 1 Single Entry or Group of 10.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 relative z-10">
+              <button
+                type="button"
+                disabled
+                className="w-full py-4 rounded-2xl bg-white/[0.05] border border-white/10 text-slate-500 font-bold text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed select-none"
+              >
+                <Lock className="w-4 h-4 text-slate-500" />
+                <span>SOLD OUT</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Card 3: GROUP OF 10 (PHASE 1 GROUP OFFER - ACTIVE) */}
           <div className="p-7 sm:p-8 rounded-3xl glass-panel-gold border-2 border-[#d4af37]/70 flex flex-col justify-between relative overflow-hidden shadow-2xl shadow-[#d4af37]/20 group">
             {/* Badge in top right */}
             <div className="absolute top-4 right-4 flex items-center gap-1.5">
