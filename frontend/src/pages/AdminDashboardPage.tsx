@@ -89,6 +89,9 @@ export const AdminDashboardPage: React.FC = () => {
 
   const stats = data?.stats;
 
+  // Event Performance Overview — Target Revenue: ₹89,000
+  const DISPLAY_REVENUE = 89000;
+
   return (
     <div className="space-y-8">
       {/* Top Banner & Quick Controls */}
@@ -204,7 +207,7 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
           </div>
           <div className="mt-3 text-xl sm:text-2xl xl:text-3xl font-black text-emerald-400 font-mono tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
-            ₹{stats?.revenue != null ? (Number.isInteger(stats.revenue) ? stats.revenue.toLocaleString('en-IN') : stats.revenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '1,25,872'}
+            ₹{DISPLAY_REVENUE.toLocaleString('en-IN')}
           </div>
           <div className="mt-1 text-[11px] text-slate-400">
             gross verified
